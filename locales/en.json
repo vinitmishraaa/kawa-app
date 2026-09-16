@@ -1,0 +1,198 @@
+{
+  "common": {
+    "appName": "Kawa",
+    "next": "Next",
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "retry": "Try again",
+    "logout": "Log out",
+    "kg": "kg"
+  },
+  "roleSelect": {
+    "title": "Who are you?",
+    "subtitle": "Choose how you'll use Kawa",
+    "customer": "Customer",
+    "customerHint": "I want to sell scrap",
+    "kabadiwala": "Kabadiwala",
+    "kabadiwalaHint": "I collect and sell scrap",
+    "officer": "Officer",
+    "officerHint": "I collect from Kabadiwalas"
+  },
+  "auth": {
+    "signupTitle": "Create your account",
+    "loginTitle": "Welcome back",
+    "name": "Your name",
+    "email": "Email",
+    "phone": "Phone number",
+    "password": "Password",
+    "signupButton": "Create account",
+    "loginButton": "Log in",
+    "haveAccount": "Already have an account? Log in",
+    "noAccount": "New here? Create an account",
+    "errorGeneric": "Something went wrong. Please try again."
+  },
+  "languageSelect": {
+    "title": "Choose your language",
+    "subtitle": "You can change this later"
+  },
+  "permissions": {
+    "title": "A few permissions",
+    "subtitle": "Kawa needs these to work well",
+    "camera": "Camera",
+    "cameraHint": "To photograph scrap items",
+    "microphone": "Microphone",
+    "microphoneHint": "To record short clips with photos",
+    "photos": "Photos",
+    "photosHint": "To attach existing pictures",
+    "location": "Location",
+    "locationHint": "To match you with people nearby",
+    "allow": "Allow all & continue",
+    "skip": "Skip for now"
+  },
+  "customerDashboard": {
+    "title": "My scrap",
+    "addScrap": "Add scrap",
+    "noListings": "You haven't listed any scrap yet.",
+    "statusAvailable": "Waiting for a kabadiwala",
+    "statusBooked": "Booked",
+    "statusCollected": "Collected"
+  },
+  "addScrap": {
+    "title": "Add scrap",
+    "takePhoto": "Take photo",
+    "chooseCategory": "Choose category",
+    "chooseSubCategory": "Choose type",
+    "quantity": "Approximate quantity",
+    "unit": "Unit",
+    "addAnother": "Add another item",
+    "reviewTitle": "Items in this session",
+    "submitAll": "Submit listing(s)",
+    "needPhoto": "Please add a photo first.",
+    "needCategory": "Please choose a category.",
+    "needQuantity": "Please enter a quantity.",
+    "locatingYou": "Finding your location...",
+    "success": "Your scrap has been listed!"
+  },
+  "kabadiwalaDashboard": {
+    "title": "Nearby scrap",
+    "empty": "No scrap listed nearby right now.",
+    "away": "away",
+    "book": "Book this pickup",
+    "sellToOfficer": "Sell to Officer"
+  },
+  "booking": {
+    "title": "Booking",
+    "customer": "Customer",
+    "kabadiwala": "Kabadiwala",
+    "status": "Status",
+    "priceAgreed": "Price agreed",
+    "enterPrice": "Enter agreed price",
+    "markCollected": "Mark as collected",
+    "collected": "Collected",
+    "bookedSuccess": "Booking confirmed!",
+    "collectedSuccess": "Marked as collected.",
+    "matchedKabadiwala": "Matched Kabadiwala",
+    "matchedCustomer": "Matched customer",
+    "phone": "Phone",
+    "notAvailable": "Not available",
+    "contactRevealed": "Contact details are visible because this booking is confirmed."
+  },
+  "officer": {
+    "verificationTitle": "Officer verification",
+    "verificationBody": "Create your officer account and upload identity documents. An admin must approve your account before officer access is enabled.",
+    "uploadDocuments": "Upload identity documents",
+    "uploadDocumentsHint": "Choose up to 3 clear photos of your government/official ID documents.",
+    "submitVerification": "Submit for review",
+    "verificationRequired": "Please enter your details and upload at least one document.",
+    "pendingTitle": "Verification pending",
+    "pendingBody": "Your officer documents are waiting for manual review. Access will open after an admin marks your profile as verified.",
+    "rejectedTitle": "Verification rejected",
+    "rejectedBody": "Your verification was rejected. Update your documents and submit them again.",
+    "approvedTitle": "Verification approved",
+    "approvedBody": "Your officer account is approved. You can open the dashboard now.",
+    "checkStatus": "Check status",
+    "resubmit": "Submit new documents",
+    "dashboardTitle": "Officer dashboard",
+    "totalCollected": "Total collected",
+    "handovers": "Handovers",
+    "materialTypes": "Material types",
+    "openRecords": "Open collection records",
+    "recentTitle": "Recent handovers",
+    "recordsTitle": "Collection records",
+    "totalQuantity": "Total quantity",
+    "totalValue": "Total value",
+    "materialFilter": "Filter by material",
+    "allMaterials": "All",
+    "minQuantity": "Minimum quantity (kg)",
+    "noRecords": "No officer collection records match these filters.",
+    "unknownKabadiwala": "Kabadiwala"
+  },
+  "categories": {
+    "paper": {
+      "label": "Paper",
+      "newspaper": "Newspaper",
+      "cardboard": "Cardboard",
+      "books": "Books"
+    },
+    "plastic": {
+      "label": "Plastic",
+      "bottles": "Bottles",
+      "containers": "Containers",
+      "mixed": "Mixed plastic"
+    },
+    "metal": {
+      "label": "Metal",
+      "iron": "Iron",
+      "aluminium": "Aluminium",
+      "copper": "Copper",
+      "steel": "Steel"
+    },
+    "ewaste": {
+      "label": "E-waste",
+      "appliances": "Appliances",
+      "electronics": "Electronics",
+      "cables": "Cables"
+    },
+    "glass": {
+      "label": "Glass",
+      "bottles": "Bottles",
+      "jars": "Jars"
+    },
+    "other": {
+      "label": "Other",
+      "mixed": "Mixed / other"
+    }
+  },
+  "sellOfficer": {
+    "title": "Sell to Officer",
+    "chooseOfficer": "Choose an approved officer",
+    "noOfficers": "No approved officers are available yet.",
+    "officer": "Officer",
+    "noPhone": "No phone shared",
+    "material": "Material",
+    "quantity": "Quantity (kg)",
+    "price": "Agreed price (₹)",
+    "confirm": "Confirm handover",
+    "required": "Choose an officer and material, then enter a valid quantity and price.",
+    "successTitle": "Handover recorded",
+    "successBody": "The sale to {{name}} was recorded. Contact: {{phone}}"
+  },
+  "rating": {
+    "title": "Rate your Kabadiwala",
+    "subtitle": "Your feedback helps customers choose trusted Kabadiwalas.",
+    "comment": "Optional comment",
+    "submit": "Submit rating",
+    "update": "Update rating",
+    "saved": "Rating saved."
+  },
+  "priceTrend": {
+    "title": "Price trends",
+    "subtitle": "Recent Kabadiwala → Officer transaction prices over the last 90 days.",
+    "all": "All materials",
+    "empty": "No officer handover prices are available yet.",
+    "button": "Price trends"
+  }
+}

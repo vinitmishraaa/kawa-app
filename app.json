@@ -1,0 +1,94 @@
+{
+  "expo": {
+    "name": "Kawa",
+    "slug": "kawa-app",
+    "scheme": "kawa",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F4F1E9"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kawa.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Kawa uses your camera so you can photograph scrap items for a listing.",
+        "NSMicrophoneUsageDescription": "Kawa may record short clips alongside photos to describe a listing.",
+        "NSPhotoLibraryUsageDescription": "Kawa needs access to your photos so you can attach existing pictures to a listing.",
+        "NSLocationWhenInUseUsageDescription": "Kawa uses your location to match you with nearby customers and kabadiwalas."
+      }
+    },
+    "android": {
+      "package": "com.kawa.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F4F1E9"
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Kawa uses your camera so you can photograph scrap items for a listing.",
+          "microphonePermission": "Kawa may record short clips alongside photos to describe a listing.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kawa needs access to your photos so you can attach existing pictures to a listing.",
+          "cameraPermission": "Kawa uses your camera so you can photograph scrap items for a listing."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Kawa uses your location to match you with nearby customers and kabadiwalas."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#2F6B4F"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#F4F1E9"
+        }
+      ],
+      "expo-status-bar",
+      "expo-image",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
