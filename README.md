@@ -1,207 +1,817 @@
-# Kawa (KabadiWala) — Phase 1
+# Kawa — KabadiWala Marketplace
 
-A three-sided scrap-collection marketplace (Customer → Kabadiwala → Officer),
-built with Expo/React Native + Supabase. Zero paid subscriptions anywhere in
-this stack — see the cost notes at the bottom.
+> A role-based digital scrap collection and recycling marketplace connecting **Customers, Kabadiwalas, and Officers** through one mobile application.
 
-This is **Phase 1**: role selection, signup/login, customer "Add Scrap",
-kabadiwala nearby-listings + booking, and marking a pickup collected. Officer
-role, ratings, and push notifications are stubbed for Phase 2/3.
+Kawa is being built as a practical end-to-end platform for managing the scrap lifecycle — from a customer creating a scrap listing, to a nearby Kabadiwala accepting and collecting it, to an Officer managing verified handovers and material records.
 
-## One deviation from the original brief, worth knowing up front
+The project is built with **Expo + React Native + TypeScript** on the mobile side and **Supabase** for authentication, database, storage, Row Level Security, and backend functions.
 
-The brief asked for `react-native-maps` with OpenStreetMap tiles so there'd
-be no Google Maps API key needed. In practice `react-native-maps` renders its
-base map through the **Google Maps SDK on Android no matter what tiles you
-overlay** — so that combination still needs a Google Cloud API key (and a
-billing-enabled account) on Android. To keep this genuinely zero-key on both
-platforms, the map screen (`components/LeafletMap.tsx`) instead renders
-OpenStreetMap through **Leaflet.js inside a WebView**. Same open map data,
-no account, no key, works identically on iOS and Android.
+---
 
-## Prerequisites (all free)
+## Project Vision
 
-1. **Node.js 22.13+** — check with `node -v`.
-2. **Git**
-3. A code editor (VS Code or similar)
-4. **Docker Desktop** — only if you want to run Supabase fully locally
-   (free for individual/student use). Optional — you can use the hosted
-   free tier instead, see below.
-5. **Expo Go** app on your Android/iOS phone (from the Play Store / App
-   Store) — for instant testing without a native build. Note: because this
-   project uses a WebView (for the map) and the camera, plain Expo Go
-   works for every Phase-1 screen — you do **not** need a custom dev build
-   for this phase.
-6. **Java JDK 17** + **Android Studio** — only needed if you want an Android
-   emulator instead of testing on your own phone.
+Traditional scrap collection is often informal, fragmented, and difficult to track. Kawa aims to bring the complete workflow into a single digital platform where:
 
-## 1. Install dependencies
+- Customers can list scrap from their phone.
+- Kabadiwalas can discover nearby collection opportunities and manage bookings.
+- Officers can verify participants and maintain collection/handover records.
+- Transactions, ratings, material quantities, and price trends can be tracked digitally.
+- The system can gradually evolve into a larger recycling and circular-economy platform.
+
+---
+
+## Current Project Status
+
+| Area | Status |
+|---|---|
+| Customer workflow | Implemented |
+| Kabadiwala workflow | Implemented |
+| Officer verification | Implemented |
+| Officer dashboard & records | Implemented |
+| Customer ratings & feedback | Implemented |
+| Kabadiwala → Officer handover | Implemented |
+| Transaction ledger & RLS | Implemented |
+| Nearby Kabadiwala discovery | Implemented |
+| Material price trends | Implemented |
+| Pull-to-refresh & error states | Implemented |
+| Push notification integration | Implemented as best-effort / development-build feature |
+| Advanced analytics | Future scope |
+| AI-powered features | Future scope |
+| Production notification infrastructure | Future scope |
+
+---
+
+# Core User Roles
+
+## 1. Customer
+
+The Customer is the person who wants to sell or dispose of scrap through Kawa.
+
+### Customer capabilities
+
+- Role selection and account creation.
+- Login/logout and persistent authentication.
+- Language selection.
+- Permission onboarding for camera, microphone, photos and location.
+- Add one or multiple scrap items in a listing.
+- Capture/select scrap photos.
+- Select material category and sub-category.
+- Enter quantity.
+- Submit scrap listings.
+- See listing status.
+- View matched Kabadiwala information after the relevant booking/match exists.
+- See agreed collection price after collection.
+- Submit rating and feedback after collection.
+- Refresh dashboard data.
+
+### Customer flow
+
+```text
+Sign Up / Login
+      ↓
+Select Customer
+      ↓
+Add Scrap
+      ↓
+Photo + Category + Quantity
+      ↓
+Submit Listing
+      ↓
+Wait for Kabadiwala
+      ↓
+Kabadiwala Books Pickup
+      ↓
+Collection
+      ↓
+Agreed Price
+      ↓
+Rating & Feedback
+```
+
+---
+
+# 2. Kabadiwala
+
+The Kabadiwala receives nearby scrap collection opportunities and manages the pickup lifecycle.
+
+### Kabadiwala capabilities
+
+- Kabadiwala registration/login.
+- Nearby scrap listing discovery.
+- Location-based listing sorting.
+- Map-based discovery.
+- Distance information in kilometres.
+- View scrap category, quantity and listing information.
+- Book a pickup.
+- Enter the agreed price.
+- Mark a pickup as collected.
+- Access matched customer information where permitted by the workflow.
+- Sell/hand over collected material to an approved Officer.
+- Select Officer, material, quantity and price for a handover.
+- View relevant transaction/collection records.
+- Refresh dashboard and records.
+
+### Kabadiwala flow
+
+```text
+Login
+  ↓
+Nearby Listings
+  ↓
+View Scrap Details
+  ↓
+Book Pickup
+  ↓
+Agree Price
+  ↓
+Collect Scrap
+  ↓
+Transaction Recorded
+  ↓
+Sell / Handover to Officer
+```
+
+---
+
+# 3. Officer
+
+The Officer role adds a verification and material-handover layer to the platform.
+
+### Officer capabilities
+
+- Officer registration.
+- Upload identity/verification documents.
+- Pending verification state.
+- Approved/rejected verification state.
+- Access controlled by the officer's verification status.
+- View collection/handover records.
+- Filter records.
+- Receive Kabadiwala handover transactions.
+- Track material category, quantity and price.
+- View basic material price trends.
+- Refresh records and trend data.
+
+### Officer verification flow
+
+```text
+Officer Sign Up
+      ↓
+Upload Identity Documents
+      ↓
+Pending Verification
+      ↓
+Admin / Supabase Verification
+      ↓
+Approved / Rejected
+      ↓
+Approved Officer Dashboard
+```
+
+For the current MVP, officer approval is performed through Supabase Table Editor by setting the officer profile's `verified` field to `true` and updating the corresponding verification record.
+
+---
+
+# Major Features
+
+## Authentication & Role Management
+
+- Supabase Authentication.
+- Role-based onboarding.
+- Customer, Kabadiwala and Officer roles.
+- Persistent sessions.
+- Protected role-specific navigation.
+- Profile-based verification state.
+
+## Scrap Listing System
+
+Customers can create scrap listings containing:
+
+- Scrap category.
+- Scrap sub-category.
+- Quantity.
+- Scrap image/photo.
+- Collection location.
+- Listing status.
+
+Multiple items can be added before submitting listings.
+
+## Location & Nearby Discovery
+
+Kawa uses location-aware discovery for Kabadiwalas.
+
+- Customer listing location is stored in the database.
+- Kabadiwalas can discover nearby listings.
+- Listings can be ordered by distance.
+- Nearby Kabadiwala lookup is supported through a Supabase/PostGIS function.
+- Distance is returned in metres and displayed in kilometres where appropriate.
+
+## OpenStreetMap-Based Map
+
+The project uses an OpenStreetMap-based map through `Leaflet.js` inside a React Native WebView.
+
+This approach was selected so the application does not depend on a Google Maps API key for its map implementation.
+
+## Booking & Collection
+
+The pickup lifecycle is represented digitally:
+
+```text
+Waiting for Kabadiwala
+        ↓
+Booked / Accepted
+        ↓
+Collected
+        ↓
+Completed
+```
+
+The agreed collection price is stored as part of the transaction workflow.
+
+## Transaction Ledger
+
+Transactions connect the different roles and record:
+
+- From user.
+- To user.
+- From role.
+- To role.
+- Material category.
+- Quantity.
+- Price.
+- Timestamp.
+
+Transaction insertion is protected with Row Level Security policies so authenticated users cannot freely create arbitrary ledger records.
+
+## Officer Verification
+
+Officer documents are stored in a private Supabase Storage bucket.
+
+The current system includes policies that restrict officer document insertion and reading to the authenticated user's own folder.
+
+## Ratings & Feedback
+
+After an eligible customer collection:
+
+- Customer can submit a rating.
+- Customer can provide feedback.
+- Kabadiwala rating summary can be displayed on the matched Kabadiwala card.
+
+## Kabadiwala → Officer Handover
+
+Kabadiwalas can transfer collected material to an approved Officer.
+
+The flow includes:
+
+1. Select an approved Officer.
+2. Select material.
+3. Enter quantity.
+4. Enter price.
+5. Record the transaction.
+6. Officer can view the resulting record.
+
+## Material Price Trends
+
+Kawa includes a basic price-trend screen backed by the `get_price_trend` database function.
+
+The current implementation supports a 90-day material price view and can filter trends by material category.
+
+## Push Notifications
+
+The application includes an Expo push notification integration designed around:
+
+- Push-token storage in `profiles.push_token`.
+- Notification permission handling.
+- Expo push-token registration.
+- Notification delivery for relevant workflow events.
+- Best-effort failure handling so notification problems do not stop the main application flow.
+
+**Important:** Android remote push notification functionality is not available through standard Expo Go for newer Expo SDK workflows. Remote notification testing should use an Expo development build / production build on a physical device.
+
+## Multi-language Foundation
+
+The project contains an i18n setup and locale resources so the application can support multiple languages as the interface grows.
+
+---
+
+# Tech Stack
+
+### Mobile Application
+
+- **React Native**
+- **Expo SDK 57**
+- **Expo Router**
+- **TypeScript**
+- **NativeWind / Tailwind CSS**
+- **Zustand** for application state
+- **React Native Gesture Handler**
+- **React Native Safe Area Context**
+- **React Native WebView**
+
+### Device Features
+
+- Expo Camera
+- Expo Image Picker
+- Expo Location
+- Expo Notifications
+- Expo Secure Store
+- Expo File System
+- Expo Splash Screen
+
+### Backend / Cloud
+
+- **Supabase Auth**
+- **Supabase PostgreSQL**
+- **Supabase Storage**
+- **Row Level Security (RLS)**
+- **PostGIS** for location-based queries
+- PostgreSQL functions / RPC
+
+### Mapping
+
+- OpenStreetMap
+- Leaflet.js
+- WebView-based map rendering
+
+The current dependency set is defined in `package.json`, including Expo SDK 57, Supabase JS, Zustand, NativeWind and the Expo device modules used by the app.
+
+---
+
+# Architecture
+
+```text
+                    ┌──────────────────────┐
+                    │     Kawa Mobile App  │
+                    │ Expo / React Native  │
+                    └──────────┬───────────┘
+                               │
+             ┌─────────────────┼─────────────────┐
+             │                 │                 │
+             ▼                 ▼                 ▼
+        Customer          Kabadiwala          Officer
+             │                 │                 │
+             └─────────────────┼─────────────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │       Supabase       │
+                    ├──────────────────────┤
+                    │ Auth                 │
+                    │ PostgreSQL           │
+                    │ Storage              │
+                    │ RLS Policies         │
+                    │ PostGIS              │
+                    │ Database Functions   │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │ OpenStreetMap /      │
+                    │ Leaflet Map Layer    │
+                    └──────────────────────┘
+```
+
+---
+
+# Database Layer
+
+The Supabase database currently revolves around the following major entities:
+
+| Table / Component | Purpose |
+|---|---|
+| `profiles` | User profile, role, verification, location and push-token data |
+| `scrap_listings` | Customer-created scrap listings |
+| `bookings` | Customer ↔ Kabadiwala pickup workflow |
+| `transactions` | Financial/material handover ledger |
+| `ratings` | Customer ratings and feedback |
+| `officer_verifications` | Officer verification workflow |
+| `listing-photos` | Storage bucket for scrap listing photos |
+| `officer-documents` | Private storage bucket for officer identity documents |
+| `get_nearby_listings` | Nearby scrap listing discovery |
+| `get_nearby_kabadiwalas` | Nearby verified Kabadiwala discovery |
+| `get_price_trend` | Material price trend aggregation |
+
+The Phase 2 + 3 migration is located at `supabase/phase2_3.sql` and is intended to run after the original Phase 1 schema.
+
+---
+
+# Security & Data Protection
+
+The project uses Supabase Row Level Security to control access to important operations.
+
+Current protections include:
+
+- Authenticated access for application data.
+- Role-aware transaction policies.
+- Customer ↔ Kabadiwala transaction checks against valid bookings.
+- Kabadiwala → Officer transaction checks against verified Officers.
+- Private Officer document storage.
+- User-folder restrictions for Officer document uploads/reads.
+- Officer access controlled by the profile's verification state.
+
+### Production hardening planned
+
+The current MVP intentionally keeps some matching/profile access simple. Before a large public deployment, sensitive contact information should be moved behind dedicated security-definer RPCs/views and the complete RLS model should be reviewed against the final product requirements.
+
+---
+
+# Project Structure
+
+```text
+kawa-app/
+│
+├── app/
+│   ├── (auth)/              # Authentication & onboarding screens
+│   ├── (customer)/          # Customer application flow
+│   ├── (kabadiwala)/        # Kabadiwala application flow
+│   ├── (officer)/           # Officer application flow
+│   ├── _layout.tsx          # Root navigation/layout
+│   ├── index.tsx             # Entry screen
+│   └── price-trends.tsx     # Material price trend screen
+│
+├── components/              # Reusable UI components
+├── constants/               # Application constants
+├── locales/                 # i18n locale files
+├── services/                # Supabase queries & application services
+├── store/                   # Zustand application stores
+├── supabase/                # Database schema and migrations
+├── assets/                  # Images and static assets
+│
+├── global.css
+├── app.json / eas.json
+├── package.json
+├── tsconfig.json
+├── tailwind.config.js
+├── babel.config.js
+├── metro.config.js
+└── README.md
+```
+
+---
+
+# Getting Started
+
+## Requirements
+
+- Node.js 22.13+
+- Git
+- VS Code or another code editor
+- A Supabase project
+- Expo Go for basic application testing
+- Android Studio + Java 17 if using an Android emulator
+- An Expo development build for remote push notification testing
+
+## Install
 
 ```bash
+git clone https://github.com/vinitmishraaa/kawa-app.git
 cd kawa-app
 npm install
-
-# Expo will have opinions about exact package versions for SDK 57 —
-# this corrects any of mine that drift from what Expo actually ships:
 npx expo install --fix
 ```
 
-## 2. Set up Supabase
+## Configure Environment Variables
 
-Pick **one** of these two options.
+Create `.env` from `.env.example` and add your Supabase project URL and public anonymous key.
 
-### Option A — Hosted free tier (simplest)
-
-1. Create a free account/project at [supabase.com](https://supabase.com)
-   (no card required for the free tier).
-2. In your project's **SQL Editor**, paste the entire contents of
-   `supabase/schema.sql` and run it. This creates every table, enables
-   PostGIS, sets up Row Level Security policies, creates the
-   `listing-photos` storage bucket, and creates the `get_nearby_listings`
-   function used by the kabadiwala dashboard.
-3. Go to **Authentication → Providers → Email** and **turn off "Confirm
-   email"** for development (otherwise every signup needs an email click
-   before the user can log in — fine for production, annoying while
-   testing on a phone with no easy inbox access).
-4. Go to **Project Settings → API** and copy your **Project URL** and
-   **anon public key**.
-5. Copy `.env.example` to `.env` and paste those two values in.
-
-### Option B — Fully local (zero account, needs Docker)
-
-```bash
-npm install -g supabase
-supabase init      # if not already initialized
-supabase start     # spins up Postgres + Auth + Storage in Docker
+```env
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-This prints a local API URL and anon key — put those in `.env` instead.
-Then apply the schema:
+Never commit `.env` or private Supabase/service-role credentials.
 
-```bash
-supabase db execute -f supabase/schema.sql
+## Supabase Setup
+
+### Phase 1 schema
+
+Run the original schema first in the Supabase SQL Editor:
+
+```text
+supabase/schema.sql
 ```
 
-(Local Supabase auth has email confirmation off by default, so you can
-skip that step in this option.)
+### Phase 2 + 3 migration
 
-## 3. Run the app
+After the Phase 1 schema is installed, run:
+
+```text
+supabase/phase2_3.sql
+```
+
+The migration adds the Phase 2/3 database pieces including push-token support, officer-document storage policies, transaction policies and database functions for nearby Kabadiwalas and price trends.
+
+## Start the application
 
 ```bash
 npx expo start
 ```
 
-Scan the QR code with Expo Go (Android) or the Camera app (iOS). Or press
-`a` for an Android emulator / `i` for the iOS simulator if you have one set
-up.
+For a development build:
 
-## What to test, screen by screen
+```bash
+npx expo start --dev-client
+```
 
-1. **Role select → Signup** — create one **customer** account and, in a
-   second Expo Go session (or after logging out), one **kabadiwala**
-   account. (Tapping "Officer" should show a "coming soon" screen — that's
-   expected, it's Phase 2.)
-2. **Language select → Permissions** — pick a language, tap "Allow all",
-   confirm the OS permission dialogs appear for camera/mic/photos/location.
-3. **Customer → Add Scrap** — take a photo, pick a category + sub-category,
-   enter a quantity, tap "Add another item" to add a second one, then
-   "Submit listing(s)". Confirm both show up on the customer dashboard as
-   "Waiting for a kabadiwala".
-4. **Kabadiwala dashboard** — confirm the listing(s) you just created show
-   up on the map and in the list below it, sorted nearest-first, with a
-   distance in km. Tap "Book this pickup".
-5. **Booking detail (kabadiwala side)** — enter an agreed price, tap "Mark
-   as collected".
-6. **Customer dashboard** — confirm the listing now shows "Collected", and
-   opening it shows the same agreed price.
-7. In the Supabase Table Editor, confirm a new row appeared in
-   `transactions` with both user ids, the category, and the price.
+---
 
-If something in that chain breaks, that's the exact screen/step to tell me
-about.
+# Testing Checklist
 
-## Cost reality check
+## Customer
 
-| Piece | Free tier | The one thing to watch |
-|---|---|---|
-| Expo / React Native | Open source, no limits | — |
-| Supabase hosted | 500MB DB, 1GB storage, 50k MAUs | Free projects pause after 7 days idle — just restore from the dashboard |
-| Supabase local (Docker) | Unlimited | Needs Docker Desktop installed |
-| OpenStreetMap tiles | Free, no signup | Fair-use policy at heavy production traffic — not a concern at this scale |
-| EAS Build | 30 builds/month | `eas build --local` is unlimited if you exceed that |
-| Google Play listing | — | $25 one-time — only if you publish |
-| Apple Developer Program | — | $99/year — only if you install on a real iPhone or publish |
+- [ ] Create customer account.
+- [ ] Complete language/permission onboarding.
+- [ ] Add scrap photo.
+- [ ] Select category/sub-category.
+- [ ] Enter quantity.
+- [ ] Add multiple scrap items.
+- [ ] Submit listing.
+- [ ] Verify listing status.
+- [ ] Complete booking/collection flow.
+- [ ] Verify agreed price.
+- [ ] Submit rating and feedback.
 
-Building and testing this end-to-end (including on your own Android phone)
-costs nothing. The two costs above only apply at publishing time.
+## Kabadiwala
 
+- [ ] Create/login as Kabadiwala.
+- [ ] View nearby listings.
+- [ ] Verify map/list distance.
+- [ ] Book a pickup.
+- [ ] Enter agreed price.
+- [ ] Mark pickup collected.
+- [ ] Verify transaction.
+- [ ] Open Officer handover flow.
+- [ ] Select approved Officer.
+- [ ] Enter material, quantity and price.
+- [ ] Verify Officer record.
 
-# Kawa Phase 2 + 3
+## Officer
 
-## What was added
-
-### Phase 2
-- Officer signup with private identity-document upload.
-- Pending / approved / rejected officer verification state.
-- Officer dashboard and filterable collection records.
-- Kabadiwala → Officer handover flow with officer contact revealed only after the handover is recorded.
-- Customer matched-Kabadiwala contact card after booking.
-- Customer rating + feedback after collection.
-- Rating summary shown on the matched Kabadiwala card.
-- Hardened transaction insert rules so users cannot create arbitrary ledger rows.
-
-### Phase 3
-- Expo push-token registration (best effort, no paid notification provider).
-- Push events for booking and collection changes, plus Kabadiwala → Officer handovers.
-- Basic 90-day material price trend view.
-- Pull-to-refresh on role dashboards and records/trend screens.
-- Loading, empty and retry/error handling.
-
-## Supabase migration
-
-Your Phase 1 schema is already present, so run:
-
-`supabase/phase2_3.sql`
-
-once in the Supabase SQL Editor.
-
-For officer approval, use Supabase Table Editor:
-1. Find `profiles`.
-2. Set the officer's `verified` to `true`.
-3. Set the latest `officer_verifications.status` to `approved`.
-4. Optionally set `reviewed_at` to the current time.
-
-The app reads `profiles.verified` as the final access gate.
+- [ ] Create Officer account.
+- [ ] Upload verification documents.
+- [ ] Confirm pending state.
+- [ ] Approve Officer in Supabase for MVP testing.
+- [ ] Open Officer dashboard.
+- [ ] View/filter records.
+- [ ] Verify Kabadiwala handover.
+- [ ] Open material price trends.
 
 ## Notifications
 
-Notifications stay subscription-free. The app stores the Expo push token in `profiles.push_token` and sends through Expo's push endpoint.
+- [ ] Configure EAS project ID.
+- [ ] Create/install development build.
+- [ ] Test on physical Android/iOS device.
+- [ ] Grant notification permission.
+- [ ] Register push token.
+- [ ] Trigger booking/collection/handover event.
+- [ ] Verify notification delivery.
 
-A configured EAS project ID is required for remote Expo push-token registration. Run `eas build:configure` / `eas init` when you are ready for a development or production build.
+---
 
-Remote push testing should be done on a real device/dev build rather than relying on the Phase 1 Expo Go workflow.
+# Future Scope / Roadmap
 
-## Phase 2 test order
+Kawa is designed so the current MVP can grow into a larger digital recycling ecosystem.
 
-1. Create an Officer account and upload one or more ID images.
-2. Confirm the account stops at the pending screen.
-3. In Supabase, approve the officer.
-4. Log back in and confirm the Officer dashboard opens.
-5. Create/use a Kabadiwala account and open "Sell to Officer".
-6. Select the approved officer, material, quantity and price.
-7. Confirm the transaction appears in the Officer records.
-8. Open a completed customer booking and submit a rating.
-9. Confirm the customer sees the Kabadiwala rating/contact only after the match exists.
+## 1. AI-Powered Scrap Recognition
 
-## Phase 3 test order
+- Identify scrap type from a photo.
+- Automatically suggest category/sub-category.
+- Estimate approximate material quantity from images where technically feasible.
+- Detect mixed-material scrap.
+- Provide smart listing assistance.
 
-1. Pull-to-refresh the dashboards and records screens.
-2. Add several Officer handovers and open Price Trends.
-3. Configure an EAS project and install a development build.
-4. Sign in on a physical device and grant notification permission.
-5. Trigger a booking / collection / officer handover from another account and verify the notification.
+## 2. Smart Price Prediction
 
-## Important MVP notes
+- Use historical transaction data to estimate expected scrap prices.
+- Predict price movement for different materials.
+- Show regional price differences.
+- Suggest a reasonable price range before a customer confirms a transaction.
 
-- Officer discovery is currently a simple approved-officer list; distance sorting is not used because the officer role does not require a stored location in the original data model.
-- Profile rows are readable to authenticated users because Phase 1 needs basic matching/contact data. The UI only reveals phone numbers after a booking/handover match; a production deployment should move this contact check behind a dedicated security-definer RPC/view.
+## 3. Intelligent Matching
+
+Move beyond simple proximity-based matching by considering:
+
+- Distance.
+- Kabadiwala availability.
+- Material specialization.
+- Historical acceptance behaviour.
+- Ratings.
+- Estimated pickup time.
+- Current workload.
+
+## 4. Real-Time Pickup Tracking
+
+- Live pickup status.
+- Kabadiwala ETA.
+- Route tracking.
+- Customer pickup notifications.
+- Completion confirmation.
+
+## 5. Digital Payments
+
+A future version can integrate secure digital payments for completed transactions, including:
+
+- UPI.
+- Payment status tracking.
+- Digital receipts.
+- Transaction history.
+- Refund/dispute workflows where required.
+
+## 6. Digital Receipts & Invoices
+
+Automatically generate receipts containing:
+
+- Customer.
+- Kabadiwala.
+- Material.
+- Quantity.
+- Rate.
+- Total amount.
+- Date/time.
+- Transaction reference.
+
+## 7. Advanced Officer Dashboard
+
+- Regional collection analytics.
+- Material-volume analytics.
+- Kabadiwala activity.
+- Customer activity.
+- Verification queue.
+- Fraud/anomaly indicators.
+- Exportable reports.
+
+## 8. Recycling & Environmental Impact Tracking
+
+Kawa can eventually calculate environmental impact from recorded material flows, such as:
+
+- Approximate waste diverted from landfill.
+- Recyclable material volume.
+- Material-specific recycling statistics.
+- Estimated carbon/waste reduction indicators.
+
+## 9. Business / Enterprise Accounts
+
+Future support can include:
+
+- Apartments and housing societies.
+- Offices.
+- Schools and colleges.
+- Restaurants and commercial establishments.
+- Factories and warehouses.
+- Bulk scrap generators.
+
+These organizations could schedule recurring pickups and manage multiple locations.
+
+## 10. Scheduled & Recurring Pickups
+
+- Daily/weekly/monthly pickup schedules.
+- Automatic reminders.
+- Recurring scrap generation profiles.
+- Bulk pickup requests.
+
+## 11. In-App Communication
+
+A controlled communication layer could provide:
+
+- Customer ↔ Kabadiwala chat.
+- Pickup-related messages.
+- Automated status messages.
+- Support communication.
+
+## 12. Fraud & Trust System
+
+Potential future mechanisms include:
+
+- Suspicious transaction detection.
+- Duplicate listing detection.
+- Abnormal price detection.
+- Account reputation signals.
+- Stronger identity verification.
+- Dispute resolution workflow.
+
+## 13. Admin Panel
+
+A dedicated web-based administration dashboard can manage:
+
+- Users.
+- Officers.
+- Kabadiwalas.
+- Verification requests.
+- Listings.
+- Transactions.
+- Complaints/disputes.
+- Material categories.
+- Pricing data.
+- Platform analytics.
+
+## 14. Production-Grade Notifications
+
+The notification architecture can be expanded with a server-side notification service for:
+
+- Booking updates.
+- Pickup reminders.
+- Collection confirmation.
+- Officer handover alerts.
+- Price alerts.
+- Verification status changes.
+- System announcements.
+
+## 15. Multi-City / Multi-Region Expansion
+
+The current architecture can be extended to support multiple cities and regions with localized:
+
+- Material prices.
+- Service availability.
+- Languages.
+- Pickup zones.
+- Officer administration.
+- Recycling partners.
+
+---
+
+# Product Roadmap
+
+```text
+PHASE 1
+│
+├── Authentication
+├── Customer scrap listing
+├── Kabadiwala discovery
+├── Booking
+├── Collection
+└── Basic transaction flow
+        │
+        ▼
+PHASE 2
+│
+├── Officer verification
+├── Officer dashboard
+├── Customer ratings
+├── Kabadiwala ↔ Officer handover
+├── Stronger transaction rules
+└── Contact/matching improvements
+        │
+        ▼
+PHASE 3
+│
+├── Push notification integration
+├── Price trends
+├── Refresh/error states
+└── Improved reliability
+        │
+        ▼
+FUTURE
+│
+├── AI scrap recognition
+├── Smart price prediction
+├── Intelligent matching
+├── Live pickup tracking
+├── Digital payments
+├── Digital receipts
+├── Admin panel
+├── Enterprise accounts
+├── Environmental impact analytics
+├── Fraud detection
+└── Multi-city expansion
+```
+
+---
+
+# Cost & Infrastructure Notes
+
+The core development stack is based on free/open-source or free-tier services.
+
+| Technology | Current role |
+|---|---|
+| Expo / React Native | Mobile application |
+| Supabase | Auth, database, storage and backend functions |
+| PostgreSQL / PostGIS | Application data and location queries |
+| OpenStreetMap | Map data |
+| Leaflet | Map rendering |
+| GitHub | Source control |
+
+Production costs will depend on scale, database/storage usage, notification infrastructure, app-store distribution and any third-party services added later.
+
+---
+
+# Development Principles
+
+Kawa is being developed around a few core principles:
+
+- **Mobile-first:** the primary workflow should remain simple on a phone.
+- **Role separation:** Customer, Kabadiwala and Officer experiences are distinct.
+- **Data security:** sensitive operations are protected with Supabase RLS.
+- **Low infrastructure dependency:** use open technologies where practical.
+- **Incremental development:** features are introduced in phases instead of overloading the MVP.
+- **Production scalability:** current database and service boundaries are designed to allow future expansion.
+
+---
+
+# Repository
+
+**GitHub:** [vinitmishraaa/kawa-app](https://github.com/vinitmishraaa/kawa-app)
+
+---
+
+# License
+
+This project is currently maintained as a personal/student software project. Licensing and public contribution guidelines can be defined as the project moves toward wider release.
