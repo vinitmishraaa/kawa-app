@@ -1,8 +1,8 @@
 <div align="center">
 
-# ♻️ KAWA
+# ♻️ KAWA (कबाड़)
 
-### KabadiWala • Scrap Marketplace • Circular Economy
+### Smart Scrap Marketplace • Route Planning • Waste Ledger • Municipal Oversight
 
 <p>
   <img src="https://img.shields.io/badge/React%20Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React Native" />
@@ -10,875 +10,391 @@
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Supabase-181818?style=for-the-badge&logo=supabase&logoColor=3ECF8E" alt="Supabase" />
   <img src="https://img.shields.io/badge/PostGIS-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostGIS" />
-  <img src="https://img.shields.io/badge/Zustand-443E38?style=for-the-badge" alt="Zustand" />
+  <img src="https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white" alt="Leaflet" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind" />
+  <img src="https://img.shields.io/badge/Languages-EN%20%7C%20HI%20%7C%20BN-blue?style=for-the-badge" alt="Languages" />
 </p>
 
-<i>A mobile-first three-sided scrap-collection marketplace connecting Customers, Kabadiwalas and Officers through digital listings, nearby discovery, bookings, collection records and recycling handovers.</i>
+<i>A production-ready, three-sided mobile platform connecting <b>Customers</b>, <b>Kabadiwalas (Scrap Collectors)</b>, and <b>Municipal Solid Waste Officers</b> with direct bookings, intelligent route sequencing, digital waste accounting, quality grading, and municipal audit oversight.</i>
 
 <p>
-  <a href="https://github.com/vinitmishraaa/kawa-app">💻 GitHub Repository</a>
+  <a href="https://github.com/vinitmishraaa/kawa-app">💻 GitHub Repository</a> •
+  <a href="#-quick-start">🚀 Quick Start</a> •
+  <a href="#-three-user-roles--features">👥 Three User Roles</a> •
+  <a href="#-authorized-government-officer-credentials">🏛️ Officer Credentials</a> •
+  <a href="#-database--backend-setup">🗄️ Database Setup</a>
 </p>
 
 </div>
 
 ---
 
-## 🚀 About KAWA
+## 📌 Overview
 
-**KAWA (KabadiWala)** is a cross-platform mobile application designed to bring the informal scrap-collection workflow into a connected digital marketplace.
+Traditional informal scrap collection (*Kabadiwala system*) in India accounts for the vast majority of recyclable material segregation. However, it operates without digital coordination:
+- **Customers** struggle to find reliable, verified scrap collectors or know fair market prices.
+- **Kabadiwalas** waste hours wandering streets without organized routes, predictable customer pickups, or digital inventory tracking.
+- **Municipal Solid Waste Officers** have zero visibility into informal collection volumes, segregated quality, or recycling chain traceability.
 
-Instead of treating scrap collection as a single transaction, KAWA models the complete material journey:
+**KAWA** bridges this gap by creating an end-to-end digital ecosystem covering the entire scrap lifecycle:
 
 ```text
-👤 CUSTOMER
-     │
-     │ Creates Scrap Listing
-     ▼
-♻️ SCRAP LISTING
-     │
-     │ Nearby Discovery
-     ▼
-🛵 KABADIWALA
-     │
-     │ Books + Collects
-     ▼
-💰 TRANSACTION
-     │
-     │ Sells / Hands Over
-     ▼
-🏛️ OFFICER
-     │
-     ▼
-📊 COLLECTION RECORD
+  👤 CUSTOMER                 🛵 KABADIWALA                 🏛️ MUNICIPAL OFFICER
+       │                             │                                 │
+       │ 1. Selects Scrap & Weight   │                                 │
+       │ 2. Discovers Nearest        │                                 │
+       │    Verified Kabadiwala      │                                 │
+       │ 3. Chooses Time Slot        │                                 │
+       │ 4. 1-Tap Direct Booking     │                                 │
+       └────────────────────────────►│                                 │
+                                     │ 5. Accepts Assigned Booking     │
+                                     │ 6. Planned Route (Leaflet Map)  │
+                                     │    + 1-Tap Google Maps Nav      │
+                                     │ 7. Doorstep Pickup & Grading    │
+                                     │ 8. Waste Ledger (कबाड़ खाता)     │
+                                     │    (Inflow / Stock / Outflow)   │
+                                     └────────────────────────────────►│
+                                                                       │ 9. Receives Handover
+                                                                       │ 10. Quality Segregation Index
+                                                                       │     (% Grade A / B / C)
+                                                                       │ 11. Master Audit Ledger
 ```
 
-The application is built for **Android and iOS**, with a simple, icon-heavy interface designed to keep important actions easy to understand and operate.
-
 ---
 
-## 🎯 Project Vision
+## 🌟 What's New & Core Capabilities
 
-Traditional scrap collection can be fragmented across customers, local Kabadiwalas and larger collection points. KAWA aims to create a digital layer over this ecosystem.
-
-The platform is designed to make it easier to:
-
-- list scrap from a mobile phone,
-- discover nearby collection opportunities,
-- book and manage pickups,
-- record quantities and prices,
-- connect Kabadiwalas with verified Officers,
-- maintain transaction and collection history,
-- collect customer feedback, and
-- gradually build a data-driven recycling ecosystem.
-
----
-
-## ✨ Key Features
-
-| Feature | What KAWA Includes |
+| Capability | Details |
 |---|---|
-| 👥 **Three User Roles** | Customer, Kabadiwala and Officer workflows. |
-| 🔐 **Email Authentication** | Supabase email + password authentication. |
-| ♻️ **Scrap Listings** | Category, sub-category, quantity, photo and location. |
-| 📷 **Camera / Image Picker** | Capture or select scrap photos from the device. |
-| 📍 **Nearby Discovery** | Location-aware scrap discovery for Kabadiwalas. |
-| 🗺️ **OpenStreetMap** | Open map data through Leaflet/WebView. |
-| 📦 **Booking System** | Kabadiwalas can book available scrap listings. |
-| 🤝 **Collection Workflow** | Booking → collection → transaction lifecycle. |
-| 💰 **Transaction Ledger** | Material, quantity, price, participants and timestamp. |
-| 🏛️ **Officer Verification** | Identity-document upload with pending/approved/rejected states. |
-| 🏭 **Officer Handover** | Kabadiwala → verified Officer material handover. |
-| 📋 **Officer Records** | Filterable collection and transaction records. |
-| ⭐ **Ratings & Feedback** | Customer feedback for completed Kabadiwala interactions. |
-| 📞 **Matched Contact Sharing** | Contact information becomes available after the relevant match. |
-| 📈 **Price Trends** | Basic historical material-price trend view. |
-| 🔄 **Pull to Refresh** | Refresh support across major data screens. |
-| 🌐 **English + Hindi** | i18n foundation with English and Hindi locale files. |
-| 🔔 **Push Notification Layer** | Expo notification integration prepared for development builds. |
-| 🛡️ **Row Level Security** | Supabase RLS for protected database operations. |
+| 🌐 **Trilingual Internationalization** | Full native support for **English (`en`)**, **हिन्दी (`hi`)**, and **বাংলা (`bn`)**. Dynamic locale switching with fallback support. |
+| 📍 **GPS-First Onboarding** | First app launch initiates **Language Selection ➔ Location (GPS) Permission ➔ Role Selection ➔ Login/Signup**. |
+| 📱 **Flexible Authentication** | Sign up and log in using either **Email + Password** or **10-Digit Mobile Phone Number** (or Google OAuth). No mandatory paid SMS OTP dependency. |
+| 🛵 **Direct Nearest Kabadiwala Booking** | Customers pick materials, view nearby collectors sorted by real-time distance (PostGIS), inspect their star rating, past pickups, and custom rate cards, and book instantly. |
+| ⏰ **Preferred Pickup Time Slots** | Customers choose convenient collection windows: **Morning (08:00 AM - 12:00 PM)**, **Afternoon (12:00 PM - 04:00 PM)**, or **Evening (04:00 PM - 08:00 PM)**. |
+| 🗺️ **Planned Route Sequencing (प्लांट रूट)** | Kabadiwalas view an interactive Leaflet/OpenStreetMap routing screen that organizes all pending pickups in an optimal stop sequence with a 1-tap **"Open in Google Maps"** navigation button. |
+| 📒 **Garbage Waste Ledger (कबाड़ खाता)** | Dual-entry scrap inventory tracker for Kabadiwalas: **Intake (आवक)** from customers, **Outgoing (निकास / बिक्री)** to recyclers, and live **Net Inventory (स्टॉक)**. |
+| 🏷️ **Quality Grading System** | Categorizes every waste entry into **Grade A (Clean & Segregated)**, **Grade B (Mixed / Semi-sorted)**, or **Grade C (Contaminated / Low-grade)**. |
+| 🏛️ **Municipal Officer Security Gate** | Enforces instant access control restricted to **5 Pre-Authorized Government Officer IDs** (`OFFICER-SWM-101` to `105`) mapped to municipal zones. |
+| 📊 **Municipal Oversight Hub** | Officers track municipality-wide scrap inflow vs outflow, active municipal stock, and real-time **Quality Segregation Index** charts. |
+| 🛡️ **Zero-Warning Clean UI** | Auto-filtered development alert pop-ups and full Supabase URL sanitation ensuring a clean user testing experience. |
 
 ---
 
-## 🧩 How It Works
+## 👥 Three User Roles & Features
+
+### 1. 👤 Customer (ग्राहक / ক্রেতা)
+*Designed for households, residential societies, and commercial shops wanting to sell scrap efficiently.*
+
+- **Seamless Onboarding**: Select language (English, Hindi, Bengali), grant location access, and authenticate via email or 10-digit mobile number.
+- **Scrap Material & Weight Picker**:
+  - Choose categories: *Newspaper/Paper, Cardboard, Plastic Bottles, Hard Plastic, Iron/Steel, Brass/Copper, Electronic Waste, Glass, Mixed Scrap*.
+  - Specify estimated quantities (kg or units) with live price estimation based on collector rate cards.
+- **Nearest Kabadiwala Discovery**:
+  - Automatically queries the database using PostGIS `ST_Distance` and `ST_DWithin`.
+  - Displays collector card with name, live distance in km, rating stars (e.g. ⭐ 4.8), completed pickups count, and verified badge.
+- **Slot Selection & 1-Tap Booking**:
+  - Select collection day and time slot: **Morning (08:00 AM - 12:00 PM)**, **Afternoon (12:00 PM - 04:00 PM)**, or **Evening (04:00 PM - 08:00 PM)**.
+  - Provide pickup address and landmark notes.
+- **Booking Status & History**:
+  - Track live pickup state: `Pending` ➔ `Confirmed` ➔ `En Route` ➔ `Completed` / `Cancelled`.
+  - Matched Kabadiwala contact number is revealed upon confirmation for direct coordination.
+- **Post-Collection Rating & Reviews**:
+  - Submit 1-5 star ratings with feedback tags (Punctual, Fair Weighing, Polite, Quick Payment) to build community trust.
+
+---
+
+### 2. 🛵 Kabadiwala (कबाड़ी वाला / কাবাডিওয়ালা)
+*Designed for local scrap collectors, itinerant waste buyers, and small scrap-shop owners.*
+
+- **Clean Assigned Dashboard**:
+  - **No clutter**: Kabadiwalas strictly view customers who explicitly booked them.
+  - Shows customer name, contact phone number, full address, selected scrap items, quantities, and chosen time slot.
+  - Quick action buttons: Call Customer, Start Route, Mark Completed.
+- **🗺️ Planned Route Map (प्लांट रूट)**:
+  - Interactive Leaflet + OpenStreetMap displaying all assigned pickups ordered geographically.
+  - Interactive numbered stop pins (`Stop 1`, `Stop 2`, `Stop 3`).
+  - Tapping a stop highlights the customer's pickup details.
+  - **1-Tap Direct Navigation**: Launches native Google Maps with coordinates pre-filled for turn-by-turn driving instructions.
+- **📒 Garbage Waste Ledger (कबाड़ खाता)**:
+  - **Intake Ledger (आवक)**: Records all collected scrap from app bookings and offline walk-ins with date, customer, category, weight (kg), buying price, and Quality Grade.
+  - **Outgoing Ledger (निकास / बिक्री)**: Records all scrap sold to wholesale dealers, recycling factories, or Municipal Officers.
+  - **Net Stock Balance**: Real-time calculated inventory showing current scrap held in warehouse by material category.
+  - **Quality Grading**: Tag every batch as `Grade A`, `Grade B`, or `Grade C`.
+- **Custom Rate Card Management**:
+  - Configure purchasing price per kilogram for Paper, Plastic, Metal, E-Waste, Glass, etc.
+  - Transparent pricing published directly on the customer discovery view.
+
+---
+
+### 3. 🏛️ Municipal Officer (नगर निगम अधिकारी / মিউনিসিপ্যাল অফিসার)
+*Designed for Urban Local Bodies (ULB), Municipal Corporations (SWM Departments), and Recycling Hub Directors.*
+
+- **High-Security Authentication**:
+  - Login requires entering one of the **5 Pre-Authorized Government Officer IDs**.
+  - Immediate verification and role assignment with zero administrative bottlenecks.
+- **Municipal Waste Oversight Hub**:
+  - **Total Waste Inflow vs Outflow**: Aggregated metrics across all registered collectors in the municipal zone.
+  - **Active Municipal Scrap Volume**: Current un-recycled inventory residing across local collection hubs.
+  - **Quality Segregation Index**: Dynamic breakdown of Grade A (Clean/Segregated), Grade B (Mixed), and Grade C (Contaminated) scrap to measure source segregation compliance.
+- **Master Audit Ledger (`records.tsx`)**:
+  - Real-time immutable audit trail of all scrap collections, handovers, transactions, and kabadiwala activity.
+  - Filterable by date, material category, municipal zone, and collector ID.
+- **Material Price Trends**:
+  - Aggregates historical wholesale transactions to track commodity pricing fluctuations across paper, plastic, metals, and e-waste.
+
+---
+
+## 🏛️ Authorized Government Officer Credentials
+
+To test or evaluate the **Officer Role**, use any of the pre-authorized Government Officer IDs:
+
+| Officer ID | Authorized Officer Name | Municipal Department & Zone | Access Level |
+|:---:|:---|:---|:---:|
+| `OFFICER-SWM-101` | **Rajesh Sharma** | Municipal Solid Waste Management (North Zone) | Full Command |
+| `OFFICER-SWM-102` | **Amit Banerjee** | Urban Sanitation & Recycling (South Zone) | Full Command |
+| `OFFICER-SWM-103` | **Pooja Verma** | Pollution Control & Waste Audit (East Zone) | Full Command |
+| `OFFICER-SWM-104` | **Vikram Sen** | Municipal Enforcement Cell (West Zone) | Full Command |
+| `OFFICER-SWM-105` | **Debashis Mukherjee** | Central Waste Command & Oversight (Central Command) | Super Admin |
+
+*During Officer signup or verification, entering any of the IDs above verifies the account.*
+
+---
+
+## 🧩 User Journey Architecture
 
 ```text
-                         KAWA MARKETPLACE
-                                │
-             ┌──────────────────┼──────────────────┐
-             │                  │                  │
-             ▼                  ▼                  ▼
-        👤 Customer        🛵 Kabadiwala       🏛️ Officer
-             │                  │                  │
-             ▼                  ▼                  ▼
-        Add Scrap          Find Nearby        Verify Identity
-             │                  │                  │
-             ▼                  ▼                  ▼
-        Listing Created     Book Pickup       Approval Gate
-             │                  │                  │
-             └──────────────┬───┴──────────────────┘
-                            ▼
-                     ♻️ COLLECTION
-                            │
-                            ▼
-                     💰 TRANSACTION
-                            │
-                            ▼
-                   📊 DIGITAL RECORD
+                            📱 APP LAUNCH (index.tsx)
+                                       │
+                     ┌─────────────────┴─────────────────┐
+                     ▼                                   ▼
+           [First Time User]                   [Authenticated User]
+                     │                                   │
+          🌐 Language Selection                          ├── Role: Customer   ➔ /(customer)/dashboard
+             (English / Hindi / Bengali)                 ├── Role: Kabadiwala ➔ /(kabadiwala)/dashboard
+                     │                                   └── Role: Officer    ➔ /(officer)/dashboard
+          📍 GPS Location Permission
+                     │
+          👥 Role Selection
+             (Customer / Kabadiwala / Officer)
+                     │
+          🔐 Auth (Login / Signup)
+             (Email or 10-Digit Phone)
+                     │
+       ┌─────────────┼─────────────────────────┐
+       ▼             ▼                         ▼
+  👤 CUSTOMER   🛵 KABADIWALA             🏛️ OFFICER
+       │             │                         │
+  Add Scrap     Assigned Bookings         Authorized Gov ID Check
+  Pick Items    Planned Route (Map)       Municipal Oversight Hub
+  Book Nearest  Waste Ledger (कबाड़ खाता)  Quality Segregation Index
+  Rate & Review Rate Card Settings        Master Audit Ledger
 ```
 
 ---
 
-# 👤 Customer Experience
+## 🧰 Technology Stack
 
-Customers are the starting point of the scrap lifecycle.
-
-### Customer Flow
-
-```text
-Role Selection
-      ↓
-Email + Password Signup/Login
-      ↓
-Language Selection
-      ↓
-Permissions
-      ↓
-Customer Dashboard
-      ↓
-📷 Add Scrap
-      ↓
-Category + Subcategory + Quantity
-      ↓
-Add More Items (optional)
-      ↓
-Submit Listing
-      ↓
-Wait for Kabadiwala
-      ↓
-Booking / Collection Status
-      ↓
-⭐ Rating + Feedback
-```
-
-### Customer Features
-
-- Create one or multiple scrap items.
-- Capture or select scrap photos.
-- Select material category and sub-category.
-- Enter approximate quantity.
-- Store collection location.
-- Track listing and booking status.
-- View agreed collection information.
-- See matched Kabadiwala contact details after booking.
-- Submit a rating and feedback after eligible collection.
+| Domain | Technology / Library | Version | Description |
+|---|---|---|---|
+| **Mobile Runtime** | React Native / Expo | Expo SDK ~57.0 | High-performance universal mobile app |
+| **Language** | TypeScript | ~6.0 | Strict type safety and zero-error build |
+| **Routing** | Expo Router (File-based) | ~57.0 | Typed, nested stack and tab navigation |
+| **State Management** | Zustand | ^5.0 | Lightweight reactive global store |
+| **Styling** | NativeWind (Tailwind CSS) | ^4.2 | Utility-first responsive styling |
+| **Backend & Auth** | Supabase | ^2.45 | Managed PostgreSQL backend & auth |
+| **Geospatial Engine** | PostgreSQL + PostGIS | 15+ | Spherical distance calculations (`ST_Distance`) |
+| **Mapping Layer** | Leaflet.js + OpenStreetMap | HTML5 / WebView | Zero-cost interactive maps without paid Google API keys |
+| **Turn-by-Turn Nav** | Native Linking | Expo Linking | Direct one-tap launch into Google Maps |
+| **Internationalization**| i18next + react-i18next | ^23.11 / ^14.1 | English, Hindi (हिन्दी), and Bengali (বাংলা) |
+| **Media & Hardware** | Expo Camera & ImagePicker | ~57.0 | Scrap photography and document upload |
+| **Location Services** | Expo Location | ~57.0 | High-accuracy GPS positioning |
 
 ---
 
-# 🛵 Kabadiwala Experience
-
-Kabadiwalas form the collection layer between Customers and Officers.
-
-### Customer → Kabadiwala
-
-```text
-📍 Nearby Listings
-       ↓
-View Scrap Details
-       ↓
-📦 Book Pickup
-       ↓
-Matched Customer
-       ↓
-Agree Price
-       ↓
-🤝 Collect Scrap
-       ↓
-💰 Record Transaction
-```
-
-### Kabadiwala Features
-
-- Discover available nearby scrap listings.
-- View distance and listing details.
-- See scrap category, quantity and photo.
-- Book a customer pickup.
-- Enter agreed collection price.
-- Mark a booking as collected.
-- Access matched customer information after the appropriate workflow state.
-- View relevant collection records.
-- Sell collected material to an approved Officer.
-- Select material, quantity and price for an Officer handover.
-
----
-
-# 🏛️ Officer Experience
-
-Officers represent the government/wholesale collection side of KAWA.
-
-Officers **do not directly collect from Customers**. Their interaction is with Kabadiwalas who hand over collected material.
-
-### Officer Verification
-
-```text
-Officer Signup
-      ↓
-Identity Document Upload
-      ↓
-⏳ Pending Review
-      ↓
-Admin Review
-   ┌──┴──┐
-   ▼     ▼
-Approved Rejected
-   │
-   ▼
-Officer Dashboard
-```
-
-### Officer Features
-
-- Create an Officer account.
-- Upload verification documents.
-- Wait in a pending state until approval.
-- Access the dashboard only after approval.
-- Receive material handovers from Kabadiwalas.
-- View collection records.
-- Filter records by material and amount.
-- View basic material price trends.
-
-For the current MVP, Officer approval can be performed through the Supabase Table Editor by updating the relevant verification/profile state.
-
----
-
-# ♻️ Scrap Lifecycle
-
-KAWA models the movement of scrap through multiple stages instead of storing only a final sale.
-
-```text
-┌─────────────┐
-│ SCRAP LISTED│
-└──────┬──────┘
-       ↓
-┌─────────────┐
-│    BOOKED   │
-└──────┬──────┘
-       ↓
-┌─────────────┐
-│  COLLECTED  │
-└──────┬──────┘
-       ↓
-┌─────────────┐
-│ TRANSACTION │
-└──────┬──────┘
-       ↓
-┌─────────────┐
-│  HANDOVER   │
-└──────┬──────┘
-       ↓
-┌─────────────┐
-│   OFFICER   │
-└─────────────┘
-```
-
-Every stage is backed by application state and database records.
-
----
-
-# 📍 Location & Nearby Discovery
-
-KAWA uses **PostgreSQL + PostGIS** for geographic operations.
-
-```text
-Device Location
-      ↓
-Latitude / Longitude
-      ↓
-PostGIS Geography Point
-      ↓
-ST_DWithin
-      ↓
-ST_Distance
-      ↓
-Nearby Results
-      ↓
-Nearest First
-```
-
-The map layer uses **OpenStreetMap data rendered through Leaflet inside a React Native WebView**, avoiding dependence on a Google Maps API key for the current map implementation.
-
----
-
-# ⭐ Ratings & Feedback
-
-After a valid Customer ↔ Kabadiwala interaction is completed:
-
-```text
-Collection Completed
-        ↓
-Customer Rating
-        ↓
-Feedback
-        ↓
-Rating Record
-        ↓
-Kabadiwala Rating Summary
-```
-
-This gives Customers a feedback mechanism while giving Kabadiwalas a visible reputation signal within the marketplace workflow.
-
----
-
-# 💰 Transactions & Records
-
-KAWA keeps a structured transaction ledger containing information such as:
-
-```text
-From User
-To User
-From Role
-To Role
-Material Category
-Quantity
-Price
-Timestamp
-```
-
-The same transaction layer supports both sides of the marketplace:
-
-```text
-Customer → Kabadiwala
-        ↓
-Collection Transaction
-        ↓
-Kabadiwala → Officer
-        ↓
-Handover Transaction
-```
-
----
-
-# 📈 Material Price Trends
-
-The application includes a basic historical price-trend layer backed by the `get_price_trend` database function.
-
-```text
-Kabadiwala → Officer Transactions
-                ↓
-          Material Category
-                ↓
-        Historical Transactions
-                ↓
-       Average Price / Quantity
-                ↓
-             📈 Trend
-```
-
-The current feature is intended for historical visibility, not guaranteed future-price prediction.
-
----
-
-# 🔔 Notifications
-
-KAWA includes an Expo-based notification layer for workflow events such as:
-
-```text
-New Booking
-    ↓
-Booking Status Change
-    ↓
-Collection Completed
-    ↓
-Officer Handover
-```
-
-Push-token storage is supported through the profile system.
-
-**Development note:** Android remote push notifications are not supported through standard Expo Go for newer Expo SDK workflows. Remote push testing should use an Expo development build on a physical device.
-
----
-
-# 🔐 Authentication & Security
-
-KAWA intentionally uses **email + password authentication** rather than phone OTP, avoiding a dependency on a paid SMS provider.
-
-```text
-              SUPABASE
-                  │
-       ┌──────────┴──────────┐
-       ▼                     ▼
-     AUTH                 DATABASE
-       │                     │
-Email + Password             RLS
-       │                     │
-       └──────────┬──────────┘
-                  ▼
-           Role-Based Access
-```
-
-Security mechanisms include:
-
-- Supabase Authentication.
-- Row Level Security policies.
-- Role-aware transaction checks.
-- Verified-Officer checks for Officer handovers.
-- Private Officer document storage.
-- User-folder restrictions for Officer documents.
-- Protected role-specific navigation.
-
-Production deployments should additionally harden sensitive contact-data access behind dedicated server-side security policies/RPCs.
-
----
-
-# 🗄️ Database Architecture
-
-Core entities:
-
-```text
-                    profiles
-                       │
-       ┌───────────────┼────────────────┐
-       │               │                │
-       ▼               ▼                ▼
-scrap_listings       ratings     officer_verifications
-       │
-       ▼
-    bookings
-       │
-       ▼
-  transactions
-```
-
-| Component | Purpose |
-|---|---|
-| `profiles` | User identity, role, verification, contact/location and push-token data. |
-| `scrap_listings` | Customer-created scrap listings. |
-| `bookings` | Customer ↔ Kabadiwala pickup workflow. |
-| `transactions` | Material and financial transaction ledger. |
-| `ratings` | Customer ratings and feedback. |
-| `officer_verifications` | Officer identity verification workflow. |
-| `listing-photos` | Scrap listing image storage. |
-| `officer-documents` | Private Officer verification-document storage. |
-| `get_nearby_listings` | Nearby scrap discovery. |
-| `get_nearby_kabadiwalas` | Nearby verified Kabadiwala lookup. |
-| `get_price_trend` | Historical material price aggregation. |
-
----
-
-# 🏗️ Architecture
-
-```text
-                         ┌────────────────────────┐
-                         │      KAWA MOBILE       │
-                         │   React Native + Expo  │
-                         └───────────┬────────────┘
-                                     │
-                    ┌────────────────┼────────────────┐
-                    ▼                ▼                ▼
-              Expo Router       Zustand          Device APIs
-                    │                │          Camera / Location
-                    └────────────────┼────────────────┘
-                                     ▼
-                           ┌──────────────────┐
-                           │ Supabase Client  │
-                           └────────┬─────────┘
-                                    │
-              ┌─────────────────────┼─────────────────────┐
-              ▼                     ▼                     ▼
-        Supabase Auth          PostgreSQL              Storage
-                                    │
-                           ┌────────┴────────┐
-                           ▼                 ▼
-                        PostGIS              RLS
-                           │                 │
-                           └────────┬────────┘
-                                    ▼
-                           KAWA Marketplace
-                                    │
-                                    ▼
-                         OpenStreetMap / Leaflet
-```
-
----
-
-# 🧰 Technology Stack
-
-| Layer | Technology |
-|---|---|
-| Mobile | React Native |
-| Framework | Expo SDK 57 |
-| Language | TypeScript |
-| Navigation | Expo Router |
-| State | Zustand |
-| Styling | NativeWind + Tailwind CSS |
-| Authentication | Supabase Auth |
-| Database | PostgreSQL |
-| Geo Queries | PostGIS |
-| Storage | Supabase Storage |
-| Camera | Expo Camera |
-| Images | Expo Image Picker |
-| Location | Expo Location |
-| Maps | OpenStreetMap + Leaflet/WebView |
-| i18n | i18next + react-i18next |
-| Notifications | Expo Notifications |
-| Platform | Android + iOS |
-
----
-
-# 📁 Repository Structure
+## 📁 Repository Structure
 
 ```text
 kawa-app/
 │
 ├── app/
-│   ├── (auth)/              # Login, signup & Officer verification
-│   ├── (customer)/          # Customer workflow
-│   ├── (kabadiwala)/        # Kabadiwala workflow
-│   ├── (officer)/           # Officer workflow
-│   ├── price-trends.tsx     # Material price trends
-│   ├── index.tsx            # Application entry
-│   └── _layout.tsx          # Root navigation/layout
+│   ├── (auth)/                    # Authentication & onboarding flow
+│   │   ├── language-select.tsx    # English / Hindi / Bengali selector
+│   │   ├── permissions.tsx        # GPS location permission screen
+│   │   ├── role-select.tsx        # Customer / Kabadiwala / Officer selection
+│   │   ├── login.tsx              # Email / Phone login
+│   │   ├── signup.tsx             # Email / Phone registration
+│   │   ├── officer-verification.tsx # 5 Authorized Officer ID validator
+│   │   └── officer-pending.tsx    # Fast-track review & instant activation
+│   │
+│   ├── (customer)/                # Customer Experience
+│   │   ├── _layout.tsx            # Customer stack layout
+│   │   ├── dashboard.tsx          # Scrap picker, nearby collectors, quick actions
+│   │   ├── book-pickup.tsx        # Direct 1-tap booking with Time Slots & rate card
+│   │   ├── add-scrap.tsx          # Multi-item scrap photo & category picker
+│   │   ├── bookings.tsx           # Active and completed booking history
+│   │   └── rate-kabadiwala.tsx    # 1-5 star review & feedback system
+│   │
+│   ├── (kabadiwala)/              # Kabadiwala Experience
+│   │   ├── _layout.tsx            # Kabadiwala stack layout
+│   │   ├── dashboard.tsx          # Assigned customer bookings (no junk feed clutter)
+│   │   ├── route-map.tsx          # Planned Route (Leaflet Map + Google Maps navigation)
+│   │   ├── waste-ledger.tsx       # कबाड़ खाता (Intake vs Outgoing, Stock, Quality Grading)
+│   │   ├── handover.tsx           # Officer handover creation screen
+│   │   ├── rates.tsx              # Custom scrap rate-card configuration
+│   │   └── profile.tsx            # Collector profile, stats, and business details
+│   │
+│   ├── (officer)/                 # Municipal Officer Experience
+│   │   ├── _layout.tsx            # Officer stack layout
+│   │   ├── dashboard.tsx          # Municipal oversight, Inflow/Outflow, Quality Index
+│   │   ├── records.tsx            # Master audit ledger of all municipal transactions
+│   │   └── profile.tsx            # Officer badge, zone, and department info
+│   │
+│   ├── price-trends.tsx           # Commodity scrap market price trend analysis
+│   ├── index.tsx                  # Smart router: permissions ➔ language ➔ role dashboard
+│   └── _layout.tsx                # Global root layout with LogBox warning suppression
 │
-├── components/              # Reusable UI components
-├── constants/               # App constants
-├── locales/                 # English + Hindi translations
-├── services/                # Supabase queries & services
-│   └── queries/             # Role/domain-specific queries
-├── store/                   # Zustand stores
-├── supabase/                # Schema + migrations
-│   ├── schema.sql
-│   └── phase2_3.sql
-├── assets/                  # Static assets
-├── global.css
-├── app.json
-├── eas.json
-├── package.json
-├── tsconfig.json
-├── tailwind.config.js
-├── babel.config.js
-├── metro.config.js
-├── .env.example
-└── README.md
+├── components/                    # Reusable atomic UI components (Button, Input, Card, Modal)
+├── constants/
+│   ├── authorizedOfficers.ts      # 5 Pre-Authorized Government Officer IDs & Zone mapping
+│   ├── categories.ts              # Scrap categories, subcategories, and baseline rates
+│   └── languages.ts               # Supported languages: English, हिन्दी, বাংলা
+│
+├── locales/                       # Translation dictionaries
+│   ├── en.json                    # English strings
+│   ├── hi.json                    # Hindi strings (हिन्दी)
+│   └── bn.json                    # Bengali strings (বাংলা)
+│
+├── services/                      # Supabase client & API services
+│   ├── supabase.ts                # Sanitized Supabase initialization client
+│   ├── auth.ts                    # Email / Phone authentication service
+│   └── queries/                   # Domain queries (bookings, ledger, officers, listings)
+│
+├── store/                         # Zustand state management
+│   ├── authStore.ts               # User session, role, and profile state
+│   ├── scrapStore.ts              # Customer scrap cart and active booking state
+│   └── ledgerStore.ts             # Kabadiwala waste ledger & inventory state
+│
+├── supabase/                      # Database SQL migrations & triggers
+│   ├── schema.sql                 # Core tables: profiles, scrap_listings, bookings, PostGIS
+│   ├── phase2_3.sql               # Handover transactions, officer verification, ratings
+│   ├── phase4_features.sql        # Waste ledger (waste_ledger), waste_grade enum, routes
+│   └── fix_auth_and_rls.sql       # Automated profile creation & RLS security policies
+│
+├── assets/                        # Icons, splash images, and app graphics
+├── app.json                       # Expo application configuration
+├── tailwind.config.js             # NativeWind styling tokens
+├── tsconfig.json                  # Strict TypeScript configuration
+└── README.md                      # Comprehensive project documentation
 ```
 
 ---
 
-# 🛠️ Development Roadmap
+## 🚀 Quick Start
 
-## Phase 1 — Core Marketplace
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v20.x or v22.x recommended)
+- [Git](https://git-scm.com/)
+- [Expo Go App](https://expo.dev/go) installed on your physical Android or iOS device (or an Android Emulator / iOS Simulator)
 
-```text
-✅ Role Selection
-✅ Email / Password Auth
-✅ Customer Onboarding
-✅ Kabadiwala Onboarding
-✅ Add Scrap
-✅ Camera / Image Picker
-✅ Categories + Subcategories
-✅ Multiple Items per Session
-✅ Location-Aware Listings
-✅ Nearby Discovery
-✅ Booking
-✅ Collection Status
-✅ Transaction Creation
-✅ Customer Booking Tracking
-```
-
-## Phase 2 — Trust & Officer Layer
-
-```text
-✅ Officer Registration
-✅ Identity Document Upload
-✅ Pending / Approved / Rejected Verification
-✅ Officer Dashboard
-✅ Officer Records
-✅ Kabadiwala → Officer Handover
-✅ Contact Sharing After Match
-✅ Ratings + Feedback
-✅ Rating Summary
-```
-
-## Phase 3 — Intelligence & Polish
-
-```text
-✅ Price Trend View
-✅ Pull-to-Refresh
-✅ Loading States
-✅ Empty States
-✅ Retry / Error Handling
-🔧 Push Notification Development-Build Integration
-```
-
----
-
-# 🔮 Future Scope
-
-KAWA is designed to grow beyond the current marketplace MVP into a broader digital recycling ecosystem.
-
-### 🤖 AI Scrap Recognition
-
-```text
-Scrap Photo
-    ↓
-Computer Vision
-    ↓
-Material Detection
-    ↓
-Category / Subcategory Suggestion
-    ↓
-Smart Listing
-```
-
-Potential future capabilities include automatic scrap classification, mixed-material detection and listing assistance.
-
-### 💰 Smart Price Intelligence
-
-Combine historical transactions, material type and region to provide indicative price ranges and market insights.
-
-### 🧠 Intelligent Matching
-
-Future matching can consider distance, availability, material categories, response time, completed collections and rating history.
-
-### 📍 Live Pickup Tracking
-
-```text
-Booking Confirmed
-       ↓
-Kabadiwala En Route
-       ↓
-Live Location
-       ↓
-Pickup Reached
-       ↓
-Collection Completed
-```
-
-### 💳 Digital Payments
-
-Optional digital payment support can be added for completed transactions while keeping the payment layer separate from the core marketplace.
-
-### 🧾 Digital Receipts
-
-Generate receipts containing material, quantity, price, participants, timestamp and collection/handover details.
-
-### 🏛️ Admin Dashboard
-
-A dedicated administration platform can support Officer verification, user management, listing monitoring, transaction analytics, disputes and platform activity.
-
-### 🌱 Environmental Impact Tracking
-
-```text
-Material Collected
-       ↓
-Recycled Weight
-       ↓
-Waste Diverted
-       ↓
-Estimated Environmental Impact
-```
-
-### 🛡️ Trust & Fraud Detection
-
-Future safeguards can identify unusual booking, listing and transaction patterns and flag suspicious activity for review.
-
-### 🌐 Multi-City Expansion
-
-The platform can be extended with city-specific collection networks, material categories, regional pricing and local recycling partners.
-
----
-
-# 🎯 Long-Term Vision
-
-```text
-       DISCOVER
-          ↓
-       CONNECT
-          ↓
-         BOOK
-          ↓
-       COLLECT
-          ↓
-       RECORD
-          ↓
-        SELL
-          ↓
-       RECYCLE
-          ↓
-    MEASURE IMPACT
-```
-
-The long-term vision of KAWA is to provide a digital infrastructure layer for scrap collection where material can move through the recycling chain with better **discovery, coordination, transparency, records and environmental visibility**.
-
----
-
-# 🚀 Getting Started
-
-## Prerequisites
-
-- Node.js 22.13+
-- Git
-- npm
-- Expo Go for basic mobile testing
-- Supabase hosted project or self-hosted Supabase
-- Android Studio + Java 17 for Android emulator testing
-- Expo development build for remote push-notification testing
-
-## Clone
-
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/vinitmishraaa/kawa-app.git
 cd kawa-app
 ```
 
-## Install
-
+### 2. Install Dependencies
 ```bash
 npm install
-npx expo install --fix
 ```
 
-## Environment Variables
-
-Create `.env` from `.env.example`:
-
+### 3. Environment Setup
+Create a `.env` file in the root directory:
 ```env
-EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+EXPO_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
+*(The Supabase client in `services/supabase.ts` automatically strips any accidental trailing `/rest/v1`)*
 
-Never commit `.env` or private/service-role credentials.
+### 4. Supabase Database Migration
+In your Supabase project dashboard, open the **SQL Editor** and run the migration scripts in the following order:
 
-## Supabase
+1. `supabase/schema.sql` — Initializes PostGIS, `profiles`, `scrap_listings`, `bookings`, `transactions`, and spatial distance functions.
+2. `supabase/phase2_3.sql` — Adds officer verifications, ratings, and handover tables.
+3. `supabase/phase4_features.sql` — Adds the `waste_ledger` table, `waste_grade` enum, planned route sequences, and officer aggregate views.
+4. `supabase/fix_auth_and_rls.sql` — Configures RLS policies, bypass triggers for phone/mock logins, and public profile sync.
 
-Run the Phase 1 database schema:
-
-```text
-supabase/schema.sql
-```
-
-After the Phase 1 schema is installed, apply the Phase 2/3 migration when needed:
-
-```text
-supabase/phase2_3.sql
-```
-
-## Run KAWA
-
+### 5. Start the Development Server
 ```bash
 npx expo start
 ```
-
-For a development build:
-
-```bash
-npx expo start --dev-client
-```
+- Scan the printed **QR code** using the **Expo Go** app on your Android device (or the Camera app on iOS).
+- Press `a` in the terminal to launch the Android Emulator.
+- Press `w` to run in web browser mode.
 
 ---
 
-# 🧪 Testing Checklist
+## 🧪 Testing Guide (All 3 Personas)
 
-### Customer
+### Test Persona 1: Customer (कस्टमर)
+1. Launch the app and select **हिन्दी (Hindi)** or **English** or **বাংলা (Bengali)**.
+2. Grant Location permission.
+3. Select **Customer (ग्राहक)** role.
+4. Log in or sign up using your email or a 10-digit mobile number (e.g., `9876543210`).
+5. Tap **Book Pickup** on the customer dashboard.
+6. Select scrap materials (e.g., *Paper 15 kg, Plastic 5 kg*).
+7. Select your nearest Kabadiwala from the real-time distance list.
+8. Choose a preferred time slot: **Morning (08:00 AM - 12:00 PM)**.
+9. Enter your address and tap **Book Pickup**.
 
-- [ ] Signup/login
-- [ ] Language selection
-- [ ] Permissions
-- [ ] Add scrap photo
-- [ ] Category/subcategory
-- [ ] Quantity
-- [ ] Multiple items
-- [ ] Submit listing
-- [ ] Track booking
-- [ ] View matched contact
-- [ ] Rate Kabadiwala
+### Test Persona 2: Kabadiwala (कबाड़ी वाला)
+1. Switch account or log out from profile.
+2. Select **Kabadiwala (कबाड़ी वाला)** role.
+3. Log in using your email or 10-digit mobile number.
+4. On the **Dashboard**, view the customer booking created above. Tap to call or coordinate.
+5. Tap **Planned Route (रूट प्लान)**:
+   - See the customer stop plotted on the OpenStreetMap / Leaflet map.
+   - Tap **Open in Google Maps** to verify one-click turn-by-turn navigation.
+6. Tap **Waste Ledger (कबाड़ खाता)**:
+   - View your live stock balance.
+   - Record an **Intake (आवक)** entry with quantity and select **Grade A**.
+   - Record an **Outgoing (निकास)** entry when selling to recyclers.
 
-### Kabadiwala
-
-- [ ] Signup/login
-- [ ] Nearby listings
-- [ ] Map + distance
-- [ ] Book pickup
-- [ ] Agree price
-- [ ] Mark collected
-- [ ] Verify transaction
-- [ ] Sell to approved Officer
-- [ ] Verify Officer handover
-
-### Officer
-
-- [ ] Signup
-- [ ] Upload documents
-- [ ] Pending state
-- [ ] Approval
-- [ ] Officer dashboard
-- [ ] Collection records
-- [ ] Filters
-- [ ] Price trends
-
-### Notifications
-
-- [ ] Configure EAS project
-- [ ] Create development build
-- [ ] Install on physical device
-- [ ] Grant notification permission
-- [ ] Register push token
-- [ ] Trigger workflow event
-- [ ] Verify notification
+### Test Persona 3: Municipal Officer (नगर निगम अधिकारी)
+1. Select **Officer (अधिकारी)** role on role selection.
+2. Enter your email/phone and provide any of the 5 Authorized Officer IDs:
+   - Example: `OFFICER-SWM-101`
+3. Instant verification takes you directly to the **Municipal Oversight Hub**.
+4. Review:
+   - City-wide Total Inflow vs Outflow metrics.
+   - Active Municipal Stock.
+   - **Quality Segregation Index** (Grade A, B, C percentages).
+5. Open **Records** to inspect the complete audit ledger.
 
 ---
 
-# ⚠️ Current Limitations
+## 💸 Zero-Cost Architecture
 
-- Officer discovery is currently based on approved Officer records; distance sorting is not part of the current Officer data model.
-- Android remote push testing requires a development/production build rather than standard Expo Go.
-- Contact-data access should receive additional server-side hardening before large-scale production deployment.
-- Price trends represent historical transaction data and are not guaranteed market predictions.
-- OpenStreetMap-based services should follow their usage/fair-use policies at production scale.
+KAWA is purposefully engineered to operate with **zero paid subscriptions**:
 
----
-
-# 💸 Free / Open-Source Development Approach
-
-KAWA is designed around a **zero-subscription development stack**.
-
-| Component | Role | Approach |
+| Component | Standard Paid Route | KAWA Zero-Cost Route |
 |---|---|---|
-| React Native | Mobile UI | Open source |
-| Expo | Development framework | Open source ecosystem |
-| TypeScript | Application language | Open source |
-| Zustand | State management | Open source |
-| NativeWind | Styling | Open source |
-| Supabase | Auth / DB / Storage | Open source + free hosted option |
-| PostgreSQL | Database | Open source |
-| PostGIS | Geo queries | Open source |
-| OpenStreetMap | Map data | Open data |
-| Leaflet | Map rendering | Open source |
-| i18next | Internationalisation | Open source |
-
-Production hosting, app-store accounts and third-party infrastructure can introduce separate costs; they are not required for the core local development workflow.
+| **Maps & Tiles** | Google Maps SDK ($$ per load) | OpenStreetMap + Leaflet.js in WebView (Free & Open Data) |
+| **Navigation** | Embedded Navigation SDKs ($$$) | Deep Linking to native Google Maps App (Free) |
+| **Auth & OTP** | Twilio / MSG91 SMS ($$ per OTP) | Email Auth + 10-Digit Mobile ID Auth via Supabase (Free) |
+| **Database** | Managed RDS / Cloud SQL | Supabase Free Tier PostgreSQL + PostGIS (Free) |
+| **Image Storage** | AWS S3 Bucket | Supabase Free Storage Buckets (Free) |
 
 ---
 
-# 📌 Project Status
+## 📄 License & Attribution
 
-```text
-Phase 1  ████████████████████  Complete
-Phase 2  ████████████████████  Complete
-Phase 3  ███████████████████░  In Progress / Integration
-Future   ░░░░░░░░░░░░░░░░░░░░  Planned
-```
-
----
+This project is open-source under the [MIT License](LICENSE).
 
 <div align="center">
 
-### ♻️ KAWA — KabadiWala
+### ♻️ KAWA — Smart Scrap & Circular Economy Platform
 
-<i>Connect • Collect • Record • Recycle</i>
-
-<p>
-  <a href="https://github.com/vinitmishraaa/kawa-app">💻 GitHub Repository</a>
-</p>
-
-**B&D by Vinit Mishra**
+**Built & Developed by [Vinit Mishra](https://github.com/vinitmishraaa)**  
+*Empowering Grassroots Recyclers • Organizing Informal Scrap • Clean India (स्वच्छ भारत)*
 
 </div>
