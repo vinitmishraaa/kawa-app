@@ -8,7 +8,7 @@ import { PrimaryButton } from "../../components/PrimaryButton";
 import { LoadingView } from "../../components/LoadingView";
 import { SCRAP_CATEGORIES } from "../../constants/scrapCategories";
 import { getProfileById, getVerifiedOfficers } from "../../services/queries/profiles";
-import { recordOfficerSale } from "../../services/queries/transactions";
+import { recordOfficerSale, QUALITY_GRADES } from "../../services/queries/transactions";
 import { getCurrentCoords } from "../../services/location";
 import { useAuthStore } from "../../store/authStore";
 import { theme } from "../../constants/theme";
@@ -21,6 +21,7 @@ export default function SellToOfficer() {
   const [category, setCategory] = useState("");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
+  const [quality, setQuality] = useState("Grade A (Clean)");
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
@@ -44,6 +45,7 @@ export default function SellToOfficer() {
         category,
         quantity: Number(quantity),
         price: Number(price),
+        quality,
         latitude: coords?.latitude,
         longitude: coords?.longitude,
       });
@@ -108,6 +110,23 @@ export default function SellToOfficer() {
           <Pressable key={item.id} onPress={() => setCategory(category === item.id ? "" : item.id)}
             className={`rounded-full px-4 py-2 mr-2 mb-2 ${category === item.id ? "bg-leaf" : "bg-sand border border-line"}`}>
             <Text className={category === item.id ? "text-white font-semibold" : "text-bark"}>{t(item.labelKey)}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Text className="text-sm font-semibold text-bark mb-2">Quality Grade</Text>
+      <View className="flex-row flex-wrap mb-4 gap-2">
+        {["Grade A (Clean)", "Grade B (Semi-sorted)", "Grade C (Mixed)"].map((g) => (
+          <Pressable
+            key={g}
+            onPress={() => setQuality(g)}
+            className={`px-3.5 py-2 rounded-full border ${
+              quality === g ? "bg-leaf border-leaf" : "bg-sand border-line"
+            }`}
+          >
+            <Text className={`text-xs font-semibold ${quality === g ? "text-white" : "text-bark"}`}>
+              {g}
+            </Text>
           </Pressable>
         ))}
       </View>

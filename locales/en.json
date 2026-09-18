@@ -194,5 +194,23 @@
     "all": "All materials",
     "empty": "No officer handover prices are available yet.",
     "button": "Price trends"
+  },
+  "quality": {
+    "gradeA": "Grade A (Clean & Segregated)",
+    "gradeADesc": "Clean, dry and segregated recyclable materials",
+    "gradeB": "Grade B (Semi-sorted)",
+    "gradeBDesc": "Partially sorted materials with slight dust or labels",
+    "gradeC": "Grade C (Mixed / Wet)",
+    "gradeCDesc": "Unsegregated or contaminated waste"
+  },
+  "routePlanner": {
+    "title": "Planned Route",
+    "subtitle": "Optimized stop-by-stop collection sequence"
+  },
+  "wasteLedger": {
+    "title": "Waste Ledger",
+    "intake": "Intake from Customers",
+    "outgoing": "Outgoing to Officers",
+    "stock": "Current Stock Inventory"
   }
 }

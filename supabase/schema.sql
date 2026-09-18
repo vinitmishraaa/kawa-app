@@ -432,3 +432,33 @@ as $$
     and ST_DWithin(l.location, ST_MakePoint(lng, lat)::geography, radius_m)
   order by distance_m asc;
 $$;
+
+-- ============================================================
+-- Phase 4 Extensions (Customer Direct Booking, Waste Ledger, Officer Oversight)
+-- ============================================================
+alter table bookings add column if not exists time_slot text;
+alter table bookings add column if not exists scheduled_date date default current_date;
+alter table bookings add column if not exists pickup_address text;
+alter table bookings add column if not exists pickup_lat double precision;
+alter table bookings add column if not exists pickup_lng double precision;
+alter table bookings add column if not exists items jsonb default '[]'::jsonb;
+alter table bookings add column if not exists notes text;
+alter table bookings alter column listing_id drop not null;
+
+drop policy if exists "bookings_insert_kabadiwala" on bookings;
+drop policy if exists "bookings_insert_participant" on bookings;
+
+create policy "bookings_insert_participant"
+  on bookings for insert
+  to authenticated
+  with check (auth.uid() = kabadiwala_id or auth.uid() = customer_id);
+
+alter table transactions add column if not exists quality text default 'Grade A (Clean)';
+alter table transactions add column if not exists notes text;
+
+alter table profiles add column if not exists price_rates jsonb default '{"paper": 14, "plastic": 18, "metal": 35, "ewaste": 40, "glass": 5, "other": 10}'::jsonb;
+alter table profiles add column if not exists address text;
+alter table profiles add column if not exists gov_id_type text;
+alter table profiles add column if not exists gov_id_number text;
+alter table profiles add column if not exists department text;
+

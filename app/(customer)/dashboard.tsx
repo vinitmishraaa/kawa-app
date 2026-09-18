@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import { FlatList, Text, View, Pressable, RefreshControl } from "react-native";
-import { router } from "expo-router";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenContainer } from "../../components/ScreenContainer";
@@ -10,20 +9,33 @@ import { LoadingView } from "../../components/LoadingView";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { useAuthStore } from "../../store/authStore";
 import { getMyListings, type ScrapListing } from "../../services/queries/listings";
+import { getBookingsForCustomer, type Booking } from "../../services/queries/bookings";
 import { signOut } from "../../services/auth";
 import { theme } from "../../constants/theme";
+import { SCRAP_CATEGORIES } from "../../constants/scrapCategories";
 
 export default function CustomerDashboard() {
   const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const reset = useAuthStore((s) => s.reset);
+
+  const [activeTab, setActiveTab] = useState<"bookings" | "listings">("bookings");
   const [listings, setListings] = useState<ScrapListing[] | null>(null);
+  const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile) return;
-    const data = await getMyListings(profile.id);
-    setListings(data);
+    try {
+      const [listingsData, bookingsData] = await Promise.all([
+        getMyListings(profile.id),
+        getBookingsForCustomer(profile.id),
+      ]);
+      setListings(listingsData);
+      setBookings(bookingsData as any);
+    } catch {
+      // Keep existing states on transient errors
+    }
   }, [profile]);
 
   useFocusEffect(
@@ -32,7 +44,14 @@ export default function CustomerDashboard() {
     }, [load])
   );
 
-  async function handleRefresh() { setRefreshing(true); try { await load(); } finally { setRefreshing(false); } }
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await load();
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   async function handleLogout() {
     await signOut();
@@ -40,35 +59,179 @@ export default function CustomerDashboard() {
     router.replace("/(auth)/role-select");
   }
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "requested":
+        return { label: "Requested", bg: "bg-warn/20", text: "text-warn" };
+      case "accepted":
+        return { label: "Accepted", bg: "bg-leaf/20", text: "text-leaf" };
+      case "in_progress":
+        return { label: "On the way", bg: "bg-clay/20", text: "text-clay" };
+      case "collected":
+        return { label: "Collected", bg: "bg-ok/20", text: "text-ok" };
+      default:
+        return { label: status, bg: "bg-sand", text: "text-bark" };
+    }
+  };
+
   return (
     <ScreenContainer>
-      <View className="flex-row items-center justify-between mt-4 mb-4">
-        <Text className="text-2xl font-bold text-bark">{t("customerDashboard.title")}</Text>
+      {/* Header */}
+      <View className="flex-row items-center justify-between mt-4 mb-3">
+        <View>
+          <Text className="text-2xl font-bold text-bark">Welcome back,</Text>
+          <Text className="text-sm font-semibold text-leaf">{profile?.name ?? "Customer"}</Text>
+        </View>
         <View className="flex-row items-center">
-          <Pressable onPress={() => router.push("/price-trends")} className="mr-3"><MaterialCommunityIcons name="chart-line" size={22} color={theme.bark} /></Pressable>
-          <Pressable onPress={handleLogout} className="mr-3">
-            <MaterialCommunityIcons name="logout" size={22} color={theme.bark} />
+          <Pressable onPress={() => router.push("/price-trends")} className="mr-3 p-2 bg-sand rounded-full">
+            <MaterialCommunityIcons name="chart-line" size={20} color={theme.bark} />
           </Pressable>
-          <Pressable onPress={() => router.push("/(customer)/add-scrap")}>
-            <View className="w-11 h-11 rounded-full bg-leaf items-center justify-center">
-              <MaterialCommunityIcons name="plus" size={26} color="#fff" />
-            </View>
+          <Pressable onPress={handleLogout} className="p-2 bg-sand rounded-full">
+            <MaterialCommunityIcons name="logout" size={20} color={theme.bark} />
           </Pressable>
         </View>
       </View>
 
-      {listings === null ? (
+      {/* Hero Action Card: Book Nearest Kabadiwala */}
+      <View className="bg-leaf rounded-card p-5 mb-4 shadow-sm">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1 mr-3">
+            <Text className="text-white font-extrabold text-xl">Sell Scrap from Home</Text>
+            <Text className="text-white/80 text-xs mt-1">
+              Find nearest verified Kabadiwalas, check scrap rates, and choose your preferred time slot.
+            </Text>
+          </View>
+          <View className="w-12 h-12 rounded-full bg-white/20 items-center justify-center">
+            <MaterialCommunityIcons name="truck-fast-outline" size={28} color="#fff" />
+          </View>
+        </View>
+        <View className="flex-row mt-4 gap-2">
+          <Pressable
+            onPress={() => router.push("/(customer)/book-pickup")}
+            className="flex-1 py-2.5 px-4 bg-white rounded-xl items-center"
+          >
+            <Text className="text-leaf font-bold text-sm">Book Nearest Kabadiwala</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/(customer)/add-scrap")}
+            className="py-2.5 px-4 bg-white/20 rounded-xl items-center"
+          >
+            <Text className="text-white font-bold text-sm">+ Add Listing</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Tabs */}
+      <View className="flex-row mb-3 bg-sand rounded-xl p-1 border border-line">
+        <Pressable
+          onPress={() => setActiveTab("bookings")}
+          className={`flex-1 py-2 rounded-lg items-center ${
+            activeTab === "bookings" ? "bg-white shadow-sm" : ""
+          }`}
+        >
+          <Text className={`font-bold text-xs ${activeTab === "bookings" ? "text-bark" : "text-bark/60"}`}>
+            My Bookings ({bookings?.length ?? 0})
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setActiveTab("listings")}
+          className={`flex-1 py-2 rounded-lg items-center ${
+            activeTab === "listings" ? "bg-white shadow-sm" : ""
+          }`}
+        >
+          <Text className={`font-bold text-xs ${activeTab === "listings" ? "text-bark" : "text-bark/60"}`}>
+            My Scrap ({listings?.length ?? 0})
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* TAB CONTENT */}
+      {activeTab === "bookings" ? (
+        bookings === null ? (
+          <LoadingView />
+        ) : bookings.length === 0 ? (
+          <View className="flex-1 items-center justify-center px-6">
+            <MaterialCommunityIcons name="calendar-clock-outline" size={48} color={theme.line} />
+            <Text className="text-bark/60 text-center mt-3 mb-4">No scheduled pickups yet.</Text>
+            <PrimaryButton
+              label="Book Your First Pickup"
+              onPress={() => router.push("/(customer)/book-pickup")}
+            />
+          </View>
+        ) : (
+          <FlatList
+            data={bookings}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: 24 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            renderItem={({ item }) => {
+              const badge = getStatusBadge(item.status);
+              const itemsList = item.items ?? [];
+              return (
+                <Pressable
+                  onPress={() => {
+                    if (item.listing_id) {
+                      router.push(`/(customer)/booking/${item.listing_id}`);
+                    }
+                  }}
+                  className="bg-sand border border-line rounded-card p-4 mb-3"
+                >
+                  <View className="flex-row items-center justify-between mb-2">
+                    <View className="flex-row items-center">
+                      <MaterialCommunityIcons name="clock-outline" size={16} color={theme.leaf} />
+                      <Text className="text-xs font-semibold text-bark ml-1.5">
+                        {item.time_slot ?? "Flexible Time Slot"}
+                      </Text>
+                    </View>
+                    <View className={`px-2.5 py-0.5 rounded-full ${badge.bg}`}>
+                      <Text className={`text-xs font-bold uppercase ${badge.text}`}>
+                        {badge.label}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="py-2 border-t border-b border-line/40 my-1">
+                    {itemsList.length > 0 ? (
+                      <Text className="font-semibold text-bark text-sm">
+                        {itemsList.map((it) => `${it.category} (${it.quantity}${it.unit || "kg"})`).join(", ")}
+                      </Text>
+                    ) : item.scrap_listings ? (
+                      <Text className="font-semibold text-bark text-sm">
+                        {item.scrap_listings.category} ({item.scrap_listings.quantity} {item.scrap_listings.unit})
+                      </Text>
+                    ) : (
+                      <Text className="font-semibold text-bark text-sm">Scrap Pickup</Text>
+                    )}
+
+                    {item.pickup_address && (
+                      <Text className="text-xs text-bark/60 mt-1" numberOfLines={1}>
+                        📍 {item.pickup_address}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View className="flex-row items-center justify-between mt-2">
+                    <Text className="text-xs text-bark/60">
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </Text>
+                    {item.price_agreed != null ? (
+                      <Text className="font-bold text-leaf text-sm">₹{item.price_agreed}</Text>
+                    ) : (
+                      <Text className="text-xs text-bark/50">Price upon collection</Text>
+                    )}
+                  </View>
+                </Pressable>
+              );
+            }}
+          />
+        )
+      ) : listings === null ? (
         <LoadingView />
       ) : listings.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
           <MaterialCommunityIcons name="package-variant" size={48} color={theme.line} />
-          <Text className="text-bark/60 text-center mt-4 mb-6">
-            {t("customerDashboard.noListings")}
-          </Text>
-          <PrimaryButton
-            label={t("customerDashboard.addScrap")}
-            onPress={() => router.push("/(customer)/add-scrap")}
-          />
+          <Text className="text-bark/60 text-center mt-3 mb-4">{t("customerDashboard.noListings")}</Text>
+          <PrimaryButton label={t("customerDashboard.addScrap")} onPress={() => router.push("/(customer)/add-scrap")} />
         </View>
       ) : (
         <FlatList

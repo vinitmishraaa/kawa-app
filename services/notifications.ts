@@ -196,3 +196,5 @@ export async function sendNotificationToUser(
     return false;
   }
 }
+
+export const sendPushToUser = sendNotificationToUser;

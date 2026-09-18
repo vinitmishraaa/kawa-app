@@ -119,8 +119,20 @@ export default function CustomerBookingStatus() {
         </View>
         <View className="flex-row justify-between py-2 border-t border-line">
           <Text className="text-bark/70">{t("booking.status")}</Text>
-          <Text className="text-bark font-semibold">{booking.status}</Text>
+          <Text className="text-bark font-semibold uppercase">{booking.status}</Text>
         </View>
+        {booking.time_slot && (
+          <View className="flex-row justify-between py-2 border-t border-line">
+            <Text className="text-bark/70">Scheduled Slot</Text>
+            <Text className="text-bark font-semibold">{booking.time_slot}</Text>
+          </View>
+        )}
+        {booking.pickup_address && (
+          <View className="py-2 border-t border-line">
+            <Text className="text-bark/70 text-xs">Pickup Address</Text>
+            <Text className="text-bark font-medium text-sm mt-0.5">{booking.pickup_address}</Text>
+          </View>
+        )}
         {booking.price_agreed != null && (
           <View className="flex-row justify-between py-2 border-t border-line">
             <Text className="text-bark/70">{t("booking.priceAgreed")}</Text>
