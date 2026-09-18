@@ -23,19 +23,16 @@ export default function Index() {
       return;
     }
 
-    if (!permissionsDone) {
-      router.replace("/(auth)/language-select");
-      return;
-    }
-
     if (profile.role === "customer") {
       router.replace("/(customer)/dashboard");
     } else if (profile.role === "kabadiwala") {
       router.replace("/(kabadiwala)/dashboard");
-    } else {
+    } else if (profile.role === "officer") {
       router.replace("/(officer)/dashboard");
+    } else {
+      router.replace("/(auth)/role-select");
     }
-  }, [isLoading, session, profile, permissionsDone]);
+  }, [isLoading, session, profile]);
 
   return <LoadingView />;
 }

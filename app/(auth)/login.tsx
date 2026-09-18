@@ -5,26 +5,37 @@ import { useTranslation } from "react-i18next";
 import { ScreenContainer } from "../../components/ScreenContainer";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { signIn } from "../../services/auth";
+import { useAuthStore } from "../../store/authStore";
 
 export default function Login() {
   const { t } = useTranslation();
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit() {
-    if (!email || !password) {
-      Alert.alert(t("auth.errorGeneric"));
+    if (!email.trim() || !password) {
+      Alert.alert("Input Required", "Please enter your email and password.");
       return;
     }
     setLoading(true);
     try {
-      await signIn({ email, password });
-      // Let the root index screen figure out where to send this
-      // profile (onboarding vs. straight to dashboard).
-      router.replace("/");
+      await signIn({ email: email.trim(), password });
+      await refreshProfile();
+      const p = useAuthStore.getState().profile;
+
+      if (p?.role === "customer") {
+        router.replace("/(customer)/dashboard");
+      } else if (p?.role === "kabadiwala") {
+        router.replace("/(kabadiwala)/dashboard");
+      } else if (p?.role === "officer") {
+        router.replace("/(officer)/dashboard");
+      } else {
+        router.replace("/");
+      }
     } catch (err: any) {
-      Alert.alert(t("auth.errorGeneric"), err?.message ?? "");
+      Alert.alert("Login Failed", err?.message ?? "Invalid email or password.");
     } finally {
       setLoading(false);
     }

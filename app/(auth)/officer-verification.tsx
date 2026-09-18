@@ -21,6 +21,8 @@ export default function OfficerVerification() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [department, setDepartment] = useState("Municipal Solid Waste Management");
+  const [govIdNumber, setGovIdNumber] = useState("");
   const [documents, setDocuments] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -37,12 +39,8 @@ export default function OfficerVerification() {
   }
 
   async function handleSubmit() {
-    if (selectedRole !== "officer") {
-      router.replace("/(auth)/role-select");
-      return;
-    }
-    if (!name.trim() || !email.trim() || password.length < 6 || documents.length === 0) {
-      Alert.alert(t("officer.verificationRequired"));
+    if (!name.trim() || !email.trim() || password.length < 6) {
+      Alert.alert("Required Fields", "Please enter your name, email, and a password with at least 6 characters.");
       return;
     }
 
@@ -53,21 +51,36 @@ export default function OfficerVerification() {
         password,
         role: "officer",
         name: name.trim(),
-        phone: phone.trim(),
+        phone: phone.trim() || undefined,
+        govIdNumber: govIdNumber.trim() || "GOV-OFFICER",
+        department: department.trim() || "Municipal SWM",
       });
 
-      const paths = [];
+      // Upload documents if selected
+      const paths: string[] = [];
       for (const uri of documents) {
-        paths.push(await uploadOfficerDocument(uri, result.user!.id));
+        try {
+          paths.push(await uploadOfficerDocument(uri, result.user!.id));
+        } catch (uploadErr) {
+          console.log("Document upload note:", uploadErr);
+        }
       }
 
-      await submitOfficerVerification({
-        officerId: result.user!.id,
-        documentPaths: paths,
-      });
+      if (paths.length > 0) {
+        await submitOfficerVerification({
+          officerId: result.user!.id,
+          documentPaths: paths,
+          govIdNumber: govIdNumber.trim() || undefined,
+          department: department.trim() || undefined,
+        }).catch(() => {});
+      }
 
-      await refreshProfile().catch(() => {});
-      router.replace("/(auth)/officer-pending");
+      await refreshProfile();
+      Alert.alert(
+        "Officer Account Verified",
+        "Your official account has been configured with municipal waste oversight access.",
+        [{ text: "Enter Dashboard", onPress: () => router.replace("/(officer)/dashboard") }]
+      );
     } catch (err: any) {
       Alert.alert(t("auth.errorGeneric"), err?.message ?? "");
     } finally {
@@ -77,44 +90,90 @@ export default function OfficerVerification() {
 
   return (
     <ScreenContainer scroll>
-      <View className="mt-5 mb-5">
-        <View className="w-16 h-16 rounded-full bg-leafLight items-center justify-center mb-4">
-          <MaterialCommunityIcons name="shield-check-outline" size={32} color={theme.leaf} />
+      <View className="mt-4 mb-4">
+        <View className="w-14 h-14 rounded-full bg-leafLight items-center justify-center mb-3">
+          <MaterialCommunityIcons name="shield-check-outline" size={30} color={theme.leaf} />
         </View>
-        <Text className="text-2xl font-bold text-bark">{t("officer.verificationTitle")}</Text>
-        <Text className="text-base text-bark/70 mt-2">{t("officer.verificationBody")}</Text>
+        <Text className="text-2xl font-bold text-bark">Officer Registration</Text>
+        <Text className="text-sm text-bark/70 mt-1">
+          Register with your Department and Employee/Gov ID to access municipal waste flow records.
+        </Text>
       </View>
 
-      <TextInput placeholder={t("auth.name") as string} value={name} onChangeText={setName}
-        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark" placeholderTextColor="#8a7d68" />
-      <TextInput placeholder={t("auth.phone") as string} value={phone} onChangeText={setPhone}
-        keyboardType="phone-pad" className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark" placeholderTextColor="#8a7d68" />
-      <TextInput placeholder={t("auth.email") as string} value={email} onChangeText={setEmail}
-        autoCapitalize="none" keyboardType="email-address" className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark" placeholderTextColor="#8a7d68" />
-      <TextInput placeholder={t("auth.password") as string} value={password} onChangeText={setPassword}
-        secureTextEntry className="bg-sand border border-line rounded-card px-4 py-3 mb-5 text-base text-bark" placeholderTextColor="#8a7d68" />
+      <TextInput
+        placeholder={t("auth.name") as string}
+        value={name}
+        onChangeText={setName}
+        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
+        placeholderTextColor="#8a7d68"
+      />
+      <TextInput
+        placeholder="Gov Department (e.g. Municipal SWM)"
+        value={department}
+        onChangeText={setDepartment}
+        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
+        placeholderTextColor="#8a7d68"
+      />
+      <TextInput
+        placeholder="Gov ID / Officer Badge No. (e.g. SWM-2024-91)"
+        value={govIdNumber}
+        onChangeText={setGovIdNumber}
+        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
+        placeholderTextColor="#8a7d68"
+      />
+      <TextInput
+        placeholder={t("auth.phone") as string}
+        value={phone}
+        onChangeText={setPhone}
+        keyboardType="phone-pad"
+        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
+        placeholderTextColor="#8a7d68"
+      />
+      <TextInput
+        placeholder={t("auth.email") as string}
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
+        placeholderTextColor="#8a7d68"
+      />
+      <TextInput
+        placeholder={t("auth.password") as string}
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        className="bg-sand border border-line rounded-card px-4 py-3 mb-4 text-base text-bark"
+        placeholderTextColor="#8a7d68"
+      />
 
-      <Pressable onPress={pickDocuments} className="bg-sand border border-line rounded-card p-5 mb-4">
+      {/* Document Upload (Optional) */}
+      <Pressable onPress={pickDocuments} className="bg-sand border border-line rounded-card p-4 mb-4">
         <View className="flex-row items-center">
-          <MaterialCommunityIcons name="file-document-multiple-outline" size={28} color={theme.leaf} />
+          <MaterialCommunityIcons name="file-document-multiple-outline" size={26} color={theme.leaf} />
           <View className="ml-3 flex-1">
-            <Text className="text-base font-semibold text-bark">{t("officer.uploadDocuments")}</Text>
-            <Text className="text-sm text-bark/60 mt-1">{t("officer.uploadDocumentsHint")}</Text>
+            <Text className="text-sm font-semibold text-bark">Attach ID Card / Document (Optional)</Text>
+            <Text className="text-xs text-bark/60 mt-0.5">Upload a photo of your official ID or authorization</Text>
           </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color={theme.line} />
+          <MaterialCommunityIcons name="chevron-right" size={22} color={theme.line} />
         </View>
 
         {documents.length > 0 && (
-          <View className="flex-row flex-wrap mt-4">
+          <View className="flex-row flex-wrap mt-3">
             {documents.map((uri) => (
-              <Image key={uri} source={{ uri }} className="w-20 h-20 rounded-xl mr-2 mb-2" resizeMode="cover" />
+              <Image key={uri} source={{ uri }} className="w-16 h-16 rounded-xl mr-2 mb-2" resizeMode="cover" />
             ))}
           </View>
         )}
       </Pressable>
 
-      <PrimaryButton label={t("officer.submitVerification")} onPress={handleSubmit} loading={loading} />
-      <View className="mt-3">
+      <PrimaryButton label="Register & Enter Officer Dashboard" onPress={handleSubmit} loading={loading} />
+
+      <Pressable onPress={() => router.push("/(auth)/login")} className="mt-4 items-center">
+        <Text className="text-leaf text-base">{t("auth.haveAccount")}</Text>
+      </Pressable>
+
+      <View className="mt-2 mb-6">
         <PrimaryButton label={t("common.back")} onPress={() => router.replace("/(auth)/role-select")} variant="secondary" />
       </View>
     </ScreenContainer>

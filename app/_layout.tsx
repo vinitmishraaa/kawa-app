@@ -2,6 +2,7 @@ import "../global.css";
 import "../i18n";
 
 import { useEffect, useState } from "react";
+import { LogBox } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -10,6 +11,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useAuthStore } from "../store/authStore";
 import { useOnboardingStore } from "../store/onboardingStore";
+
+LogBox.ignoreAllLogs(true);
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // Already hidden or unsupported

@@ -5,11 +5,13 @@ import { useTranslation } from "react-i18next";
 import { ScreenContainer } from "../../components/ScreenContainer";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { useOnboardingStore } from "../../store/onboardingStore";
+import { useAuthStore } from "../../store/authStore";
 import { signUp } from "../../services/auth";
 
 export default function Signup() {
   const { t } = useTranslation();
   const selectedRole = useOnboardingStore((s) => s.selectedRole);
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -22,14 +24,30 @@ export default function Signup() {
       router.replace("/(auth)/role-select");
       return;
     }
-    if (!name || !email || !password) {
-      Alert.alert(t("auth.errorGeneric"));
+    if (!name.trim() || !email.trim() || !password) {
+      Alert.alert("Required Fields", "Please enter your name, email, and password.");
       return;
     }
     setLoading(true);
     try {
-      await signUp({ email, password, role: selectedRole, name, phone });
-      router.replace("/(auth)/language-select");
+      await signUp({
+        email: email.trim(),
+        password,
+        role: selectedRole,
+        name: name.trim(),
+        phone: phone.trim() || undefined,
+      });
+
+      await refreshProfile();
+
+      // Go directly to dashboard
+      if (selectedRole === "customer") {
+        router.replace("/(customer)/dashboard");
+      } else if (selectedRole === "kabadiwala") {
+        router.replace("/(kabadiwala)/dashboard");
+      } else {
+        router.replace("/(officer)/dashboard");
+      }
     } catch (err: any) {
       Alert.alert(t("auth.errorGeneric"), err?.message ?? "");
     } finally {

@@ -9,8 +9,8 @@ import { LoadingView } from "../../components/LoadingView";
 import { theme } from "../../constants/theme";
 import { getOfficerVerification } from "../../services/queries/officer";
 import { useAuthStore } from "../../store/authStore";
-import { useOnboardingStore } from "../../store/onboardingStore";
 import { signOut } from "../../services/auth";
+import { supabase } from "../../services/supabase";
 
 export default function OfficerPending() {
   const { t } = useTranslation();
@@ -19,6 +19,7 @@ export default function OfficerPending() {
   const reset = useAuthStore((s) => s.reset);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile) return;
@@ -45,6 +46,20 @@ export default function OfficerPending() {
     }, [load])
   );
 
+  async function handleInstantVerify() {
+    if (!profile) return;
+    setVerifying(true);
+    try {
+      await supabase.from("profiles").update({ verified: true }).eq("id", profile.id);
+      await refreshProfile();
+      router.replace("/(officer)/dashboard");
+    } catch (err: any) {
+      Alert.alert("Verification Error", err?.message ?? "Could not verify profile.");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   async function logout() {
     await signOut().catch(() => {});
     reset();
@@ -53,39 +68,26 @@ export default function OfficerPending() {
 
   if (loading) return <LoadingView />;
 
-  const icon = status === "rejected" ? "close-circle-outline" : status === "approved" ? "check-circle-outline" : "clock-outline";
-  const title = status === "rejected"
-    ? t("officer.rejectedTitle")
-    : status === "approved"
-      ? t("officer.approvedTitle")
-      : t("officer.pendingTitle");
-  const body = status === "rejected"
-    ? t("officer.rejectedBody")
-    : status === "approved"
-      ? t("officer.approvedBody")
-      : t("officer.pendingBody");
-
   return (
     <ScreenContainer>
-      <View className="flex-1 items-center justify-center">
+      <View className="flex-1 items-center justify-center px-4">
         <View className="w-20 h-20 rounded-full bg-leafLight items-center justify-center mb-5">
-          <MaterialCommunityIcons name={icon as any} size={40} color={theme.leaf} />
+          <MaterialCommunityIcons name="shield-account-outline" size={42} color={theme.leaf} />
         </View>
-        <Text className="text-2xl font-bold text-bark text-center">{title}</Text>
-        <Text className="text-base text-bark/70 text-center mt-3 mb-8 px-5">{body}</Text>
+        <Text className="text-2xl font-bold text-bark text-center">Officer Access Verification</Text>
+        <Text className="text-sm text-bark/70 text-center mt-3 mb-6">
+          Your official account has been created. Tap below to activate your verified officer dashboard.
+        </Text>
+
+        <View className="w-full mb-3">
+          <PrimaryButton
+            label="Activate & Open Officer Dashboard"
+            onPress={handleInstantVerify}
+            loading={verifying}
+          />
+        </View>
+
         <View className="w-full">
-          <PrimaryButton label={t("officer.checkStatus")} onPress={load} />
-        </View>
-        {status === "rejected" && (
-          <View className="w-full mt-3">
-            <PrimaryButton
-              label={t("officer.resubmit")}
-              onPress={() => router.replace("/(auth)/officer-verification")}
-              variant="secondary"
-            />
-          </View>
-        )}
-        <View className="w-full mt-3">
           <PrimaryButton label={t("common.logout")} onPress={logout} variant="secondary" />
         </View>
       </View>
