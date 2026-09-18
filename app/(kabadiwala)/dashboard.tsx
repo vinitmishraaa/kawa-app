@@ -299,33 +299,6 @@ export default function KabadiwalaDashboard() {
               );
             })
           )}
-
-          {/* Available Open Scrap nearby */}
-          <Text className="text-base font-bold text-bark mt-4 mb-2">Available Open Scrap Nearby</Text>
-          {listings.length === 0 ? (
-            <View className="bg-sand rounded-card p-4 items-center border border-line">
-              <Text className="text-xs text-bark/60">No unassigned scrap available right now.</Text>
-            </View>
-          ) : (
-            listings.slice(0, 4).map((l) => (
-              <View key={l.id} className="bg-sand border border-line rounded-card p-3 mb-2 flex-row justify-between items-center">
-                <View>
-                  <Text className="font-bold text-bark capitalize">{l.category}</Text>
-                  <Text className="text-xs text-bark/60">{l.quantity} {l.unit} • {(l.distance_m / 1000).toFixed(1)} km away</Text>
-                </View>
-                <Pressable
-                  onPress={async () => {
-                    if (!profile) return;
-                    await bookListing({ listingId: l.id, customerId: l.customer_id, kabadiwalaId: profile.id });
-                    await load();
-                  }}
-                  className="py-2 px-3 bg-leaf rounded-xl"
-                >
-                  <Text className="text-xs font-bold text-white">Claim</Text>
-                </Pressable>
-              </View>
-            ))
-          )}
         </ScrollView>
       )}
 

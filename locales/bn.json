@@ -1,0 +1,216 @@
+{
+  "common": {
+    "appName": "Kawa",
+    "next": "পরবর্তী",
+    "back": "ফিরে যান",
+    "cancel": "বাতিল",
+    "save": "সংরক্ষণ",
+    "submit": "জমা দিন",
+    "loading": "লোড হচ্ছে...",
+    "retry": "আবার চেষ্টা করুন",
+    "logout": "লগ আউট",
+    "kg": "কেজি"
+  },
+  "roleSelect": {
+    "title": "আপনি কে?",
+    "subtitle": "Kawa কিভাবে ব্যবহার করবেন নির্বাচন করুন",
+    "customer": "গ্রাহক (Customer)",
+    "customerHint": "আমি ভাঙারি/কবাড বিক্রি করতে চাই",
+    "kabadiwala": "কবাডিওয়ালা (Kabadiwala)",
+    "kabadiwalaHint": "আমি কবাড সংগ্রহ ও বিক্রি করি",
+    "officer": "অফিসার (Officer)",
+    "officerHint": "পৌরসভা/সরকারি বর্জ্য তদারকি অফিসার"
+  },
+  "auth": {
+    "signupTitle": "আপনার অ্যাকাউন্ট তৈরি করুন",
+    "loginTitle": "ফিরে আসায় স্বাগতম",
+    "name": "আপনার নাম",
+    "email": "ইমেল অ্যাড্রেস",
+    "phone": "মোবাইল নম্বর",
+    "password": "পাসওয়ার্ড",
+    "signupButton": "অ্যাকাউন্ট খুলুন",
+    "loginButton": "লগ ইন করুন",
+    "haveAccount": "ইতিমধ্যে অ্যাকাউন্ট আছে? লগ ইন করুন",
+    "noAccount": "নতুন? অ্যাকাউন্ট তৈরি করুন",
+    "errorGeneric": "কিছু ভুল হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
+  },
+  "languageSelect": {
+    "title": "আপনার ভাষা বেছে নিন",
+    "subtitle": "Select your preferred language / ভাষা নির্বাচন করুন"
+  },
+  "permissions": {
+    "title": "কিছু প্রয়োজনীয় অনুমতি",
+    "subtitle": "Kawa অ্যাপের মাধ্যমে নিকটস্থ কবাডিওয়ালা খুঁজে পেতে লোকেশন প্রয়োজন",
+    "camera": "ক্যামেরা",
+    "cameraHint": "ভাঙারির ছবি তোলার জন্য",
+    "microphone": "মাইক্রোফোন",
+    "microphoneHint": "ভয়েস রেকর্ডের জন্য",
+    "photos": "ফটো গ্যালারি",
+    "photosHint": "ছবি আপলোড করার জন্য",
+    "location": "লোকেশন (GPS)",
+    "locationHint": "আপনার সবচেয়ে কাছে থাকা কবাডিওয়ালা বা পিকআপ খুঁজে পেতে",
+    "allow": "অনুমতি দিন এবং এগিয়ে যান",
+    "skip": "পরবর্তীতে করুন"
+  },
+  "customerDashboard": {
+    "title": "আমার ভাঙারি",
+    "addScrap": "ভাঙারি যোগ করুন",
+    "noListings": "আপনি এখনও কোনো ভাঙারি যোগ করেননি।",
+    "statusAvailable": "কবাডিওয়ালার জন্য অপেক্ষারত",
+    "statusBooked": "বুক করা হয়েছে",
+    "statusCollected": "সংগৃহীত হয়েছে"
+  },
+  "addScrap": {
+    "title": "ভাঙারি যোগ করুন",
+    "takePhoto": "ছবি তুলুন",
+    "chooseCategory": "ক্যাটাগরি বেছে নিন",
+    "chooseSubCategory": "প্রকার বেছে নিন",
+    "quantity": "আনুমানিক পরিমাণ",
+    "unit": "একক",
+    "addAnother": "আরেকটি আইটেম যোগ করুন",
+    "reviewTitle": "আইটেম তালিকা",
+    "submitAll": "তালিকা জমা দিন",
+    "needPhoto": "অনুগ্রহ করে একটি ছবি দিন।",
+    "needCategory": "একটি ক্যাটাগরি বেছে নিন।",
+    "needQuantity": "পরিমাণ উল্লেখ করুন।",
+    "locatingYou": "আপনার অবস্থান খোঁজা হচ্ছে...",
+    "success": "আপনার ভাঙারি তালিকাভুক্ত হয়েছে!"
+  },
+  "kabadiwalaDashboard": {
+    "title": "পিকআপ ড্যাশবোর্ড",
+    "empty": "বর্তমানে কোনো বুকিং নেই।",
+    "away": "দূরে",
+    "book": "পিকআপ গ্রহণ করুন",
+    "sellToOfficer": "অফিসারকে বিক্রি করুন"
+  },
+  "booking": {
+    "title": "বুকিং বিবরণ",
+    "customer": "গ্রাহক",
+    "kabadiwala": "কবাডিওয়ালা",
+    "status": "অবস্থা",
+    "priceAgreed": "নির্ধারিত মূল্য",
+    "enterPrice": "পরিশোধিত মূল্য লিখুন",
+    "markCollected": "সংগৃহীত হিসেবে চিহ্নিত করুন",
+    "collected": "সংগৃহীত",
+    "bookedSuccess": "বুকিং নিশ্চিত হয়েছে!",
+    "collectedSuccess": "সংগ্রহ সফলভাবে রেকর্ড হয়েছে।",
+    "matchedKabadiwala": "নিয়োজিত কবাডিওয়ালা",
+    "matchedCustomer": "বুকিংকারী গ্রাহক",
+    "phone": "ফোন",
+    "notAvailable": "উপলব্ধ নয়",
+    "contactRevealed": "বুকিং নিশ্চিত হওয়ায় যোগাযোগের নম্বর দেখা যাচ্ছে।"
+  },
+  "officer": {
+    "verificationTitle": "অফিসার যাচাইকরণ",
+    "verificationBody": "অনুমোদিত গভঃ অফিসার আইডি দিয়ে লগইন করুন।",
+    "uploadDocuments": "আইডি কার্ড আপলোড করুন (ঐচ্ছিক)",
+    "uploadDocumentsHint": "আপনার অফিশিয়াল আইডি কার্ডের ছবি দিন।",
+    "submitVerification": "যাচাই করুন এবং ড্যাশবোর্ডে যান",
+    "verificationRequired": "অনুগ্রহ করে অনুমোদিত অফিসার আইডি এবং বিবরণ দিন।",
+    "pendingTitle": "যাচাইকরণ প্রক্রিয়াধীন",
+    "pendingBody": "আপনার অফিসার অ্যাকাউন্ট তৈরি হয়েছে।",
+    "rejectedTitle": "যাচাইকরণ ব্যর্থ",
+    "rejectedBody": "আইডি সঠিক নয়।",
+    "approvedTitle": "যাচাইকরণ সফল",
+    "approvedBody": "আপনার অফিসার অ্যাকাউন্ট অনুমোদিত।",
+    "checkStatus": "স্ট্যাটাস দেখুন",
+    "resubmit": "নতুন বিবরণ দিন",
+    "dashboardTitle": "অফিসার কন্ট্রোল হাব",
+    "totalCollected": "মোট সংগৃহীত বর্জ্য",
+    "handovers": "হস্তান্তর সংখ্যা",
+    "materialTypes": "বর্জ্যের ধরন",
+    "openRecords": "মাস্টার রেকর্ড খুলুন",
+    "recentTitle": "সাম্প্রতিক লেনদেন",
+    "recordsTitle": "বর্জ্য সংগ্রহ রেকর্ড",
+    "totalQuantity": "মোট পরিমাণ",
+    "totalValue": "মোট মূল্য",
+    "materialFilter": "ম্যাটেরিয়াল ফিল্টার",
+    "allMaterials": "সব ম্যাটেরিয়াল",
+    "minQuantity": "সর্বনিম্ন পরিমাণ (কেজি)",
+    "noRecords": "কোনো রেকর্ড পাওয়া যায়নি।",
+    "unknownKabadiwala": "কবাডিওয়ালা"
+  },
+  "categories": {
+    "paper": {
+      "label": "কাগজ (Paper)",
+      "newspaper": "সংবাদপত্র",
+      "cardboard": "কার্টুন/কার্ডবোর্ড",
+      "books": "বই ও খাতা"
+    },
+    "plastic": {
+      "label": "প্লাস্টিক (Plastic)",
+      "bottles": "বোতল",
+      "containers": "কন্টেইনার",
+      "mixed": "মিশ্র প্লাস্টিক"
+    },
+    "metal": {
+      "label": "ধাতু/মেটাল (Metal)",
+      "iron": "লোহা",
+      "aluminium": "অ্যালুমিনিয়াম",
+      "copper": "তামা",
+      "steel": "স্টিল"
+    },
+    "ewaste": {
+      "label": "ই-বর্জ্য (E-waste)",
+      "appliances": "যন্ত্রপাতি",
+      "electronics": "ইলেকট্রনিক্স",
+      "cables": "তার/কেবল"
+    },
+    "glass": {
+      "label": "কাচ (Glass)",
+      "bottles": "কাচের বোতল",
+      "jars": "কাচের জার"
+    },
+    "other": {
+      "label": "অন্যান্য (Other)",
+      "mixed": "মিশ্র বর্জ্য"
+    }
+  },
+  "sellOfficer": {
+    "title": "অফিসারকে হস্তান্তর",
+    "chooseOfficer": "অনুমোদিত অফিসার বেছে নিন",
+    "noOfficers": "কোনো অনুমোদিত অফিসার নেই।",
+    "officer": "অফিসার",
+    "noPhone": "ফোন নম্বর নেই",
+    "material": "ম্যাটেরিয়াল",
+    "quantity": "পরিমাণ (কেজি)",
+    "price": "নির্ধারিত মূল্য (₹)",
+    "confirm": "হস্তান্তর নিশ্চিত করুন",
+    "required": "সব বিবরণ সঠিকভাবে পূরণ করুন।",
+    "successTitle": "হস্তান্তর সম্পন্ন",
+    "successBody": "{{name}} এর কাছে বর্জ্য বিক্রি রেকর্ড হয়েছে।"
+  },
+  "rating": {
+    "title": "কবাডিওয়ালাকে রেটিং দিন",
+    "subtitle": "আপনার মূল্যবান মতামত অন্যদের সঠিক কবাডিওয়ালা বেছে নিতে সাহায্য করবে।",
+    "comment": "আপনার মতামত লিখুন",
+    "submit": "রেটিং জমা দিন",
+    "update": "রেটিং আপডেট করুন",
+    "saved": "রেটিং সংরক্ষিত হয়েছে।"
+  },
+  "priceTrend": {
+    "title": "বাজার দরের প্রবণতা",
+    "subtitle": "সাম্প্রতিক ৯০ দিনের কবাডিওয়ালা → অফিসার লেনদেনের মূল্য।",
+    "all": "সব ম্যাটেরিয়াল",
+    "empty": "এখনও কোনো বাজার দর পাওয়া যায়নি।",
+    "button": "মূল্যের ট্রেন্ড"
+  },
+  "quality": {
+    "gradeA": "গ্রেড এ (পরিষ্কার ও পৃথকীকৃত)",
+    "gradeADesc": "পরিষ্কার, শুকনো এবং যথাযথভাবে বাছাই করা পুনর্ব্যবহারযোগ্য বর্জ্য",
+    "gradeB": "গ্রেড বি (আংশিক বাছাইকৃত)",
+    "gradeBDesc": "সামান্য ধুলোবালি বা লেবেলযুক্ত উপাদান",
+    "gradeC": "গ্রেড সি (মিশ্র / ভেজা)",
+    "gradeCDesc": "বাছাই না করা বা দূষিত মিশ্র বর্জ্য"
+  },
+  "routePlanner": {
+    "title": "পরিকল্পিত রুট (Planned Route)",
+    "subtitle": "ক্রমানুসারে পিকআপের অনুকূলিত ম্যাপ"
+  },
+  "wasteLedger": {
+    "title": "বর্জ্য খতিয়ান (Waste Ledger)",
+    "intake": "গ্রাহকদের থেকে সংগৃহীত",
+    "outgoing": "অফিসারদের কাছে বিক্রিত",
+    "stock": "বর্তমান মজুদ স্টক"
+  }
+}

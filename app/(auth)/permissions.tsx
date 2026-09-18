@@ -20,20 +20,18 @@ export default function Permissions() {
 
   async function finish() {
     await markPermissionsDone();
-    router.replace("/");
+    router.replace("/(auth)/role-select");
   }
 
   async function handleAllow() {
     setLoading(true);
     try {
+      await requestLocationPermission();
       await requestCameraPermission();
       await requestMicPermission();
       await ImagePicker.requestMediaLibraryPermissionsAsync();
-      await requestLocationPermission();
     } catch {
-      // Permission dialogs can be dismissed/denied — that's the
-      // user's choice, not an error state. Continue either way; the
-      // relevant screens re-request when a feature is actually used.
+      // Permission dialogs can be dismissed/denied
     } finally {
       setLoading(false);
       await finish();
@@ -48,14 +46,14 @@ export default function Permissions() {
       </View>
 
       <PermissionRow
+        icon="map-marker-outline"
+        title={t("permissions.location")}
+        hint={t("permissions.locationHint")}
+      />
+      <PermissionRow
         icon="camera-outline"
         title={t("permissions.camera")}
         hint={t("permissions.cameraHint")}
-      />
-      <PermissionRow
-        icon="microphone-outline"
-        title={t("permissions.microphone")}
-        hint={t("permissions.microphoneHint")}
       />
       <PermissionRow
         icon="image-outline"
@@ -63,9 +61,9 @@ export default function Permissions() {
         hint={t("permissions.photosHint")}
       />
       <PermissionRow
-        icon="map-marker-outline"
-        title={t("permissions.location")}
-        hint={t("permissions.locationHint")}
+        icon="microphone-outline"
+        title={t("permissions.microphone")}
+        hint={t("permissions.microphoneHint")}
       />
 
       <View className="mt-4">

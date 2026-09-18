@@ -14,7 +14,11 @@ export default function Index() {
     if (isLoading) return;
 
     if (!session || !profile) {
-      router.replace("/(auth)/role-select");
+      if (!permissionsDone) {
+        router.replace("/(auth)/language-select");
+      } else {
+        router.replace("/(auth)/role-select");
+      }
       return;
     }
 

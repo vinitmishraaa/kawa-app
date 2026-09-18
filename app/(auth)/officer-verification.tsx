@@ -1,136 +1,140 @@
 import { useState } from "react";
-import { Alert, Text, TextInput, View, Pressable, Image } from "react-native";
+import { Alert, Text, TextInput, View, Pressable } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenContainer } from "../../components/ScreenContainer";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { theme } from "../../constants/theme";
 import { signUp } from "../../services/auth";
-import { uploadOfficerDocument, submitOfficerVerification } from "../../services/queries/officer";
+import { findAuthorizedOfficer } from "../../constants/authorizedOfficers";
 import { useAuthStore } from "../../store/authStore";
-import { useOnboardingStore } from "../../store/onboardingStore";
 
 export default function OfficerVerification() {
   const { t } = useTranslation();
-  const selectedRole = useOnboardingStore((s) => s.selectedRole);
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
 
+  const [officerCode, setOfficerCode] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [department, setDepartment] = useState("Municipal Solid Waste Management");
-  const [govIdNumber, setGovIdNumber] = useState("");
-  const [documents, setDocuments] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  async function pickDocuments() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: true,
-      quality: 0.75,
-    });
-
-    if (!result.canceled) {
-      setDocuments((current) => [...current, ...result.assets.map((asset) => asset.uri)].slice(0, 3));
+  // When officer code changes, check if it matches an authorized officer
+  function handleCodeChange(code: string) {
+    setOfficerCode(code);
+    const authOfficer = findAuthorizedOfficer(code);
+    if (authOfficer && !name) {
+      setName(authOfficer.name);
     }
   }
 
   async function handleSubmit() {
+    const authOfficer = findAuthorizedOfficer(officerCode);
+    if (!authOfficer) {
+      Alert.alert(
+        "Access Denied: Unauthorized ID",
+        "This Officer ID is not authorized. Only the 5 pre-assigned government municipal officers can access this portal."
+      );
+      return;
+    }
+
     if (!name.trim() || !email.trim() || password.length < 6) {
-      Alert.alert("Required Fields", "Please enter your name, email, and a password with at least 6 characters.");
+      Alert.alert(
+        "Required Fields",
+        "Please enter your full name, official email, and a password (min 6 characters)."
+      );
       return;
     }
 
     setLoading(true);
     try {
-      const result = await signUp({
+      await signUp({
         email: email.trim(),
         password,
         role: "officer",
         name: name.trim(),
         phone: phone.trim() || undefined,
-        govIdNumber: govIdNumber.trim() || "GOV-OFFICER",
-        department: department.trim() || "Municipal SWM",
+        govIdNumber: authOfficer.officerId,
+        department: `${authOfficer.department} (${authOfficer.zone})`,
       });
-
-      // Upload documents if selected
-      const paths: string[] = [];
-      for (const uri of documents) {
-        try {
-          paths.push(await uploadOfficerDocument(uri, result.user!.id));
-        } catch (uploadErr) {
-          console.log("Document upload note:", uploadErr);
-        }
-      }
-
-      if (paths.length > 0) {
-        await submitOfficerVerification({
-          officerId: result.user!.id,
-          documentPaths: paths,
-          govIdNumber: govIdNumber.trim() || undefined,
-          department: department.trim() || undefined,
-        }).catch(() => {});
-      }
 
       await refreshProfile();
       Alert.alert(
-        "Officer Account Verified",
-        "Your official account has been configured with municipal waste oversight access.",
+        "Officer Identity Authorized",
+        `Welcome, ${authOfficer.name} (${authOfficer.zone}). Access granted to the Municipal Waste Command Hub.`,
         [{ text: "Enter Dashboard", onPress: () => router.replace("/(officer)/dashboard") }]
       );
     } catch (err: any) {
-      Alert.alert(t("auth.errorGeneric"), err?.message ?? "");
+      Alert.alert("Registration Error", err?.message ?? "Could not authorize officer.");
     } finally {
       setLoading(false);
     }
   }
 
+  const matchedOfficer = findAuthorizedOfficer(officerCode);
+
   return (
     <ScreenContainer scroll>
       <View className="mt-4 mb-4">
         <View className="w-14 h-14 rounded-full bg-leafLight items-center justify-center mb-3">
-          <MaterialCommunityIcons name="shield-check-outline" size={30} color={theme.leaf} />
+          <MaterialCommunityIcons name="shield-lock-outline" size={32} color={theme.leaf} />
         </View>
-        <Text className="text-2xl font-bold text-bark">Officer Registration</Text>
-        <Text className="text-sm text-bark/70 mt-1">
-          Register with your Department and Employee/Gov ID to access municipal waste flow records.
+        <Text className="text-2xl font-bold text-bark">Government Officer Access</Text>
+        <Text className="text-xs text-bark/70 mt-1">
+          Restricted to the 5 authorized municipal officers. Enter your government-issued Officer ID to unlock access.
         </Text>
       </View>
 
+      {/* OFFICER ID INPUT (CRITICAL SECURITY CHECK) */}
+      <View className="bg-sand border-2 border-leaf/40 rounded-card p-4 mb-4">
+        <Text className="text-xs font-bold text-bark uppercase tracking-wider mb-1.5">
+          1. Authorized Officer ID *
+        </Text>
+        <TextInput
+          placeholder="e.g. OFFICER-SWM-101"
+          value={officerCode}
+          onChangeText={handleCodeChange}
+          autoCapitalize="characters"
+          className="bg-white border border-line rounded-xl px-4 py-3 text-base text-bark font-bold tracking-wider"
+          placeholderTextColor="#8a7d68"
+        />
+
+        {matchedOfficer ? (
+          <View className="flex-row items-center mt-2.5 bg-leafLight p-2.5 rounded-lg border border-leaf/30">
+            <MaterialCommunityIcons name="check-decagram" size={18} color={theme.leaf} />
+            <View className="ml-2 flex-1">
+              <Text className="text-xs font-bold text-leaf">{matchedOfficer.name}</Text>
+              <Text className="text-[11px] text-bark/70">
+                {matchedOfficer.department} • {matchedOfficer.zone}
+              </Text>
+            </View>
+          </View>
+        ) : officerCode.length > 3 ? (
+          <View className="flex-row items-center mt-2 bg-clay/10 p-2 rounded-lg">
+            <MaterialCommunityIcons name="alert-circle-outline" size={16} color={theme.clay} />
+            <Text className="text-[11px] text-clay ml-1.5 font-medium">
+              ID not recognized. Only the 5 pre-assigned Officer IDs can register.
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      {/* OFFICER CREDENTIALS */}
+      <Text className="text-xs font-bold text-bark/70 uppercase tracking-wider mb-2">
+        2. Officer Profile & Login Details
+      </Text>
+
       <TextInput
-        placeholder={t("auth.name") as string}
+        placeholder="Official Full Name *"
         value={name}
         onChangeText={setName}
         className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
         placeholderTextColor="#8a7d68"
       />
       <TextInput
-        placeholder="Gov Department (e.g. Municipal SWM)"
-        value={department}
-        onChangeText={setDepartment}
-        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
-        placeholderTextColor="#8a7d68"
-      />
-      <TextInput
-        placeholder="Gov ID / Officer Badge No. (e.g. SWM-2024-91)"
-        value={govIdNumber}
-        onChangeText={setGovIdNumber}
-        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
-        placeholderTextColor="#8a7d68"
-      />
-      <TextInput
-        placeholder={t("auth.phone") as string}
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
-        placeholderTextColor="#8a7d68"
-      />
-      <TextInput
-        placeholder={t("auth.email") as string}
+        placeholder="Official Email Address *"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -139,42 +143,38 @@ export default function OfficerVerification() {
         placeholderTextColor="#8a7d68"
       />
       <TextInput
-        placeholder={t("auth.password") as string}
+        placeholder="Phone Number (10 digits)"
+        value={phone}
+        onChangeText={setPhone}
+        keyboardType="phone-pad"
+        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
+        placeholderTextColor="#8a7d68"
+      />
+      <TextInput
+        placeholder="Create Secret Password (min 6 characters) *"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        className="bg-sand border border-line rounded-card px-4 py-3 mb-4 text-base text-bark"
+        className="bg-sand border border-line rounded-card px-4 py-3 mb-5 text-base text-bark"
         placeholderTextColor="#8a7d68"
       />
 
-      {/* Document Upload (Optional) */}
-      <Pressable onPress={pickDocuments} className="bg-sand border border-line rounded-card p-4 mb-4">
-        <View className="flex-row items-center">
-          <MaterialCommunityIcons name="file-document-multiple-outline" size={26} color={theme.leaf} />
-          <View className="ml-3 flex-1">
-            <Text className="text-sm font-semibold text-bark">Attach ID Card / Document (Optional)</Text>
-            <Text className="text-xs text-bark/60 mt-0.5">Upload a photo of your official ID or authorization</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={22} color={theme.line} />
-        </View>
-
-        {documents.length > 0 && (
-          <View className="flex-row flex-wrap mt-3">
-            {documents.map((uri) => (
-              <Image key={uri} source={{ uri }} className="w-16 h-16 rounded-xl mr-2 mb-2" resizeMode="cover" />
-            ))}
-          </View>
-        )}
-      </Pressable>
-
-      <PrimaryButton label="Register & Enter Officer Dashboard" onPress={handleSubmit} loading={loading} />
+      <PrimaryButton
+        label="Authorize & Enter Officer Hub"
+        onPress={handleSubmit}
+        loading={loading}
+      />
 
       <Pressable onPress={() => router.push("/(auth)/login")} className="mt-4 items-center">
-        <Text className="text-leaf text-base">{t("auth.haveAccount")}</Text>
+        <Text className="text-leaf text-base font-semibold">Already authorized? Log in here</Text>
       </Pressable>
 
-      <View className="mt-2 mb-6">
-        <PrimaryButton label={t("common.back")} onPress={() => router.replace("/(auth)/role-select")} variant="secondary" />
+      <View className="mt-3 mb-6">
+        <PrimaryButton
+          label="Choose another role"
+          onPress={() => router.replace("/(auth)/role-select")}
+          variant="secondary"
+        />
       </View>
     </ScreenContainer>
   );
