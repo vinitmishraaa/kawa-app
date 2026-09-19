@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Modal, View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import { Modal, View, Text, Pressable, ScrollView, ActivityIndicator, Image } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../constants/theme";
 import { getKabadiwalaRating } from "../services/queries/ratings";
@@ -58,6 +58,23 @@ export function KabadiwalaReviewsModal({
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} className="py-4">
+            {/* Shop Photo Banner if available */}
+            {kabadiwala.shop_photo_url && (
+              <View className="mb-4 rounded-2xl overflow-hidden border border-line">
+                <Image
+                  source={{ uri: kabadiwala.shop_photo_url }}
+                  style={{ width: "100%", height: 140 }}
+                  resizeMode="cover"
+                />
+                <View className="absolute bottom-2 left-2 bg-black/60 px-2.5 py-1 rounded-full flex-row items-center">
+                  <MaterialCommunityIcons name="storefront-outline" size={14} color="#FFF" />
+                  <Text className="text-white text-[11px] font-bold ml-1">
+                    {kabadiwala.shop_name || "Verified Scrap Yard"}
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {/* Rating Summary */}
             <View className="bg-sand rounded-card p-4 mb-4 flex-row items-center justify-between border border-line">
               <View>

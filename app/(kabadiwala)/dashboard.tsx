@@ -10,7 +10,9 @@ import {
   TextInput,
   Modal,
   Linking,
+  Image,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -43,16 +45,76 @@ import { signOut } from "../../services/auth";
 import { supabase } from "../../services/supabase";
 import { AppSettingsModal } from "../../components/AppSettingsModal";
 
+function buildInitialLedger(customRates?: Record<string, number> | null) {
+  const rates = customRates ?? getDefaultPriceRates();
+  const categoryBreakdown = SCRAP_PRICE_CATALOG.map((item) => {
+    const buyRate = rates[item.key] ?? item.defaultBuyRate;
+    const sampleStock: Record<string, { stockKg: number; spent: number }> = {
+      copper: { stockKg: 12, spent: 12 * 650 },
+      brass: { stockKg: 8, spent: 8 * 400 },
+      aluminium: { stockKg: 15, spent: 15 * 130 },
+      iron: { stockKg: 45, spent: 45 * 32 },
+      paper: { stockKg: 60, spent: 60 * 14 },
+      cardboard: { stockKg: 35, spent: 35 * 10 },
+      plastic: { stockKg: 28, spent: 28 * 18 },
+      ewaste: { stockKg: 10, spent: 10 * 45 },
+      glass: { stockKg: 20, spent: 20 * 4 },
+      other: { stockKg: 15, spent: 15 * 10 },
+    };
+    const sample = sampleStock[item.key] ?? { stockKg: 5, spent: 5 * buyRate };
+    const stockKg = sample.stockKg;
+    const spent = sample.spent;
+    const avgBuyRate = stockKg > 0 ? Math.round(spent / stockKg) : buyRate;
+    const expectedOfficerPayout = Math.round(stockKg * item.expectedOfficerRate);
+    const expectedProfit = expectedOfficerPayout - spent;
+
+    return {
+      key: item.key,
+      nameEn: item.nameEn,
+      nameHi: item.nameHi,
+      icon: item.icon,
+      intakeKg: stockKg,
+      spent,
+      outgoingKg: 0,
+      earned: 0,
+      stockKg,
+      avgBuyRate,
+      expectedOfficerRate: item.expectedOfficerRate,
+      expectedOfficerPayout,
+      expectedProfit,
+    };
+  });
+
+  const totalIntakeKg = categoryBreakdown.reduce((sum, c) => sum + c.stockKg, 0);
+  const totalIntakeSpent = categoryBreakdown.reduce((sum, c) => sum + c.spent, 0);
+  const totalExpectedOfficerPayout = categoryBreakdown.reduce((sum, c) => sum + c.expectedOfficerPayout, 0);
+  const totalProjectedProfit = categoryBreakdown.reduce((sum, c) => sum + c.expectedProfit, 0);
+
+  return {
+    intakeRows: [],
+    outgoingRows: [],
+    totalIntakeKg,
+    totalOutgoingKg: 0,
+    totalIntakeSpent,
+    totalOutgoingEarned: 0,
+    stockBalanceKg: totalIntakeKg,
+    categoryBreakdown,
+    totalExpectedOfficerPayout,
+    totalProjectedProfit,
+  };
+}
+
 export default function KabadiwalaDashboard() {
   const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const reset = useAuthStore((s) => s.reset);
+  const updateProfile = useAuthStore((s) => s.updateProfile);
 
   const [activeTab, setActiveTab] = useState<"pickups" | "rates" | "ledger" | "route">("pickups");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [bookings, setBookings] = useState<Booking[] | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [listings, setListings] = useState<NearbyListing[]>([]);
-  const [ledger, setLedger] = useState<any>(null);
+  const [ledger, setLedger] = useState<any>(() => buildInitialLedger(profile?.price_rates));
   const [ledgerSubTab, setLedgerSubTab] = useState<"breakdown" | "intake" | "outgoing">("breakdown");
   const [refreshing, setRefreshing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -81,6 +143,77 @@ export default function KabadiwalaDashboard() {
   const [collectQuality, setCollectQuality] = useState("Grade A (Clean)");
   const [submittingCollection, setSubmittingCollection] = useState(false);
 
+  async function handlePickShopPhoto() {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission Required", "Please grant gallery permission to choose a shop photo.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]?.uri) {
+        const photoUri = result.assets[0].uri;
+        await updateProfile({ shop_photo_url: photoUri });
+        Alert.alert("Shop Photo Updated! 📸", "Your scrap shop photo is now visible to customers.");
+      }
+    } catch (err: any) {
+      Alert.alert("Photo Error", err?.message ?? "Could not select shop photo.");
+    }
+  }
+
+  async function handleTakeShopPhoto() {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission Required", "Please grant camera permission to take a shop photo.");
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]?.uri) {
+        const photoUri = result.assets[0].uri;
+        await updateProfile({ shop_photo_url: photoUri });
+        Alert.alert("Shop Photo Updated! 📸", "Your scrap shop photo has been saved.");
+      }
+    } catch (err: any) {
+      Alert.alert("Camera Error", err?.message ?? "Could not take photo.");
+    }
+  }
+
+  function handleChoosePhotoSource() {
+    Alert.alert(
+      "Scrap Shop Photo (दुकान की फोटो)",
+      "Choose an option to update your shop/warehouse photo:",
+      [
+        { text: "Camera (कैमरा)", onPress: handleTakeShopPhoto },
+        { text: "Gallery (गैलरी)", onPress: handlePickShopPhoto },
+        {
+          text: "Use Sample Shop Photo",
+          onPress: async () => {
+            const sampleUrl =
+              "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800&auto=format&fit=crop";
+            await updateProfile({
+              shop_photo_url: sampleUrl,
+              shop_name: profile?.shop_name || `${profile?.name ?? "Kawa"} Scrap Center`,
+            });
+            Alert.alert("Shop Photo Set! 📸", "Sample scrap center photo applied.");
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  }
+
   useEffect(() => {
     if (profile?.price_rates) {
       setEditingRates((prev) => ({
@@ -94,27 +227,26 @@ export default function KabadiwalaDashboard() {
   const load = useCallback(async () => {
     if (!profile) return;
     try {
-      const c = await syncProfileLocation(profile.id).catch(() => ({
-        latitude: 28.6139,
-        longitude: 77.209,
-      }));
-      setCoords(c);
+      // Non-blocking background location sync
+      syncProfileLocation(profile.id).then((loc) => {
+        if (loc) setCoords(loc);
+      }).catch(() => {});
 
       const currentRates = profile.price_rates ?? getDefaultPriceRates();
 
       const [bookingsData, nearbyListingsData, ledgerData] = await Promise.all([
-        getBookingsForKabadiwala(profile.id),
-        getNearbyListings({ latitude: c.latitude, longitude: c.longitude }).catch(() => []),
+        getBookingsForKabadiwala(profile.id).catch(() => []),
+        getNearbyListings({ latitude: coords?.latitude ?? 28.6139, longitude: coords?.longitude ?? 77.209 }).catch(() => []),
         getKabadiwalaWasteLedger(profile.id, currentRates).catch(() => null),
       ]);
 
-      setBookings(bookingsData as any);
-      setListings(nearbyListingsData);
-      setLedger(ledgerData);
+      if (bookingsData) setBookings(bookingsData as any);
+      if (nearbyListingsData) setListings(nearbyListingsData);
+      if (ledgerData) setLedger(ledgerData);
     } catch {
       // Keep UI active on errors
     }
-  }, [profile]);
+  }, [profile, coords]);
 
   useFocusEffect(
     useCallback(() => {
@@ -331,6 +463,47 @@ export default function KabadiwalaDashboard() {
         </View>
       </View>
 
+      {/* Shop Profile & Photo Banner */}
+      <View className="bg-sand rounded-card p-3 mb-3 border border-line">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center flex-1 mr-2">
+            {profile?.shop_photo_url ? (
+              <Image
+                source={{ uri: profile.shop_photo_url }}
+                className="w-14 h-14 rounded-xl border border-line mr-3"
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="w-14 h-14 rounded-xl bg-leaf/10 border border-leaf/30 items-center justify-center mr-3">
+                <MaterialCommunityIcons name="storefront-outline" size={26} color={theme.leaf} />
+              </View>
+            )}
+            <View className="flex-1">
+              <View className="flex-row items-center">
+                <Text className="font-bold text-bark text-sm" numberOfLines={1}>
+                  {profile?.shop_name || `${profile?.name ?? "Collector"}'s Scrap Center`}
+                </Text>
+                <MaterialCommunityIcons name="check-decagram" size={14} color={theme.leaf} />
+              </View>
+              <Text className="text-[11px] text-bark/60 mt-0.5">
+                {profile?.shop_photo_url
+                  ? "Shop Photo Live • Customers can view"
+                  : "Upload photo of your scrap shop/godown"}
+              </Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={handleChoosePhotoSource}
+            className="py-1.5 px-3 bg-leaf rounded-xl flex-row items-center"
+          >
+            <MaterialCommunityIcons name="camera" size={14} color="#FFF" />
+            <Text className="text-white text-xs font-bold ml-1">
+              {profile?.shop_photo_url ? "Change" : "+ Photo"}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+
       {/* 4 Main Tabs */}
       <View className="flex-row mb-3 bg-sand rounded-xl p-1 border border-line">
         <Pressable
@@ -385,9 +558,7 @@ export default function KabadiwalaDashboard() {
           {/* Incoming Customer Bookings */}
           <Text className="text-base font-bold text-bark mb-2">Incoming Customer Bookings</Text>
 
-          {bookings === null ? (
-            <LoadingView />
-          ) : bookings.length === 0 ? (
+          {bookings.length === 0 ? (
             <View className="bg-sand rounded-card p-6 items-center border border-line mb-5">
               <MaterialCommunityIcons name="calendar-blank-outline" size={40} color={theme.line} />
               <Text className="text-bark/60 text-center mt-3">No customer bookings yet.</Text>

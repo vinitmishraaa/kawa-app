@@ -66,6 +66,9 @@ Traditional informal scrap collection (*Kabadiwala system*) in India accounts fo
 
 | Capability | Details |
 |---|---|
+| 🔵 **Continue with Google** | Full cross-platform Google authentication for both web and mobile (`expo-linking` / Supabase OAuth) with instant demo authentication fallback for hackathons and judging presentations. |
+| ⚡ **Zero-Freeze Instant Hydration** | Non-blocking dashboard initialization: cached profile restoration from AsyncStorage in <50ms with timeout-guarded background refresh. Dashboards, tabs, and action buttons are interactable immediately without full-screen loading spinners. |
+| 📸 **Kabadiwala Shop Photo & Yard Banner** | Scrap collectors can add or change their physical shop / scrap yard photo using Camera or Gallery (or 1-tap demo photo). Displayed live on collector command hub and customer discovery cards. |
 | 🔙 **Universal Back Navigation** | Dedicated, clean Back buttons integrated across every authentication, registration, onboarding, and customer flow screen (`login`, `signup`, `role-select`, `permissions`, `officer-verification`, `add-scrap`, `book-pickup`). |
 | 👁️ **Password Visibility Toggle** | Interactive Eye/Eye-Off toggle icon inside all password input fields across customer, kabadiwala, and officer login/signup screens for instant password verification. |
 | ⚡ **Multi-User Real-Time Concurrency** | Built-in Supabase Realtime channel subscriptions (`public:bookings`, `public:transactions`, `public:scrap_listings`). Multiple customers, kabadiwalas, and municipal officers can use the platform concurrently with instantaneous cross-device dashboard updates. |
@@ -388,6 +391,7 @@ npx expo start
 7. Tap **Route (रूट प्लान)** tab:
    - See assigned customer stops plotted chronologically on the interactive Leaflet map.
    - Tap **Open in Google Maps** for turn-by-turn turn navigation.
+8. At the top of the dashboard, tap **+ Photo** / **Change** to capture with camera or choose from gallery your physical scrap shop/yard photo (or select sample demo photo). Customer discovery cards update immediately!
 
 ### Test Persona 3: Municipal Officer (नगर निगम अधिकारी)
 1. Tap the **⚙️ Settings** icon and log out or select **Officer (अधिकारी)** role.

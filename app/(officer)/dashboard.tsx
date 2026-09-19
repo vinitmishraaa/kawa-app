@@ -32,7 +32,7 @@ export default function OfficerDashboard() {
   const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const reset = useAuthStore((s) => s.reset);
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<any>(DEFAULT_SUMMARY);
   const [refreshing, setRefreshing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -94,8 +94,6 @@ export default function OfficerDashboard() {
       },
     ]);
   }
-
-  if (summary === null) return <LoadingView />;
 
   const totalQuality =
     (summary.qualityCounts["Grade A"] || 0) +

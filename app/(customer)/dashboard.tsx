@@ -22,8 +22,8 @@ export default function CustomerDashboard() {
   const reset = useAuthStore((s) => s.reset);
 
   const [activeTab, setActiveTab] = useState<"bookings" | "listings">("bookings");
-  const [listings, setListings] = useState<ScrapListing[] | null>(null);
-  const [bookings, setBookings] = useState<Booking[] | null>(null);
+  const [listings, setListings] = useState<ScrapListing[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -178,9 +178,7 @@ export default function CustomerDashboard() {
 
       {/* TAB CONTENT */}
       {activeTab === "bookings" ? (
-        bookings === null ? (
-          <LoadingView />
-        ) : bookings.length === 0 ? (
+        bookings.length === 0 ? (
           <View className="flex-1 items-center justify-center px-6">
             <MaterialCommunityIcons name="calendar-clock-outline" size={48} color={theme.line} />
             <Text className="text-bark/70 font-bold text-center mt-3">{t("customerDashboard.noBookings")}</Text>
@@ -257,8 +255,6 @@ export default function CustomerDashboard() {
             }}
           />
         )
-      ) : listings === null ? (
-        <LoadingView />
       ) : listings.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
           <MaterialCommunityIcons name="package-variant" size={48} color={theme.line} />

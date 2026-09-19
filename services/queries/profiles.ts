@@ -17,6 +17,9 @@ export interface NearbyKabadiwala {
   distance_m: number;
   lat: number;
   lng: number;
+  photo_url?: string | null;
+  shop_photo_url?: string | null;
+  shop_name?: string | null;
   price_rates?: Record<string, number> | null;
   review_count?: number;
 }
@@ -25,7 +28,7 @@ export async function getProfilesByIds(ids: string[]) {
   if (!ids.length) return [];
   const { data, error } = await supabase
     .from("profiles")
-    .select("id,role,name,phone,photo_url,verified,rating,location,price_rates,address,gov_id_type,gov_id_number,department")
+    .select("id,role,name,phone,photo_url,shop_photo_url,shop_name,verified,rating,location,price_rates,address,gov_id_type,gov_id_number,department")
     .in("id", ids);
   if (error) throw error;
   return data ?? [];
@@ -48,14 +51,14 @@ export async function getVerifiedOfficers() {
   } catch {}
 
   const { AUTHORIZED_OFFICER_IDS } = await import("../../constants/authorizedOfficers");
-  return AUTHORIZED_OFFICER_IDS.map((o) => ({
-    id: "officer_" + o.officerId.toLowerCase().replace(/[^a-z0-9]/g, ""),
+  return AUTHORIZED_OFFICER_IDS.map((off) => ({
+    id: `officer_${off.officerId.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
     role: "officer",
-    name: o.name,
-    rating: 5.0,
+    name: off.name,
+    rating: 5,
     verified: true,
-    department: `${o.department} (${o.zone})`,
-    phone: "98765000" + o.officerId.slice(-2),
+    department: `${off.department} (${off.zone})`,
+    phone: "1800-SWM-GOV",
   }));
 }
 
@@ -75,6 +78,8 @@ export async function getNearbyKabadiwalas(params: {
         ...item,
         price_rates: item.price_rates ?? DEFAULT_PRICE_RATES,
         review_count: Number(item.review_count ?? 0),
+        shop_photo_url: item.shop_photo_url ?? null,
+        shop_name: item.shop_name ?? null,
       }));
     }
   } catch {
@@ -83,7 +88,7 @@ export async function getNearbyKabadiwalas(params: {
 
   const { data: fallbackProfiles, error: fbError } = await supabase
     .from("profiles")
-    .select("id,name,phone,rating,location,price_rates")
+    .select("id,name,phone,rating,location,price_rates,photo_url,shop_photo_url,shop_name")
     .eq("role", "kabadiwala");
 
   if (fbError) throw fbError;
@@ -95,6 +100,9 @@ export async function getNearbyKabadiwalas(params: {
     distance_m: 1200, // mock approximate distance if PostGIS fallback
     lat: params.latitude,
     lng: params.longitude,
+    photo_url: p.photo_url,
+    shop_photo_url: p.shop_photo_url,
+    shop_name: p.shop_name,
     price_rates: p.price_rates ?? DEFAULT_PRICE_RATES,
     review_count: 5,
   }));

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, Image } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../constants/theme";
 import type { NearbyKabadiwala } from "../services/queries/profiles";
@@ -28,16 +28,27 @@ export function KabadiwalaCard({
     >
       <View className="flex-row items-center justify-between mb-2">
         <View className="flex-row items-center flex-1">
-          <View className="w-12 h-12 rounded-full bg-leaf/10 items-center justify-center mr-3">
-            <MaterialCommunityIcons name="account-hard-hat-outline" size={26} color={theme.leaf} />
-          </View>
+          {kabadiwala.shop_photo_url ? (
+            <Image
+              source={{ uri: kabadiwala.shop_photo_url }}
+              className="w-14 h-14 rounded-xl mr-3 border border-line"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="w-12 h-12 rounded-full bg-leaf/10 items-center justify-center mr-3">
+              <MaterialCommunityIcons name="account-hard-hat-outline" size={26} color={theme.leaf} />
+            </View>
+          )}
           <View className="flex-1">
             <View className="flex-row items-center">
               <Text className="font-bold text-bark text-base mr-1.5" numberOfLines={1}>
-                {kabadiwala.name ?? "Local Kabadiwala"}
+                {kabadiwala.shop_name || kabadiwala.name || "Local Kabadiwala"}
               </Text>
               <MaterialCommunityIcons name="check-decagram" size={16} color={theme.leaf} />
             </View>
+            {kabadiwala.shop_name && kabadiwala.name && (
+              <Text className="text-[11px] text-bark/70 font-medium">Owner: {kabadiwala.name}</Text>
+            )}
             <View className="flex-row items-center mt-0.5">
               <MaterialCommunityIcons name="star" size={15} color={theme.clay} />
               <Text className="text-xs font-semibold text-bark ml-1">

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenContainer } from "../../components/ScreenContainer";
 import { PrimaryButton } from "../../components/PrimaryButton";
-import { signInUnified } from "../../services/auth";
+import { signInUnified, signInWithGoogle } from "../../services/auth";
 import { useAuthStore } from "../../store/authStore";
 import { useOnboardingStore } from "../../store/onboardingStore";
 import { AUTHORIZED_OFFICER_IDS } from "../../constants/authorizedOfficers";
@@ -80,12 +80,25 @@ export default function Login() {
     }
   }
 
-  function handleGoogleLogin() {
-    Alert.alert(
-      "Google Sign-In",
-      "Google authentication is active. You can log in directly with your registered phone or email.",
-      [{ text: "OK" }]
-    );
+  async function handleGoogleLogin() {
+    setLoading(true);
+    try {
+      const activeRole = (selectedRole ?? "customer") as any;
+      const res = await signInWithGoogle(activeRole);
+      if (res?.user) {
+        if (activeRole === "customer") {
+          router.replace("/(customer)/dashboard");
+        } else if (activeRole === "kabadiwala") {
+          router.replace("/(kabadiwala)/dashboard");
+        } else {
+          router.replace("/(officer)/dashboard");
+        }
+      }
+    } catch (err: any) {
+      Alert.alert("Google Sign-In", err?.message ?? "Failed to complete Google Sign-In.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

@@ -7,7 +7,7 @@ import { ScreenContainer } from "../../components/ScreenContainer";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { useOnboardingStore } from "../../store/onboardingStore";
 import { useAuthStore } from "../../store/authStore";
-import { signUp } from "../../services/auth";
+import { signUp, signInWithGoogle } from "../../services/auth";
 import { theme } from "../../constants/theme";
 
 export default function Signup() {
@@ -100,12 +100,24 @@ export default function Signup() {
     }
   }
 
-  function handleGoogleLogin() {
-    Alert.alert(
-      "Google Sign-In",
-      "Google authentication integration is active. Please complete standard signup or login with email/phone to proceed directly into your dashboard.",
-      [{ text: "OK" }]
-    );
+  async function handleGoogleLogin() {
+    setLoading(true);
+    try {
+      const res = await signInWithGoogle(selectedRole as any);
+      if (res?.user) {
+        if (selectedRole === "customer") {
+          router.replace("/(customer)/dashboard");
+        } else if (selectedRole === "kabadiwala") {
+          router.replace("/(kabadiwala)/dashboard");
+        } else {
+          router.replace("/(officer)/dashboard");
+        }
+      }
+    } catch (err: any) {
+      Alert.alert("Google Sign-In", err?.message ?? "Failed to complete Google Sign-In.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const roleTitle = selectedRole === "customer" ? t("roleSelect.customer") : t("roleSelect.kabadiwala");
