@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../constants/theme";
 import { getKabadiwalaRating } from "../services/queries/ratings";
 import type { NearbyKabadiwala } from "../services/queries/profiles";
+import { SCRAP_PRICE_CATALOG, getDefaultPriceRates } from "../constants/scrapPricing";
 
 interface Props {
   visible: boolean;
@@ -33,7 +34,8 @@ export function KabadiwalaReviewsModal({
 
   if (!kabadiwala) return null;
 
-  const rates = kabadiwala.price_rates ?? {};
+  const defaultRates = getDefaultPriceRates();
+  const rates: Record<string, number> = { ...defaultRates, ...(kabadiwala.price_rates ?? {}) };
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -88,17 +90,29 @@ export function KabadiwalaReviewsModal({
 
             {/* Price Space / Rate Card */}
             <View className="mb-4">
-              <Text className="text-base font-bold text-bark mb-2">Price Space (Rates per kg)</Text>
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-base font-bold text-bark">Price Chart (कबाड़ भाव सूची)</Text>
+                <Text className="text-xs text-bark/60">Live Rates / kg</Text>
+              </View>
               <View className="bg-sand rounded-card p-3 border border-line">
-                {Object.entries(rates).map(([material, price]) => (
-                  <View
-                    key={material}
-                    className="flex-row justify-between py-2 border-b border-line/40 last:border-b-0"
-                  >
-                    <Text className="capitalize text-bark font-medium">{material}</Text>
-                    <Text className="font-bold text-leaf">₹{price} / kg</Text>
-                  </View>
-                ))}
+                {SCRAP_PRICE_CATALOG.map((item) => {
+                  const price = rates[item.key] ?? item.defaultBuyRate;
+                  return (
+                    <View
+                      key={item.key}
+                      className="flex-row justify-between items-center py-2 border-b border-line/40 last:border-b-0"
+                    >
+                      <View className="flex-row items-center">
+                        <MaterialCommunityIcons name={item.icon as any} size={18} color={theme.bark} />
+                        <View className="ml-2">
+                          <Text className="text-bark font-bold text-xs">{item.nameEn}</Text>
+                          <Text className="text-bark/60 text-[10px]">{item.nameHi}</Text>
+                        </View>
+                      </View>
+                      <Text className="font-bold text-leaf text-sm">₹{price} / {item.unit}</Text>
+                    </View>
+                  );
+                })}
               </View>
             </View>
 

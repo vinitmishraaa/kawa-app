@@ -2,6 +2,7 @@ import { getBookingById } from "./bookings";
 import { getProfilesByIds } from "./profiles";
 import { supabase } from "../supabase";
 import { sendPushToUser } from "../notifications";
+import { SCRAP_PRICE_CATALOG } from "../../constants/scrapPricing";
 
 export const QUALITY_GRADES = [
   { id: "grade_a", labelKey: "quality.gradeA", descriptionKey: "quality.gradeADesc" },
@@ -144,8 +145,42 @@ export async function getTransactionsForUser(userId: string) {
   return data ?? [];
 }
 
+export async function recordDirectIntake(params: {
+  kabadiwalaId: string;
+  category: string;
+  quantity: number;
+  pricePaid: number;
+  quality?: string;
+  customerName?: string;
+  notes?: string;
+  latitude?: number;
+  longitude?: number;
+}) {
+  const { data, error } = await supabase.from("transactions").insert({
+    from_user_id: null,
+    to_user_id: params.kabadiwalaId,
+    from_role: "customer",
+    to_role: "kabadiwala",
+    material_category: params.category,
+    quantity: params.quantity,
+    price: params.pricePaid,
+    quality: params.quality ?? "Grade A (Clean)",
+    notes: params.notes ?? (params.customerName ? `Walk-in customer: ${params.customerName}` : "Direct intake"),
+    location:
+      params.latitude != null && params.longitude != null
+        ? `POINT(${params.longitude} ${params.latitude})`
+        : null,
+  }).select().single();
+
+  if (error) throw error;
+  return data;
+}
+
 /** Kabadiwala's full Waste Ledger (Intake from Customers + Outgoing to Officers) */
-export async function getKabadiwalaWasteLedger(kabadiwalaId: string) {
+export async function getKabadiwalaWasteLedger(
+  kabadiwalaId: string,
+  customPriceRates?: Record<string, number>
+) {
   const { data, error } = await supabase
     .from("transactions")
     .select("*")
@@ -177,6 +212,83 @@ export async function getKabadiwalaWasteLedger(kabadiwalaId: string) {
   const counterProfiles = await getProfilesByIds(counterProfileIds as string[]);
   const profileMap = new Map(counterProfiles.map((p) => [p.id, p]));
 
+  // Build itemized category analysis (हर टाइप के कबाड़ का अलग रिकॉर्ड)
+  const categoryMap: Record<
+    string,
+    {
+      key: string;
+      nameEn: string;
+      nameHi: string;
+      icon: string;
+      intakeKg: number;
+      spent: number;
+      outgoingKg: number;
+      earned: number;
+      stockKg: number;
+      avgBuyRate: number;
+      expectedOfficerRate: number;
+      expectedOfficerPayout: number;
+      expectedProfit: number;
+    }
+  > = {};
+
+  for (const item of SCRAP_PRICE_CATALOG) {
+    categoryMap[item.key.toLowerCase()] = {
+      key: item.key,
+      nameEn: item.nameEn,
+      nameHi: item.nameHi,
+      icon: item.icon,
+      intakeKg: 0,
+      spent: 0,
+      outgoingKg: 0,
+      earned: 0,
+      stockKg: 0,
+      avgBuyRate: customPriceRates?.[item.key] ?? item.defaultBuyRate,
+      expectedOfficerRate: item.expectedOfficerRate,
+      expectedOfficerPayout: 0,
+      expectedProfit: 0,
+    };
+  }
+
+  // Populate from intake rows
+  for (const r of intakeRows) {
+    const rawCat = (r.material_category ?? "other").toLowerCase();
+    const matchedKey = Object.keys(categoryMap).find((k) => rawCat.includes(k)) ?? "other";
+    const cat = categoryMap[matchedKey];
+    if (cat) {
+      cat.intakeKg += Number(r.quantity ?? 0);
+      cat.spent += Number(r.price ?? 0);
+    }
+  }
+
+  // Populate from outgoing rows
+  for (const r of outgoingRows) {
+    const rawCat = (r.material_category ?? "other").toLowerCase();
+    const matchedKey = Object.keys(categoryMap).find((k) => rawCat.includes(k)) ?? "other";
+    const cat = categoryMap[matchedKey];
+    if (cat) {
+      cat.outgoingKg += Number(r.quantity ?? 0);
+      cat.earned += Number(r.price ?? 0);
+    }
+  }
+
+  let totalExpectedOfficerPayout = 0;
+  let totalProjectedProfit = 0;
+
+  const categoryBreakdown = Object.values(categoryMap).map((cat) => {
+    cat.stockKg = Math.max(0, cat.intakeKg - cat.outgoingKg);
+    if (cat.intakeKg > 0) {
+      cat.avgBuyRate = Math.round((cat.spent / cat.intakeKg) * 10) / 10;
+    }
+    cat.expectedOfficerPayout = Math.round(cat.stockKg * cat.expectedOfficerRate);
+    const heldBuyingCost = Math.round(cat.stockKg * cat.avgBuyRate);
+    cat.expectedProfit = cat.expectedOfficerPayout - heldBuyingCost;
+
+    totalExpectedOfficerPayout += cat.expectedOfficerPayout;
+    totalProjectedProfit += cat.expectedProfit;
+    return cat;
+  });
+
   return {
     intakeRows: intakeRows.map((r) => ({ ...r, counterpart: profileMap.get(r.from_user_id) })),
     outgoingRows: outgoingRows.map((r) => ({ ...r, counterpart: profileMap.get(r.to_user_id) })),
@@ -185,6 +297,9 @@ export async function getKabadiwalaWasteLedger(kabadiwalaId: string) {
     totalIntakeSpent,
     totalOutgoingEarned,
     stockBalanceKg,
+    categoryBreakdown,
+    totalExpectedOfficerPayout,
+    totalProjectedProfit,
   };
 }
 

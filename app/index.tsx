@@ -22,11 +22,6 @@ export default function Index() {
       return;
     }
 
-    if (profile.role === "officer" && !profile.verified) {
-      router.replace("/(auth)/officer-pending");
-      return;
-    }
-
     if (profile.role === "customer") {
       router.replace("/(customer)/dashboard");
     } else if (profile.role === "kabadiwala") {

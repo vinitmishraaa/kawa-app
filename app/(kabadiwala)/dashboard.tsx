@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   Text,
@@ -31,9 +31,16 @@ import {
 import {
   markBookingCollected,
   getKabadiwalaWasteLedger,
+  recordDirectIntake,
   QUALITY_GRADES,
 } from "../../services/queries/transactions";
+import {
+  SCRAP_PRICE_CATALOG,
+  getDefaultPriceRates,
+  getExpectedOfficerRates,
+} from "../../constants/scrapPricing";
 import { signOut } from "../../services/auth";
+import { supabase } from "../../services/supabase";
 import { AppSettingsModal } from "../../components/AppSettingsModal";
 
 export default function KabadiwalaDashboard() {
@@ -41,14 +48,31 @@ export default function KabadiwalaDashboard() {
   const profile = useAuthStore((s) => s.profile);
   const reset = useAuthStore((s) => s.reset);
 
-  const [activeTab, setActiveTab] = useState<"pickups" | "route" | "ledger">("pickups");
+  const [activeTab, setActiveTab] = useState<"pickups" | "rates" | "ledger" | "route">("pickups");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [listings, setListings] = useState<NearbyListing[]>([]);
   const [ledger, setLedger] = useState<any>(null);
-  const [ledgerSubTab, setLedgerSubTab] = useState<"intake" | "outgoing">("intake");
+  const [ledgerSubTab, setLedgerSubTab] = useState<"breakdown" | "intake" | "outgoing">("breakdown");
   const [refreshing, setRefreshing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Rate Card Management State
+  const [editingRates, setEditingRates] = useState<Record<string, number>>(() => ({
+    ...getDefaultPriceRates(),
+    ...(profile?.price_rates ?? {}),
+  }));
+  const [savingRates, setSavingRates] = useState(false);
+
+  // Direct Intake Modal State
+  const [directIntakeOpen, setDirectIntakeOpen] = useState(false);
+  const [directCategory, setDirectCategory] = useState("copper");
+  const [directWeight, setDirectWeight] = useState("");
+  const [directPrice, setDirectPrice] = useState("");
+  const [directExpectedRate, setDirectExpectedRate] = useState("750");
+  const [directCustomerName, setDirectCustomerName] = useState("");
+  const [directQuality, setDirectQuality] = useState("Grade A (Clean)");
+  const [submittingDirect, setSubmittingDirect] = useState(false);
 
   // Mark Collected Modal State
   const [collectingBooking, setCollectingBooking] = useState<Booking | null>(null);
@@ -56,6 +80,16 @@ export default function KabadiwalaDashboard() {
   const [collectPrice, setCollectPrice] = useState("");
   const [collectQuality, setCollectQuality] = useState("Grade A (Clean)");
   const [submittingCollection, setSubmittingCollection] = useState(false);
+
+  useEffect(() => {
+    if (profile?.price_rates) {
+      setEditingRates((prev) => ({
+        ...getDefaultPriceRates(),
+        ...prev,
+        ...profile.price_rates,
+      }));
+    }
+  }, [profile?.price_rates]);
 
   const load = useCallback(async () => {
     if (!profile) return;
@@ -66,16 +100,18 @@ export default function KabadiwalaDashboard() {
       }));
       setCoords(c);
 
+      const currentRates = profile.price_rates ?? getDefaultPriceRates();
+
       const [bookingsData, nearbyListingsData, ledgerData] = await Promise.all([
         getBookingsForKabadiwala(profile.id),
         getNearbyListings({ latitude: c.latitude, longitude: c.longitude }).catch(() => []),
-        getKabadiwalaWasteLedger(profile.id).catch(() => null),
+        getKabadiwalaWasteLedger(profile.id, currentRates).catch(() => null),
       ]);
 
       setBookings(bookingsData as any);
       setListings(nearbyListingsData);
       setLedger(ledgerData);
-    } catch (err: any) {
+    } catch {
       // Keep UI active on errors
     }
   }, [profile]);
@@ -85,6 +121,32 @@ export default function KabadiwalaDashboard() {
       load();
     }, [load])
   );
+
+  // Multi-user Real-Time Subscription: Listen for booking & transaction events
+  useEffect(() => {
+    if (!profile) return;
+    const channel = supabase
+      .channel(`kabadiwala_${profile.id}_realtime`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bookings" },
+        () => {
+          load();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "transactions" },
+        () => {
+          load();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile, load]);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -145,6 +207,102 @@ export default function KabadiwalaDashboard() {
     }
   }
 
+  // Rate Card Management: Adjust single rate
+  function handleRateChange(materialKey: string, newPrice: number) {
+    const valid = Math.max(1, Math.min(9999, Math.round(newPrice)));
+    setEditingRates((prev) => ({
+      ...prev,
+      [materialKey]: valid,
+    }));
+  }
+
+  async function handleSaveRateCard() {
+    if (!profile) return;
+    setSavingRates(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ price_rates: editingRates })
+        .eq("id", profile.id);
+
+      if (error) throw error;
+
+      useAuthStore.getState().updateProfile({ price_rates: editingRates });
+      Alert.alert(
+        "Rate Card Published! 🏷️",
+        "Your scrap buying prices have been successfully saved and are now visible live to all customers in your area."
+      );
+      await load();
+    } catch (err: any) {
+      Alert.alert("Save Error", err?.message ?? "Could not save rates. Please try again.");
+    } finally {
+      setSavingRates(false);
+    }
+  }
+
+  // Direct Scrap Intake Handlers
+  function handleDirectCategoryChange(catKey: string) {
+    setDirectCategory(catKey);
+    const benchmarkRates = getExpectedOfficerRates();
+    if (benchmarkRates[catKey]) {
+      setDirectExpectedRate(String(benchmarkRates[catKey]));
+    }
+    if (directWeight && Number(directWeight) > 0) {
+      const buyRate = editingRates[catKey] ?? getDefaultPriceRates()[catKey] ?? 20;
+      setDirectPrice(String(Math.round(Number(directWeight) * buyRate)));
+    }
+  }
+
+  function handleDirectWeightChange(val: string) {
+    const cleaned = val.replace(/[^0-9.]/g, "");
+    setDirectWeight(cleaned);
+    if (cleaned && Number(cleaned) > 0) {
+      const buyRate = editingRates[directCategory] ?? getDefaultPriceRates()[directCategory] ?? 20;
+      setDirectPrice(String(Math.round(Number(cleaned) * buyRate)));
+    }
+  }
+
+  async function submitDirectIntake() {
+    if (!profile) return;
+    if (!directWeight || Number(directWeight) <= 0) {
+      Alert.alert("Weight Required", "Please enter the measured weight in kg.");
+      return;
+    }
+    if (!directPrice || Number(directPrice) <= 0) {
+      Alert.alert("Price Required", "Please enter the total price paid to the customer.");
+      return;
+    }
+
+    setSubmittingDirect(true);
+    try {
+      await recordDirectIntake({
+        kabadiwalaId: profile.id,
+        category: directCategory,
+        quantity: Number(directWeight),
+        pricePaid: Number(directPrice),
+        quality: directQuality,
+        customerName: directCustomerName.trim() || undefined,
+        latitude: coords?.latitude,
+        longitude: coords?.longitude,
+      });
+
+      Alert.alert(
+        "Scrap Intake Recorded! 📦",
+        `${directWeight} kg of ${directCategory.toUpperCase()} added to inventory.\nBuying Cost: ₹${directPrice}\nExpected Resale: ₹${Math.round(Number(directWeight) * Number(directExpectedRate))}`
+      );
+
+      setDirectIntakeOpen(false);
+      setDirectWeight("");
+      setDirectPrice("");
+      setDirectCustomerName("");
+      await load();
+    } catch (err: any) {
+      Alert.alert("Error", err?.message ?? "Could not record intake.");
+    } finally {
+      setSubmittingDirect(false);
+    }
+  }
+
   // Calculate planned route stops from accepted/in-progress bookings
   const routeStops = (bookings ?? []).filter(
     (b) => b.status === "accepted" || b.status === "in_progress" || b.status === "requested"
@@ -153,10 +311,12 @@ export default function KabadiwalaDashboard() {
   return (
     <ScreenContainer>
       {/* Header */}
-      <View className="flex-row items-center justify-between mt-4 mb-3">
+      <View className="flex-row items-center justify-between mt-3 mb-3">
         <View>
-          <Text className="text-2xl font-bold text-bark">Kabadiwala Hub</Text>
-          <Text className="text-sm font-semibold text-leaf">{profile?.name ?? "Collector"}</Text>
+          <Text className="text-2xl font-bold text-bark">Kabadiwala Command</Text>
+          <Text className="text-xs font-semibold text-leaf">
+            {profile?.name ?? "Collector"} • Live Scrap Hub
+          </Text>
         </View>
         <View className="flex-row items-center">
           <Pressable onPress={() => setSettingsOpen(true)} className="mr-2 p-2 bg-sand rounded-full border border-line">
@@ -171,12 +331,12 @@ export default function KabadiwalaDashboard() {
         </View>
       </View>
 
-      {/* Main Tabs */}
-      <View className="flex-row mb-4 bg-sand rounded-xl p-1 border border-line">
+      {/* 4 Main Tabs */}
+      <View className="flex-row mb-3 bg-sand rounded-xl p-1 border border-line">
         <Pressable
           onPress={() => setActiveTab("pickups")}
           className={`flex-1 py-2 rounded-lg items-center ${
-            activeTab === "pickups" ? "bg-white border border-line/40" : ""
+            activeTab === "pickups" ? "bg-white border border-line/40 shadow-sm" : ""
           }`}
         >
           <Text className={`font-bold text-xs ${activeTab === "pickups" ? "text-bark" : "text-bark/60"}`}>
@@ -184,23 +344,33 @@ export default function KabadiwalaDashboard() {
           </Text>
         </Pressable>
         <Pressable
-          onPress={() => setActiveTab("route")}
+          onPress={() => setActiveTab("rates")}
           className={`flex-1 py-2 rounded-lg items-center ${
-            activeTab === "route" ? "bg-white border border-line/40" : ""
+            activeTab === "rates" ? "bg-white border border-line/40 shadow-sm" : ""
           }`}
         >
-          <Text className={`font-bold text-xs ${activeTab === "route" ? "text-bark" : "text-bark/60"}`}>
-            Planned Route 🗺️
+          <Text className={`font-bold text-xs ${activeTab === "rates" ? "text-leaf" : "text-bark/60"}`}>
+            Rate Card 🏷️
           </Text>
         </Pressable>
         <Pressable
           onPress={() => setActiveTab("ledger")}
           className={`flex-1 py-2 rounded-lg items-center ${
-            activeTab === "ledger" ? "bg-white border border-line/40" : ""
+            activeTab === "ledger" ? "bg-white border border-line/40 shadow-sm" : ""
           }`}
         >
-          <Text className={`font-bold text-xs ${activeTab === "ledger" ? "text-bark" : "text-bark/60"}`}>
-            Waste Ledger
+          <Text className={`font-bold text-xs ${activeTab === "ledger" ? "text-clay" : "text-bark/60"}`}>
+            Ledger 📊
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setActiveTab("route")}
+          className={`flex-1 py-2 rounded-lg items-center ${
+            activeTab === "route" ? "bg-white border border-line/40 shadow-sm" : ""
+          }`}
+        >
+          <Text className={`font-bold text-xs ${activeTab === "route" ? "text-bark" : "text-bark/60"}`}>
+            Route 🗺️
           </Text>
         </Pressable>
       </View>
@@ -397,74 +567,328 @@ export default function KabadiwalaDashboard() {
         </ScrollView>
       )}
 
-      {/* TAB 3: WASTE LEDGER (कबाड़ खाता) */}
+      {/* ========================================================
+          TAB 2: RATE CARD & PRICE CHART (दाम सूची / स्क्रैप भाव)
+         ======================================================== */}
+      {activeTab === "rates" && (
+        <ScrollView
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 35 }}
+        >
+          <View className="mb-3">
+            <Text className="text-lg font-extrabold text-bark">
+              Your Scrap Buying Rates (दाम सूची)
+            </Text>
+            <Text className="text-xs text-bark/70 mt-0.5">
+              Set your buying rate (₹/kg) for all types of garbage. Customers in your area will see this price chart before booking you.
+            </Text>
+          </View>
+
+          {/* Rate List */}
+          <View className="gap-2.5 mb-4">
+            {SCRAP_PRICE_CATALOG.map((item) => {
+              const currentRate = editingRates[item.key] ?? item.defaultBuyRate;
+              const expectedResale = item.expectedOfficerRate;
+              const marginPerKg = expectedResale - currentRate;
+
+              return (
+                <View
+                  key={item.key}
+                  className="bg-sand border border-line rounded-card p-3.5 flex-row items-center justify-between"
+                >
+                  <View className="flex-row items-center flex-1 mr-2">
+                    <View className="w-10 h-10 rounded-full bg-leafLight items-center justify-center mr-3 border border-leaf/20">
+                      <MaterialCommunityIcons name={item.icon as any} size={22} color={theme.leaf} />
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center">
+                        <Text className="font-bold text-bark text-sm">{item.nameEn}</Text>
+                        <Text className="text-xs text-bark/50 ml-1.5 font-medium">({item.nameHi})</Text>
+                      </View>
+                      <View className="flex-row items-center mt-0.5">
+                        <Text className="text-[11px] text-bark/60">
+                          Resale benchmark: ₹{expectedResale}/kg
+                        </Text>
+                        <Text className={`text-[11px] font-bold ml-2 ${marginPerKg >= 0 ? "text-leaf" : "text-clay"}`}>
+                          ({marginPerKg >= 0 ? "+" : ""}₹{marginPerKg}/kg margin)
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Price Controls */}
+                  <View className="items-end">
+                    <View className="flex-row items-center bg-white border border-line rounded-xl px-2 py-1">
+                      <Pressable
+                        onPress={() => handleRateChange(item.key, currentRate - 5)}
+                        className="w-7 h-7 rounded-lg bg-sand items-center justify-center border border-line"
+                        hitSlop={5}
+                      >
+                        <MaterialCommunityIcons name="minus" size={16} color={theme.bark} />
+                      </Pressable>
+
+                      <View className="flex-row items-center mx-2">
+                        <Text className="text-sm font-black text-bark">₹</Text>
+                        <TextInput
+                          value={String(currentRate)}
+                          onChangeText={(v) => {
+                            const n = Number(v.replace(/[^0-9]/g, ""));
+                            handleRateChange(item.key, n);
+                          }}
+                          keyboardType="numeric"
+                          className="font-extrabold text-base text-bark px-1 text-center min-w-[36px]"
+                        />
+                        <Text className="text-xs font-semibold text-bark/60">/kg</Text>
+                      </View>
+
+                      <Pressable
+                        onPress={() => handleRateChange(item.key, currentRate + 5)}
+                        className="w-7 h-7 rounded-lg bg-sand items-center justify-center border border-line"
+                        hitSlop={5}
+                      >
+                        <MaterialCommunityIcons name="plus" size={16} color={theme.leaf} />
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Save & Publish Action */}
+          <PrimaryButton
+            label="Save & Publish Price Chart to Customers"
+            onPress={handleSaveRateCard}
+            loading={savingRates}
+          />
+
+          {/* Customer View Preview */}
+          <View className="mt-5 bg-sand/60 border border-line/70 rounded-card p-4">
+            <View className="flex-row items-center mb-2">
+              <MaterialCommunityIcons name="eye-outline" size={18} color={theme.leaf} />
+              <Text className="text-xs font-bold text-bark ml-1.5 uppercase tracking-wider">
+                Customer View Preview
+              </Text>
+            </View>
+            <Text className="text-xs text-bark/60 mb-3">
+              This is how your rate card appears inside the customer app when users check nearest scrap dealers:
+            </Text>
+
+            <View className="flex-row flex-wrap gap-1.5">
+              {SCRAP_PRICE_CATALOG.map((item) => (
+                <View
+                  key={item.key}
+                  className="bg-paper rounded-full px-2.5 py-1 border border-line flex-row items-center"
+                >
+                  <Text className="text-xs text-bark/80 capitalize mr-1">{item.nameEn}:</Text>
+                  <Text className="text-xs font-bold text-leaf">
+                    ₹{editingRates[item.key] ?? item.defaultBuyRate}/kg
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      )}
+
+      {/* ========================================================
+          TAB 3: ITEM-WISE WASTE LEDGER (हर PRODUCT का अलग RECORD)
+         ======================================================== */}
       {activeTab === "ledger" && (
         <ScrollView
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 30 }}
+          contentContainerStyle={{ paddingBottom: 35 }}
         >
-          {/* Summary Cards */}
-          <View className="flex-row mb-3">
-            <View className="flex-1 bg-leaf rounded-card p-4 mr-2">
-              <Text className="text-white/80 text-xs">Total Inflow (Intake)</Text>
-              <Text className="text-white text-xl font-bold mt-1">
+          {/* Summary Metric Cards */}
+          <View className="flex-row mb-2.5">
+            <View className="flex-1 bg-leaf rounded-card p-3.5 mr-1.5">
+              <Text className="text-white/80 text-xs">Total Inflow (Bought)</Text>
+              <Text className="text-white text-lg font-black mt-0.5">
                 {Number(ledger?.totalIntakeKg ?? 0).toFixed(1)} kg
               </Text>
-              <Text className="text-white/80 text-xs mt-0.5">Paid: ₹{Number(ledger?.totalIntakeSpent ?? 0).toFixed(0)}</Text>
+              <Text className="text-white/80 text-xs mt-0.5">
+                Paid: ₹{Number(ledger?.totalIntakeSpent ?? 0).toFixed(0)}
+              </Text>
             </View>
-            <View className="flex-1 bg-clay rounded-card p-4 ml-2">
-              <Text className="text-white/80 text-xs">Total Outflow (Officers)</Text>
-              <Text className="text-white text-xl font-bold mt-1">
+            <View className="flex-1 bg-clay rounded-card p-3.5 ml-1.5">
+              <Text className="text-white/80 text-xs">Officer Resale (Sold)</Text>
+              <Text className="text-white text-lg font-black mt-0.5">
                 {Number(ledger?.totalOutgoingKg ?? 0).toFixed(1)} kg
               </Text>
-              <Text className="text-white/80 text-xs mt-0.5">Earned: ₹{Number(ledger?.totalOutgoingEarned ?? 0).toFixed(0)}</Text>
+              <Text className="text-white/80 text-xs mt-0.5">
+                Earned: ₹{Number(ledger?.totalOutgoingEarned ?? 0).toFixed(0)}
+              </Text>
             </View>
           </View>
 
-          {/* Current In-Stock Banner */}
-          <View className="bg-sand border border-line rounded-card p-3.5 mb-4 flex-row justify-between items-center">
-            <View>
-              <Text className="text-xs text-bark/60">Current Stock Inventory</Text>
-              <Text className="text-lg font-bold text-bark mt-0.5">
-                {Number(ledger?.stockBalanceKg ?? 0).toFixed(1)} kg held
+          {/* Business Inventory & Net Margin Banner */}
+          <View className="bg-sand border-2 border-leaf/30 rounded-card p-4 mb-3.5">
+            <View className="flex-row justify-between items-start mb-2">
+              <View>
+                <Text className="text-xs font-bold text-bark/60 uppercase tracking-wider">
+                  Current Stock in Hand
+                </Text>
+                <Text className="text-2xl font-black text-bark mt-0.5">
+                  {Number(ledger?.stockBalanceKg ?? 0).toFixed(1)} kg held
+                </Text>
+              </View>
+              <View className="items-end bg-leafLight px-3 py-1.5 rounded-xl border border-leaf/30">
+                <Text className="text-[11px] font-bold text-leaf uppercase">Projected Net Margin</Text>
+                <Text className="text-base font-black text-leaf mt-0.5">
+                  +₹{Number(ledger?.totalProjectedProfit ?? 0).toFixed(0)}
+                </Text>
+              </View>
+            </View>
+
+            <View className="pt-2 border-t border-line/60 flex-row justify-between items-center">
+              <Text className="text-xs text-bark/70">
+                Expected Resale Payout from Officer:{" "}
+                <Text className="font-bold text-bark">
+                  ₹{Number(ledger?.totalExpectedOfficerPayout ?? 0).toFixed(0)}
+                </Text>
               </Text>
             </View>
+          </View>
+
+          {/* Quick Actions Row */}
+          <View className="flex-row gap-2 mb-4">
+            <Pressable
+              onPress={() => setDirectIntakeOpen(true)}
+              className="flex-1 py-3 px-3 bg-leafLight border border-leaf/30 rounded-xl flex-row items-center justify-center"
+            >
+              <MaterialCommunityIcons name="plus-circle" size={18} color={theme.leaf} />
+              <Text className="text-xs font-bold text-leaf ml-1.5">+ Record Intake</Text>
+            </Pressable>
+
             <Pressable
               onPress={() => router.push("/(kabadiwala)/sell-to-officer")}
-              className="py-2.5 px-4 bg-clay rounded-xl flex-row items-center"
+              className="flex-1 py-3 px-3 bg-clay rounded-xl flex-row items-center justify-center"
             >
               <MaterialCommunityIcons name="truck-fast-outline" size={18} color="#fff" />
               <Text className="text-white font-bold text-xs ml-1.5">Handover to Officer</Text>
             </Pressable>
           </View>
 
-          {/* Ledger Sub-tabs */}
+          {/* Ledger Subtabs */}
           <View className="flex-row mb-3 bg-sand rounded-xl p-1 border border-line">
+            <Pressable
+              onPress={() => setLedgerSubTab("breakdown")}
+              className={`flex-1 py-2 rounded-lg items-center ${
+                ledgerSubTab === "breakdown" ? "bg-white shadow-sm border border-line/40" : ""
+              }`}
+            >
+              <Text className={`font-bold text-xs ${ledgerSubTab === "breakdown" ? "text-leaf" : "text-bark/60"}`}>
+                Item Analysis 📋
+              </Text>
+            </Pressable>
             <Pressable
               onPress={() => setLedgerSubTab("intake")}
               className={`flex-1 py-2 rounded-lg items-center ${
-                ledgerSubTab === "intake" ? "bg-white shadow-sm" : ""
+                ledgerSubTab === "intake" ? "bg-white shadow-sm border border-line/40" : ""
               }`}
             >
               <Text className={`font-bold text-xs ${ledgerSubTab === "intake" ? "text-bark" : "text-bark/60"}`}>
-                Intake from Customers ({ledger?.intakeRows?.length ?? 0})
+                Intake ({ledger?.intakeRows?.length ?? 0})
               </Text>
             </Pressable>
             <Pressable
               onPress={() => setLedgerSubTab("outgoing")}
               className={`flex-1 py-2 rounded-lg items-center ${
-                ledgerSubTab === "outgoing" ? "bg-white shadow-sm" : ""
+                ledgerSubTab === "outgoing" ? "bg-white shadow-sm border border-line/40" : ""
               }`}
             >
               <Text className={`font-bold text-xs ${ledgerSubTab === "outgoing" ? "text-bark" : "text-bark/60"}`}>
-                Outgoing to Officers ({ledger?.outgoingRows?.length ?? 0})
+                Handovers ({ledger?.outgoingRows?.length ?? 0})
               </Text>
             </Pressable>
           </View>
 
-          {/* Ledger Rows */}
-          {ledgerSubTab === "intake" ? (
+          {/* SUB-VIEW 1: DETAILED PRODUCT BREAKDOWN (हर PRODUCT का अलग RECORD) */}
+          {ledgerSubTab === "breakdown" && (
+            <View className="gap-2.5">
+              <Text className="text-xs font-bold text-bark/60 uppercase tracking-wider mb-1">
+                Item-by-Item Garbage Inventory & Expected Payout:
+              </Text>
+
+              {(!ledger?.categoryBreakdown || ledger.categoryBreakdown.length === 0) ? (
+                <View className="bg-sand rounded-card p-6 items-center border border-line">
+                  <Text className="text-xs text-bark/60">No scrap inventory recorded yet.</Text>
+                </View>
+              ) : (
+                ledger.categoryBreakdown.map((cat: any) => (
+                  <View
+                    key={cat.key}
+                    className="bg-sand border border-line rounded-card p-3.5"
+                  >
+                    <View className="flex-row items-center justify-between mb-2 pb-2 border-b border-line/40">
+                      <View className="flex-row items-center flex-1">
+                        <View className="w-8 h-8 rounded-full bg-leafLight items-center justify-center mr-2.5 border border-leaf/20">
+                          <MaterialCommunityIcons name={cat.icon as any} size={18} color={theme.leaf} />
+                        </View>
+                        <View>
+                          <Text className="font-extrabold text-bark text-sm">
+                            {cat.nameEn} ({cat.nameHi})
+                          </Text>
+                          <Text className="text-[11px] text-bark/60">
+                            Current Stock:{" "}
+                            <Text className="font-bold text-bark">{Number(cat.stockKg).toFixed(1)} kg</Text>
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View className="items-end">
+                        <View className="px-2 py-0.5 rounded-md bg-leafLight border border-leaf/30">
+                          <Text className="text-[11px] font-bold text-leaf">
+                            +₹{Number(cat.expectedProfit).toFixed(0)} margin
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Numerical Breakdown Columns */}
+                    <View className="flex-row justify-between bg-paper/80 rounded-xl p-2.5 border border-line/50">
+                      <View className="flex-1">
+                        <Text className="text-[10px] text-bark/50 uppercase font-semibold">
+                          Paid to Customer
+                        </Text>
+                        <Text className="text-xs font-bold text-bark mt-0.5">
+                          ₹{Number(cat.spent).toFixed(0)}
+                        </Text>
+                        <Text className="text-[10px] text-bark/60">
+                          (₹{Number(cat.avgBuyRate).toFixed(0)}/kg avg)
+                        </Text>
+                      </View>
+
+                      <View className="flex-1 items-center">
+                        <Text className="text-[10px] text-bark/50 uppercase font-semibold">
+                          Officer Resale
+                        </Text>
+                        <Text className="text-xs font-bold text-leaf mt-0.5">
+                          ₹{Number(cat.expectedOfficerRate).toFixed(0)}/kg
+                        </Text>
+                        <Text className="text-[10px] text-bark/60">benchmark</Text>
+                      </View>
+
+                      <View className="flex-1 items-end">
+                        <Text className="text-[10px] text-bark/50 uppercase font-semibold">
+                          Expected Payout
+                        </Text>
+                        <Text className="text-xs font-black text-clay mt-0.5">
+                          ₹{Number(cat.expectedOfficerPayout).toFixed(0)}
+                        </Text>
+                        <Text className="text-[10px] text-bark/60">from officer</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+
+          {/* SUB-VIEW 2: INTAKE TRANSACTIONS */}
+          {ledgerSubTab === "intake" && (
             !ledger?.intakeRows || ledger.intakeRows.length === 0 ? (
               <View className="bg-sand rounded-card p-6 items-center border border-line">
                 <Text className="text-xs text-bark/60">No customer intake transactions logged yet.</Text>
@@ -476,7 +900,7 @@ export default function KabadiwalaDashboard() {
                     <View>
                       <Text className="font-bold text-bark capitalize">{row.material_category ?? "Scrap"}</Text>
                       <Text className="text-xs text-bark/60 mt-0.5">
-                        From: {row.counterpart?.name ?? "Customer"} • {new Date(row.created_at).toLocaleDateString()}
+                        From: {row.counterpart?.name ?? (row.notes?.includes("Walk-in") ? row.notes : "Customer")} • {new Date(row.created_at).toLocaleDateString()}
                       </Text>
                     </View>
                     <Text className="font-bold text-leaf">₹{Number(row.price ?? 0).toFixed(0)}</Text>
@@ -490,30 +914,35 @@ export default function KabadiwalaDashboard() {
                 </View>
               ))
             )
-          ) : !ledger?.outgoingRows || ledger.outgoingRows.length === 0 ? (
-            <View className="bg-sand rounded-card p-6 items-center border border-line">
-              <Text className="text-xs text-bark/60">No handovers to officers recorded yet.</Text>
-            </View>
-          ) : (
-            ledger.outgoingRows.map((row: any) => (
-              <View key={row.id} className="bg-sand border border-line rounded-card p-3.5 mb-2.5">
-                <View className="flex-row justify-between items-start">
-                  <View>
-                    <Text className="font-bold text-bark capitalize">{row.material_category ?? "Scrap"}</Text>
-                    <Text className="text-xs text-bark/60 mt-0.5">
-                      To: {row.counterpart?.name ?? "Officer"} • {new Date(row.created_at).toLocaleDateString()}
-                    </Text>
-                  </View>
-                  <Text className="font-bold text-clay">₹{Number(row.price ?? 0).toFixed(0)}</Text>
-                </View>
-                <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-line/40">
-                  <Text className="text-xs font-semibold text-bark">{Number(row.quantity ?? 0)} kg</Text>
-                  <View className="px-2 py-0.5 bg-paper rounded border border-line">
-                    <Text className="text-xs text-bark/70">{row.quality ?? "Grade A"}</Text>
-                  </View>
-                </View>
+          )}
+
+          {/* SUB-VIEW 3: OUTGOING HANDOVERS TO OFFICERS */}
+          {ledgerSubTab === "outgoing" && (
+            !ledger?.outgoingRows || ledger.outgoingRows.length === 0 ? (
+              <View className="bg-sand rounded-card p-6 items-center border border-line">
+                <Text className="text-xs text-bark/60">No handovers to officers recorded yet.</Text>
               </View>
-            ))
+            ) : (
+              ledger.outgoingRows.map((row: any) => (
+                <View key={row.id} className="bg-sand border border-line rounded-card p-3.5 mb-2.5">
+                  <View className="flex-row justify-between items-start">
+                    <View>
+                      <Text className="font-bold text-bark capitalize">{row.material_category ?? "Scrap"}</Text>
+                      <Text className="text-xs text-bark/60 mt-0.5">
+                        To: {row.counterpart?.name ?? "Municipal Officer"} • {new Date(row.created_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <Text className="font-bold text-clay">₹{Number(row.price ?? 0).toFixed(0)}</Text>
+                  </View>
+                  <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-line/40">
+                    <Text className="text-xs font-semibold text-bark">{Number(row.quantity ?? 0)} kg</Text>
+                    <View className="px-2 py-0.5 bg-paper rounded border border-line">
+                      <Text className="text-xs text-bark/70">{row.quality ?? "Grade A"}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))
+            )
           )}
         </ScrollView>
       )}
@@ -577,6 +1006,164 @@ export default function KabadiwalaDashboard() {
               label="Save to Waste Ledger"
               onPress={submitCollection}
               loading={submittingCollection}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================================
+          MODAL: DIRECT SCRAP INTAKE / PURCHASE (डायरेक्ट खरीद)
+         ======================================================== */}
+      <Modal visible={directIntakeOpen} transparent animationType="slide">
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="bg-paper rounded-t-3xl max-h-[90%] p-5">
+            <View className="flex-row justify-between items-center pb-3 border-b border-line mb-3">
+              <View>
+                <Text className="text-lg font-black text-bark">Record Direct Scrap Intake</Text>
+                <Text className="text-xs text-bark/60">Log direct scrap bought from customers</Text>
+              </View>
+              <Pressable onPress={() => setDirectIntakeOpen(false)} className="p-1">
+                <MaterialCommunityIcons name="close" size={24} color={theme.bark} />
+              </Pressable>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} className="mb-2">
+              {/* Material Type Selector */}
+              <Text className="text-xs font-bold text-bark mb-1.5 uppercase tracking-wider">
+                Select Scrap Material *
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row mb-4">
+                {SCRAP_PRICE_CATALOG.map((item) => {
+                  const isSelected = directCategory === item.key;
+                  return (
+                    <Pressable
+                      key={item.key}
+                      onPress={() => handleDirectCategoryChange(item.key)}
+                      className={`px-3 py-2 rounded-xl mr-2 border flex-row items-center ${
+                        isSelected ? "bg-leafLight border-leaf" : "bg-sand border-line"
+                      }`}
+                    >
+                      <MaterialCommunityIcons
+                        name={item.icon as any}
+                        size={16}
+                        color={isSelected ? theme.leaf : theme.bark}
+                      />
+                      <Text
+                        className={`text-xs font-bold ml-1.5 ${
+                          isSelected ? "text-leaf" : "text-bark"
+                        }`}
+                      >
+                        {item.nameEn}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Measured Weight */}
+              <Text className="text-xs font-semibold text-bark mb-1">Measured Weight / Quantity (kg) *</Text>
+              <TextInput
+                value={directWeight}
+                onChangeText={handleDirectWeightChange}
+                placeholder="e.g. 15.5 kg"
+                keyboardType="decimal-pad"
+                className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark font-bold"
+                placeholderTextColor="#8a7d68"
+              />
+
+              {/* Price Paid to Customer */}
+              <Text className="text-xs font-semibold text-bark mb-1">
+                Total Price Paid to Customer (₹) *
+              </Text>
+              <TextInput
+                value={directPrice}
+                onChangeText={(v) => setDirectPrice(v.replace(/[^0-9.]/g, ""))}
+                placeholder="₹ 0"
+                keyboardType="decimal-pad"
+                className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark font-bold"
+                placeholderTextColor="#8a7d68"
+              />
+
+              {/* Expected Officer Resale Rate */}
+              <Text className="text-xs font-semibold text-bark mb-1">
+                Expected Selling Rate to Officer / Recycler (₹/kg)
+              </Text>
+              <TextInput
+                value={directExpectedRate}
+                onChangeText={(v) => setDirectExpectedRate(v.replace(/[^0-9.]/g, ""))}
+                placeholder="e.g. 750"
+                keyboardType="decimal-pad"
+                className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
+                placeholderTextColor="#8a7d68"
+              />
+
+              {/* Live Profit Preview Box */}
+              {Number(directWeight) > 0 && Number(directPrice) > 0 && (
+                <View className="bg-leafLight/80 border border-leaf/40 rounded-card p-3 mb-4">
+                  <View className="flex-row justify-between items-center">
+                    <Text className="text-xs font-semibold text-bark/70">Expected Officer Payout:</Text>
+                    <Text className="text-xs font-bold text-bark">
+                      ₹{Math.round(Number(directWeight) * Number(directExpectedRate))}
+                    </Text>
+                  </View>
+                  <View className="flex-row justify-between items-center mt-1 pt-1 border-t border-leaf/20">
+                    <Text className="text-xs font-bold text-leaf">Projected Net Margin / Profit:</Text>
+                    <Text className="text-sm font-black text-leaf">
+                      +₹{Math.round(Number(directWeight) * Number(directExpectedRate) - Number(directPrice))}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Customer Name / Walk-in */}
+              <Text className="text-xs font-semibold text-bark mb-1">Customer / Source Note (Optional)</Text>
+              <TextInput
+                value={directCustomerName}
+                onChangeText={setDirectCustomerName}
+                placeholder="e.g. Walk-in customer / Sector 4 shop"
+                className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
+                placeholderTextColor="#8a7d68"
+              />
+
+              {/* Scrap Quality Inspection */}
+              <Text className="text-xs font-semibold text-bark mb-2">Scrap Quality Inspection</Text>
+              <View className="gap-2 mb-4">
+                {QUALITY_GRADES.map((q) => {
+                  const label =
+                    q.id === "grade_a"
+                      ? "Grade A (Clean & Segregated)"
+                      : q.id === "grade_b"
+                      ? "Grade B (Semi-sorted)"
+                      : "Grade C (Mixed / Wet)";
+                  const isSelected = directQuality.startsWith(
+                    q.id === "grade_a" ? "Grade A" : q.id === "grade_b" ? "Grade B" : "Grade C"
+                  );
+                  return (
+                    <Pressable
+                      key={q.id}
+                      onPress={() => setDirectQuality(label)}
+                      className={`p-3 rounded-card border flex-row items-center justify-between ${
+                        isSelected ? "bg-leafLight border-leaf" : "bg-sand border-line"
+                      }`}
+                    >
+                      <Text className={`font-semibold text-xs ${isSelected ? "text-leaf" : "text-bark"}`}>
+                        {label}
+                      </Text>
+                      <MaterialCommunityIcons
+                        name={isSelected ? "radiobox-marked" : "radiobox-blank"}
+                        size={20}
+                        color={isSelected ? theme.leaf : theme.line}
+                      />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            <PrimaryButton
+              label="Save to Waste Ledger"
+              onPress={submitDirectIntake}
+              loading={submittingDirect}
             />
           </View>
         </View>

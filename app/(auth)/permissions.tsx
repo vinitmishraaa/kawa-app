@@ -78,8 +78,29 @@ export default function Permissions() {
 
   return (
     <ScreenContainer scroll>
+      {/* Top Back Navigation Bar */}
+      <View className="flex-row items-center mt-2 mb-2">
+        <Pressable
+          onPress={() => {
+            if (currentStep > 0) {
+              setCurrentStep((s) => s - 1);
+            } else {
+              router.replace("/(auth)/language-select");
+            }
+          }}
+          className="w-10 h-10 rounded-full bg-sand border border-line items-center justify-center mr-3"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <MaterialCommunityIcons name="arrow-left" size={22} color={theme.bark} />
+        </Pressable>
+        <Text className="text-xs font-semibold text-bark/60 uppercase tracking-wider">
+          {currentStep > 0 ? t("common.previous", "Previous Step") : t("common.back", "Back")}
+        </Text>
+      </View>
+
       {/* Step Indicator Header */}
-      <View className="mt-6 mb-4">
+      <View className="mt-2 mb-4">
         <View className="flex-row items-center justify-between mb-2">
           <Text className="text-xs font-bold uppercase tracking-wider text-bark/50">
             {currentStep < 3 ? t("permissions.stepCount", { step: currentStep + 1 }) : t("permissions.overview")}

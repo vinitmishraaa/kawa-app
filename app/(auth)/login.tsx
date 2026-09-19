@@ -23,6 +23,7 @@ export default function Login() {
   );
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // If already logged in, redirect straight to their active dashboard
@@ -89,7 +90,28 @@ export default function Login() {
 
   return (
     <ScreenContainer scroll>
-      <View className="mt-6 mb-5">
+      {/* Top Back Navigation Bar */}
+      <View className="flex-row items-center mt-2 mb-2">
+        <Pressable
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/(auth)/role-select");
+            }
+          }}
+          className="w-10 h-10 rounded-full bg-sand border border-line items-center justify-center mr-3"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <MaterialCommunityIcons name="arrow-left" size={22} color={theme.bark} />
+        </Pressable>
+        <Text className="text-xs font-semibold text-bark/60 uppercase tracking-wider">
+          {t("common.back", "Back")}
+        </Text>
+      </View>
+
+      <View className="mt-2 mb-5">
         <Text className="text-3xl font-extrabold text-bark">
           {t("auth.loginTitle")}
         </Text>
@@ -209,14 +231,29 @@ export default function Login() {
       )}
 
       <Text className="text-xs font-semibold text-bark mb-1.5">{t("auth.password")} *</Text>
-      <TextInput
-        placeholder={t("auth.loginPasswordPlaceholder")}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        className="bg-sand border border-line rounded-card px-4 py-3 mb-5 text-base text-bark"
-        placeholderTextColor="#8a7d68"
-      />
+      <View className="relative justify-center mb-5">
+        <TextInput
+          placeholder={t("auth.loginPasswordPlaceholder")}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+          className="bg-sand border border-line rounded-card pl-4 pr-12 py-3 text-base text-bark"
+          placeholderTextColor="#8a7d68"
+        />
+        <Pressable
+          onPress={() => setShowPassword((prev) => !prev)}
+          className="absolute right-3 p-1.5"
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+        >
+          <MaterialCommunityIcons
+            name={showPassword ? "eye-outline" : "eye-off-outline"}
+            size={22}
+            color={theme.bark}
+          />
+        </Pressable>
+      </View>
 
       <PrimaryButton label={t("auth.loginButton")} onPress={handleSubmit} loading={loading} />
 

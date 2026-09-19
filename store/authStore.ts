@@ -7,14 +7,15 @@ export interface Profile {
   id: string;
   role: "customer" | "kabadiwala" | "officer";
   name: string | null;
-  phone: string | null;
-  language: string | null;
-  photo_url: string | null;
+  phone?: string | null;
+  language?: string | null;
+  photo_url?: string | null;
   verified: boolean;
   rating: number;
   push_token?: string | null;
   gov_id_number?: string | null;
   department?: string | null;
+  price_rates?: Record<string, number> | null;
 }
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -29,6 +30,7 @@ interface AuthState {
   initialize: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   setSessionAndProfile: (session: any, profile: Profile) => Promise<void>;
+  updateProfile: (partial: Partial<Profile>) => Promise<void>;
   reset: () => void;
 }
 
@@ -58,29 +60,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           AsyncStorage.getItem(LOCAL_PROFILE_KEY).catch(() => null),
         ]);
 
-        if (savedSessionStr && savedProfileStr) {
+        if (savedProfileStr) {
           try {
-            const parsedSession = JSON.parse(savedSessionStr);
-            const parsedProfile = JSON.parse(savedProfileStr);
-            set({ session: parsedSession, profile: parsedProfile });
+            const savedProfile = JSON.parse(savedProfileStr);
+            const savedSession = savedSessionStr ? JSON.parse(savedSessionStr) : null;
+            set({ profile: savedProfile, session: savedSession });
           } catch {}
         }
       }
     } catch {
-      // Offline fallback: check local storage
-      const [savedSessionStr, savedProfileStr] = await Promise.all([
-        AsyncStorage.getItem(LOCAL_SESSION_KEY).catch(() => null),
-        AsyncStorage.getItem(LOCAL_PROFILE_KEY).catch(() => null),
-      ]);
-
-      if (savedSessionStr && savedProfileStr) {
-        try {
-          set({
-            session: JSON.parse(savedSessionStr),
-            profile: JSON.parse(savedProfileStr),
-          });
-        } catch {}
-      }
+      // Offline fallback
     } finally {
       set({ isLoading: false });
     }
@@ -124,6 +113,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(session)).catch(() => {}),
       AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(profile)).catch(() => {}),
     ]);
+  },
+
+  updateProfile: async (partial: Partial<Profile>) => {
+    const current = get().profile;
+    if (!current) return;
+    const updated = { ...current, ...partial };
+    set({ profile: updated });
+    await AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(updated)).catch(() => {});
   },
 
   reset: () => {

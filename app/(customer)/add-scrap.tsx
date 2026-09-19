@@ -154,7 +154,23 @@ export default function AddScrap() {
 
   return (
     <ScreenContainer scroll>
-      <Text className="text-2xl font-bold text-bark mt-4 mb-4">{t("addScrap.title")}</Text>
+      <View className="flex-row items-center mt-2 mb-4">
+        <Pressable
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/(customer)/dashboard");
+            }
+          }}
+          className="w-10 h-10 rounded-full bg-sand border border-line items-center justify-center mr-3"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <MaterialCommunityIcons name="arrow-left" size={22} color={theme.bark} />
+        </Pressable>
+        <Text className="text-2xl font-bold text-bark">{t("addScrap.title")}</Text>
+      </View>
 
       {/* Photo */}
       <Pressable

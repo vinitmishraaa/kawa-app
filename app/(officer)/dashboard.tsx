@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Alert, RefreshControl, ScrollView, Text, View, Pressable } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import { AppSettingsModal } from "../../components/AppSettingsModal";
 import { useAuthStore } from "../../store/authStore";
 import { getOfficerSummary } from "../../services/queries/officer";
 import { signOut } from "../../services/auth";
+import { supabase } from "../../services/supabase";
 import { theme } from "../../constants/theme";
 
 const DEFAULT_SUMMARY = {
@@ -51,6 +52,24 @@ export default function OfficerDashboard() {
       load();
     }, [load])
   );
+
+  useEffect(() => {
+    if (!profile) return;
+    const channel = supabase
+      .channel(`officer_${profile.id}_realtime`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "transactions" },
+        () => {
+          load();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile, load]);
 
   async function refresh() {
     setRefreshing(true);

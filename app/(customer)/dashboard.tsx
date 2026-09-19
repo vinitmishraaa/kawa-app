@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { FlatList, Text, View, Pressable, RefreshControl } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,7 @@ import { useAuthStore } from "../../store/authStore";
 import { getMyListings, type ScrapListing } from "../../services/queries/listings";
 import { getBookingsForCustomer, type Booking } from "../../services/queries/bookings";
 import { signOut } from "../../services/auth";
+import { supabase } from "../../services/supabase";
 import { AppSettingsModal } from "../../components/AppSettingsModal";
 import { theme } from "../../constants/theme";
 import { SCRAP_CATEGORIES } from "../../constants/scrapCategories";
@@ -45,6 +46,31 @@ export default function CustomerDashboard() {
       load();
     }, [load])
   );
+
+  useEffect(() => {
+    if (!profile) return;
+    const channel = supabase
+      .channel(`customer_${profile.id}_realtime`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bookings" },
+        () => {
+          load();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "scrap_listings" },
+        () => {
+          load();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile, load]);
 
   async function handleRefresh() {
     setRefreshing(true);

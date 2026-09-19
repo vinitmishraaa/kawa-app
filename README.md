@@ -66,21 +66,22 @@ Traditional informal scrap collection (*Kabadiwala system*) in India accounts fo
 
 | Capability | Details |
 |---|---|
+| 🔙 **Universal Back Navigation** | Dedicated, clean Back buttons integrated across every authentication, registration, onboarding, and customer flow screen (`login`, `signup`, `role-select`, `permissions`, `officer-verification`, `add-scrap`, `book-pickup`). |
+| 👁️ **Password Visibility Toggle** | Interactive Eye/Eye-Off toggle icon inside all password input fields across customer, kabadiwala, and officer login/signup screens for instant password verification. |
+| ⚡ **Multi-User Real-Time Concurrency** | Built-in Supabase Realtime channel subscriptions (`public:bookings`, `public:transactions`, `public:scrap_listings`). Multiple customers, kabadiwalas, and municipal officers can use the platform concurrently with instantaneous cross-device dashboard updates. |
+| 🌐 **Universal Web & Mobile Support** | Full browser support (`npx expo start --web` or `w`) with platform-specific `LeafletMap.web.tsx` iframe implementation alongside native `react-native-webview` for zero bundling errors. |
+| 🏛️ **Pre-Activated Municipal Officers** | All 5 municipal solid waste officers (`OFFICER-SWM-101` through `105`) pre-seeded, active, and fully verified with instant login and zero administrative review hold-ups. |
+| 🏷️ **Kabadiwala Custom Rate Cards** | Kabadiwalas can set, adjust, and save custom buying rates (₹/kg) across all scrap types (*Copper, Brass, Aluminium, Iron, Paper, Cardboard, Plastic, E-Waste, Glass, Mixed*). Rates dynamically display on customer discovery cards. |
+| 📊 **Item-Wise Waste Ledger & Officer Resale Payouts** | Detailed accounting for every scrap product: in-stock weight (kg), total price paid to customers, average purchase rate (₹/kg), expected municipal officer resale rate (₹/kg), projected officer payout (₹), and estimated profit margins. Includes a 1-tap **Direct Scrap Intake** logger for offline purchases. |
 | 🔑 **Bulletproof Auth & Verification Bypass** | Auto-recovering authentication pipeline: prevents `"Database error saving new user"` by handling PostgreSQL trigger exceptions safely, bypasses Supabase `"Email not verified"` and `"Email rate exceeded"` lockouts, and persists session states locally via `@react-native-async-storage/async-storage`. |
 | 🌐 **Full Trilingual Localization** | Complete native translations for **English (`en`)**, **हिन्दी (`hi`)**, and **বাংলা (`bn`)** across all screens (Login, Signup, Permissions, Customer Dashboard, Kabadiwala Dashboard, Book Pickup, App Settings). Persists reactively across app reloads. |
 | 📍 **Smart Kabadiwala Fallback State** | If no collector is registered in the customer's area, a clean, friendly empty state is rendered with 1-tap options: **"+ List Scrap for Marketplace"** (so collectors discover it later), **"Refresh Location"**, and **"Notify Me When Collector Joins"**. |
 | 🛡️ **Streamlined Permissions Wizard (No Audio)** | Progressive onboarding covering strictly **Language Selection**, **GPS Location**, **Camera & Photos**, and **Push Notifications**. Audio permission is completely omitted for streamlined onboarding. |
 | ⚙️ **Universal Settings & Permissions Modal** | In-app bottom-sheet modal (`AppSettingsModal`) accessible on all dashboards (⚙️) to toggle permissions, switch languages, or switch accounts anytime. |
 | 👥 **Dual-Account Architecture** | Single users can operate both **Customer** and **Kabadiwala** accounts on the same phone number via role-tagged accounts (`${phone}.${role}@kawa.app`), with strict one-active-account-at-a-time security and 1-tap logout switcher. |
-| 🏛️ **Instant Government Officer Login** | Direct Officer ID login tab on the login screen with 1-tap preset chips for the **5 Pre-Authorized Government Officer IDs** (`OFFICER-SWM-101` to `105`) and automatic provisioning. |
-| 🛵 **Direct Nearest Kabadiwala Booking** | Customers pick materials, view nearby collectors sorted by real-time distance (PostGIS), inspect their star rating, past pickups, and custom rate cards, and book instantly. |
-| ⏰ **Preferred Pickup Time Slots** | Customers choose convenient collection windows: **Morning (08:00 AM - 12:00 PM)**, **Afternoon (12:00 PM - 04:00 PM)**, or **Evening (04:00 PM - 08:00 PM)**. |
 | 🗺️ **Planned Route Sequencing (प्लांट रूट)** | Kabadiwalas view an interactive Leaflet/OpenStreetMap routing screen that organizes all pending pickups in an optimal stop sequence with a 1-tap **"Open in Google Maps"** navigation button. |
-| 📒 **Garbage Waste Ledger (कबाड़ खाता)** | Dual-entry scrap inventory tracker for Kabadiwalas: **Intake (आवक)** from customers, **Outgoing (निकास / बिक्री)** to recyclers, and live **Net Inventory (स्टॉक)**. |
 | 🏷️ **Quality Grading System** | Categorizes every waste entry into **Grade A (Clean & Segregated)**, **Grade B (Mixed / Semi-sorted)**, or **Grade C (Contaminated / Low-grade)**. |
 | 📊 **Municipal Oversight Hub** | Officers track municipality-wide scrap inflow vs outflow, active municipal stock, and real-time **Quality Segregation Index** charts. |
-| 🌐 **Universal Web & Mobile Support** | Configured with `react-native-web` for seamless browser preview and Metro bundling without `Unable to resolve react-native-web` errors. |
-| 🛡️ **Zero-Warning & Crash Resilience** | Automated postinstall patch (`scripts/patch-css-interop.js`) eliminating navigation context getter errors, clean borders, and full URL sanitation. |
 
 ---
 
@@ -119,14 +120,18 @@ Traditional informal scrap collection (*Kabadiwala system*) in India accounts fo
   - Interactive numbered stop pins (`Stop 1`, `Stop 2`, `Stop 3`).
   - Tapping a stop highlights the customer's pickup details.
   - **1-Tap Direct Navigation**: Launches native Google Maps with coordinates pre-filled for turn-by-turn driving instructions.
-- **📒 Garbage Waste Ledger (कबाड़ खाता)**:
-  - **Intake Ledger (आवक)**: Records all collected scrap from app bookings and offline walk-ins with date, customer, category, weight (kg), buying price, and Quality Grade.
-  - **Outgoing Ledger (निकास / बिक्री)**: Records all scrap sold to wholesale dealers, recycling factories, or Municipal Officers.
-  - **Net Stock Balance**: Real-time calculated inventory showing current scrap held in warehouse by material category.
-  - **Quality Grading**: Tag every batch as `Grade A`, `Grade B`, or `Grade C`.
-- **Custom Rate Card Management**:
-  - Configure purchasing price per kilogram for Paper, Plastic, Metal, E-Waste, Glass, etc.
-  - Transparent pricing published directly on the customer discovery view.
+- **🏷️ Custom Rate Card Management (कबाड़ भाव सूची)**:
+  - Configure and update personal buying rates per kilogram across all materials: *Copper, Brass, Aluminium, Iron, Paper, Cardboard, Plastic, E-Waste, Glass, Mixed*.
+  - Live rates are published instantly to customers during collector discovery and booking.
+- **📒 Item-Wise Garbage Waste Ledger (कबाड़ खाता & हर product का अलग record)**:
+  - **Itemized Material Breakdown**: Separate tracking cards for every scrap type detailing:
+    - **Current In-Stock Quantity** (`kg`)
+    - **Amount Paid to Customer** (`₹` total & `₹/kg` average)
+    - **Expected Municipal Officer Rate** (`₹/kg` benchmark resale price)
+    - **Projected Officer Payout** (`₹` total payout receivable upon handover)
+    - **Projected Profit Margin** (`₹` net gain)
+  - **Direct Scrap Intake (आवक दर्ज करें)**: Quick action modal to log walk-in, offline, or doorstep scrap purchases on the fly with category, weight, total buying price, and quality grade (`Grade A`, `Grade B`, or `Grade C`).
+  - **Live Inventory Balance**: Automatic real-time accounting of stock inflow, sales outflow, and warehouse balance.
 
 ---
 
@@ -373,14 +378,16 @@ npx expo start
 1. In the customer dashboard, tap the **⚙️ Settings** icon and select **🔄 Switch to Another Account** (or tap Logout).
 2. Select **Kabadiwala (कबाड़ी वाला)** role.
 3. Sign up or log in using the same or different 10-digit mobile number (role-tagged system prevents account collisions!).
-4. On the **Dashboard**, view the customer booking created above. Tap to coordinate.
-5. Tap **Planned Route (रूट प्लान)**:
-   - See the customer stop plotted on the OpenStreetMap / Leaflet map.
-   - Tap **Open in Google Maps** to verify one-click turn-by-turn navigation.
-6. Tap **Waste Ledger (कबाड़ खाता)**:
-   - View your live stock balance.
-   - Record an **Intake (आवक)** entry with quantity and select **Grade A**.
-   - Record an **Outgoing (निकास)** entry when selling to recyclers.
+4. On the **Dashboard**, view assigned bookings with customer contact details, addresses, and scrap items.
+5. Tap **Rates (भाव सूची)** tab:
+   - Adjust buying rates (₹/kg) for Copper, Brass, Iron, Paper, Cardboard, Plastic, etc.
+   - Tap **Save Price Rates** to publish live rates to all customers immediately.
+6. Tap **Waste Ledger (कबाड़ खाता)** tab:
+   - Inspect the **Item-wise Breakdown**: current in-stock kg, money paid to customers, expected officer resale price (₹/kg), projected officer payout (₹), and net profit margin (₹).
+   - Tap **+ Record Direct Scrap Intake** to log quick offline or walk-in purchases.
+7. Tap **Route (रूट प्लान)** tab:
+   - See assigned customer stops plotted chronologically on the interactive Leaflet map.
+   - Tap **Open in Google Maps** for turn-by-turn turn navigation.
 
 ### Test Persona 3: Municipal Officer (नगर निगम अधिकारी)
 1. Tap the **⚙️ Settings** icon and log out or select **Officer (अधिकारी)** role.

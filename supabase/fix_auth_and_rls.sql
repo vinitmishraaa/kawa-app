@@ -125,3 +125,18 @@ create trigger on_auth_user_created
 -- Auto-verify any existing officers or users in the database
 update profiles set verified = true where verified = false;
 
+-- 5. Pre-seed all 5 authorized municipal officers with active verified status
+insert into public.profiles (id, role, name, verified, rating, gov_id_number, department, phone)
+values
+  ('officer_officerswm101', 'officer', 'Rajesh Sharma', true, 5.0, 'OFFICER-SWM-101', 'Municipal Solid Waste Management (North Zone)', '9876500001'),
+  ('officer_officerswm102', 'officer', 'Amit Banerjee', true, 5.0, 'OFFICER-SWM-102', 'Urban Sanitation & Recycling (South Zone)', '9876500002'),
+  ('officer_officerswm103', 'officer', 'Pooja Verma', true, 5.0, 'OFFICER-SWM-103', 'Pollution Control & Waste Audit (East Zone)', '9876500003'),
+  ('officer_officerswm104', 'officer', 'Vikram Sen', true, 5.0, 'OFFICER-SWM-104', 'Municipal Enforcement Cell (West Zone)', '9876500004'),
+  ('officer_officerswm105', 'officer', 'Debashis Mukherjee', true, 5.0, 'OFFICER-SWM-105', 'Central Waste Command & Oversight (Central Command)', '9876500005')
+on conflict (id) do update set
+  verified = true,
+  role = 'officer',
+  name = excluded.name,
+  gov_id_number = excluded.gov_id_number,
+  department = excluded.department;
+
