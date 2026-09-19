@@ -64,13 +64,13 @@ export default function CustomerDashboard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "requested":
-        return { label: "Requested", bg: "bg-warn/20", text: "text-warn" };
+        return { label: t("customerDashboard.statusRequested"), bg: "bg-warn/20", text: "text-warn" };
       case "accepted":
-        return { label: "Accepted", bg: "bg-leaf/20", text: "text-leaf" };
+        return { label: t("customerDashboard.statusAccepted"), bg: "bg-leaf/20", text: "text-leaf" };
       case "in_progress":
-        return { label: "On the way", bg: "bg-clay/20", text: "text-clay" };
+        return { label: t("customerDashboard.statusOnTheWay"), bg: "bg-clay/20", text: "text-clay" };
       case "collected":
-        return { label: "Collected", bg: "bg-ok/20", text: "text-ok" };
+        return { label: t("customerDashboard.statusCollected"), bg: "bg-ok/20", text: "text-ok" };
       default:
         return { label: status, bg: "bg-sand", text: "text-bark" };
     }
@@ -81,8 +81,8 @@ export default function CustomerDashboard() {
       {/* Header */}
       <View className="flex-row items-center justify-between mt-4 mb-3">
         <View>
-          <Text className="text-2xl font-bold text-bark">Welcome back,</Text>
-          <Text className="text-sm font-semibold text-leaf">{profile?.name ?? "Customer"}</Text>
+          <Text className="text-2xl font-bold text-bark">{t("customerDashboard.welcomeBack")}</Text>
+          <Text className="text-sm font-semibold text-leaf">{profile?.name ?? t("roleSelect.customer")}</Text>
         </View>
         <View className="flex-row items-center">
           <Pressable onPress={() => setSettingsOpen(true)} className="mr-2 p-2 bg-sand rounded-full border border-line">
@@ -101,9 +101,9 @@ export default function CustomerDashboard() {
       <View className="bg-leaf rounded-card p-5 mb-4 shadow-sm">
         <View className="flex-row items-center justify-between">
           <View className="flex-1 mr-3">
-            <Text className="text-white font-extrabold text-xl">Sell Scrap from Home</Text>
+            <Text className="text-white font-extrabold text-xl">{t("customerDashboard.sellScrapHeroTitle")}</Text>
             <Text className="text-white/80 text-xs mt-1">
-              Find nearest verified Kabadiwalas, check scrap rates, and choose your preferred time slot.
+              {t("customerDashboard.sellScrapHeroSubtitle")}
             </Text>
           </View>
           <View className="w-12 h-12 rounded-full bg-white/20 items-center justify-center">
@@ -115,13 +115,13 @@ export default function CustomerDashboard() {
             onPress={() => router.push("/(customer)/book-pickup")}
             className="flex-1 py-2.5 px-4 bg-white rounded-xl items-center"
           >
-            <Text className="text-leaf font-bold text-sm">Book Nearest Kabadiwala</Text>
+            <Text className="text-leaf font-bold text-sm">{t("customerDashboard.bookNearestBtn")}</Text>
           </Pressable>
           <Pressable
             onPress={() => router.push("/(customer)/add-scrap")}
             className="py-2.5 px-4 bg-white/20 rounded-xl items-center"
           >
-            <Text className="text-white font-bold text-sm">+ Add Listing</Text>
+            <Text className="text-white font-bold text-sm">{t("customerDashboard.addListingBtn")}</Text>
           </Pressable>
         </View>
       </View>
@@ -135,7 +135,7 @@ export default function CustomerDashboard() {
           }`}
         >
           <Text className={`font-bold text-xs ${activeTab === "bookings" ? "text-bark" : "text-bark/60"}`}>
-            My Bookings ({bookings?.length ?? 0})
+            {t("customerDashboard.myBookingsTab")} ({bookings?.length ?? 0})
           </Text>
         </Pressable>
         <Pressable
@@ -145,7 +145,7 @@ export default function CustomerDashboard() {
           }`}
         >
           <Text className={`font-bold text-xs ${activeTab === "listings" ? "text-bark" : "text-bark/60"}`}>
-            My Scrap ({listings?.length ?? 0})
+            {t("customerDashboard.myScrapTab")} ({listings?.length ?? 0})
           </Text>
         </Pressable>
       </View>
@@ -157,9 +157,10 @@ export default function CustomerDashboard() {
         ) : bookings.length === 0 ? (
           <View className="flex-1 items-center justify-center px-6">
             <MaterialCommunityIcons name="calendar-clock-outline" size={48} color={theme.line} />
-            <Text className="text-bark/60 text-center mt-3 mb-4">No scheduled pickups yet.</Text>
+            <Text className="text-bark/70 font-bold text-center mt-3">{t("customerDashboard.noBookings")}</Text>
+            <Text className="text-bark/50 text-xs text-center mt-1 mb-4">{t("customerDashboard.noBookingsSub")}</Text>
             <PrimaryButton
-              label="Book Your First Pickup"
+              label={t("customerDashboard.bookNearestBtn")}
               onPress={() => router.push("/(customer)/book-pickup")}
             />
           </View>

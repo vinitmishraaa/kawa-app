@@ -132,7 +132,7 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
           <View className="flex-row items-center justify-between pb-3 border-b border-line">
             <View className="flex-row items-center">
               <MaterialCommunityIcons name="cog" size={24} color={theme.bark} />
-              <Text className="text-xl font-bold text-bark ml-2">App Settings & Permissions</Text>
+              <Text className="text-xl font-bold text-bark ml-2">{t("appSettings.title")}</Text>
             </View>
             <Pressable onPress={onClose} className="p-1 rounded-full bg-paper">
               <MaterialCommunityIcons name="close" size={20} color={theme.bark} />
@@ -158,7 +158,7 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
 
             {/* PERMISSIONS CONTROL */}
             <Text className="text-xs font-bold uppercase tracking-wider text-bark/70 mb-2">
-              Device Permissions
+              {t("appSettings.devicePermissions")}
             </Text>
 
             <View className="bg-white rounded-2xl p-3 mb-4 border border-line">
@@ -167,10 +167,10 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
                 <View className="flex-1 mr-2">
                   <View className="flex-row items-center">
                     <MaterialCommunityIcons name="map-marker" size={18} color={theme.leaf} />
-                    <Text className="font-bold text-sm text-bark ml-1.5">GPS Location</Text>
+                    <Text className="font-bold text-sm text-bark ml-1.5">{t("appSettings.locationGps")}</Text>
                   </View>
                   <Text className="text-[11px] text-bark/60 mt-0.5">
-                    Find nearest collectors and pickup routing
+                    {t("appSettings.locationGpsSub")}
                   </Text>
                 </View>
                 <Pressable
@@ -190,10 +190,10 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
                 <View className="flex-1 mr-2">
                   <View className="flex-row items-center">
                     <MaterialCommunityIcons name="camera" size={18} color={theme.leaf} />
-                    <Text className="font-bold text-sm text-bark ml-1.5">Camera & Photos</Text>
+                    <Text className="font-bold text-sm text-bark ml-1.5">{t("appSettings.cameraPhotos")}</Text>
                   </View>
                   <Text className="text-[11px] text-bark/60 mt-0.5">
-                    Take scrap photos and upload documents
+                    {t("appSettings.cameraPhotosSub")}
                   </Text>
                 </View>
                 <Pressable
@@ -213,10 +213,10 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
                 <View className="flex-1 mr-2">
                   <View className="flex-row items-center">
                     <MaterialCommunityIcons name="bell-ring" size={18} color={theme.leaf} />
-                    <Text className="font-bold text-sm text-bark ml-1.5">Push Notifications</Text>
+                    <Text className="font-bold text-sm text-bark ml-1.5">{t("appSettings.notifications")}</Text>
                   </View>
                   <Text className="text-[11px] text-bark/60 mt-0.5">
-                    Pickup alerts, confirmations and updates
+                    {t("appSettings.notificationsSub")}
                   </Text>
                 </View>
                 <Switch
@@ -230,7 +230,7 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
 
             {/* LANGUAGE SELECTOR */}
             <Text className="text-xs font-bold uppercase tracking-wider text-bark/70 mb-2">
-              Language (भाषा / ভাষা)
+              {t("appSettings.selectLanguage")} (भाषा / ভাষা)
             </Text>
 
             <View className="flex-row mb-5 bg-white rounded-2xl p-1.5 border border-line">
@@ -259,7 +259,7 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
 
             {/* ACCOUNT SWITCHER & LOGOUT ACTIONS */}
             <Text className="text-xs font-bold uppercase tracking-wider text-bark/70 mb-2">
-              Account Controls
+              {t("appSettings.switchAccount")}
             </Text>
 
             <Pressable
@@ -271,13 +271,12 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
                   <MaterialCommunityIcons name="swap-horizontal" size={22} color={theme.leaf} />
                 </View>
                 <View>
-                  <Text className="font-bold text-sm text-bark">Switch to Another Account</Text>
-                  <Text className="text-[11px] text-bark/60">Log out to access Customer or Kabadiwala</Text>
+                  <Text className="font-bold text-sm text-bark">{t("appSettings.switchAccount")}</Text>
+                  <Text className="text-[11px] text-bark/60">{t("appSettings.switchAccountSub")}</Text>
                 </View>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={20} color={theme.bark} />
             </Pressable>
-
             <Pressable
               onPress={handleLogout}
               className="bg-white border border-danger/40 rounded-2xl p-3.5 flex-row items-center justify-between mb-6"
@@ -287,7 +286,7 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
                   <MaterialCommunityIcons name="logout" size={20} color={theme.danger} />
                 </View>
                 <View>
-                  <Text className="font-bold text-sm text-danger">Log Out</Text>
+                  <Text className="font-bold text-sm text-danger">{t("appSettings.logout")}</Text>
                   <Text className="text-[11px] text-bark/60">Safely disconnect this device</Text>
                 </View>
               </View>

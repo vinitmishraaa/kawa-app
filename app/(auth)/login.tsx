@@ -41,10 +41,10 @@ export default function Login() {
   async function handleSubmit() {
     if (!identifier.trim() || !password) {
       Alert.alert(
-        "Input Required",
+        t("auth.inputRequired"),
         loginMethod === "officer"
           ? "Please enter your Officer ID and password."
-          : "Please enter your email or phone number, and password."
+          : t("auth.enterCredentials")
       );
       return;
     }
@@ -71,7 +71,7 @@ export default function Login() {
       }
     } catch (err: any) {
       Alert.alert(
-        "Login Failed",
+        "Login Notice",
         err?.message ?? "Invalid credentials. Please verify your details and try again."
       );
     } finally {
@@ -82,7 +82,7 @@ export default function Login() {
   function handleGoogleLogin() {
     Alert.alert(
       "Google Sign-In",
-      "Google authentication integration is active. Please enter your email or phone number to log into your account.",
+      "Google authentication is active. You can log in directly with your registered phone or email.",
       [{ text: "OK" }]
     );
   }
@@ -94,7 +94,7 @@ export default function Login() {
           {t("auth.loginTitle")}
         </Text>
         <Text className="text-xs text-bark/70 mt-1">
-          Sign into your Customer, Kabadiwala, or Municipal Officer account.
+          {t("auth.loginSubtitle")}
         </Text>
       </View>
 
@@ -114,7 +114,7 @@ export default function Login() {
               loginMethod === "phone" ? "text-bark" : "text-bark/60"
             }`}
           >
-            📱 Mobile
+            {t("auth.mobileTab")}
           </Text>
         </Pressable>
 
@@ -132,7 +132,7 @@ export default function Login() {
               loginMethod === "email" ? "text-bark" : "text-bark/60"
             }`}
           >
-            ✉️ Email
+            {t("auth.emailTab")}
           </Text>
         </Pressable>
 
@@ -150,7 +150,7 @@ export default function Login() {
               loginMethod === "officer" ? "text-leaf" : "text-bark/60"
             }`}
           >
-            🏛️ Officer
+            {t("auth.officerTab")}
           </Text>
         </Pressable>
       </View>
@@ -158,18 +158,18 @@ export default function Login() {
       {/* INPUT FIELD ACCORDING TO METHOD */}
       <Text className="text-xs font-semibold text-bark mb-1.5">
         {loginMethod === "phone"
-          ? "Registered Mobile Number *"
+          ? t("auth.phoneNumber")
           : loginMethod === "email"
-          ? "Email Address *"
-          : "Authorized Government Officer ID *"}
+          ? t("auth.emailAddress")
+          : t("auth.officerId")}
       </Text>
       <TextInput
         placeholder={
           loginMethod === "phone"
-            ? "e.g. 9876543210"
+            ? t("auth.phonePlaceholder")
             : loginMethod === "email"
-            ? "e.g. name@gmail.com"
-            : "e.g. OFFICER-SWM-101"
+            ? t("auth.emailPlaceholder")
+            : t("auth.officerIdPlaceholder")
         }
         value={identifier}
         onChangeText={setIdentifier}
@@ -183,7 +183,7 @@ export default function Login() {
       {/* OFFICER PRESET BADGES */}
       {loginMethod === "officer" && (
         <View className="mb-3">
-          <Text className="text-[11px] text-bark/60 mb-1 font-medium">Quick select authorized officer ID:</Text>
+          <Text className="text-[11px] text-bark/60 mb-1 font-medium">{t("auth.officerPresetHint")}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
             {AUTHORIZED_OFFICER_IDS.map((o) => (
               <Pressable
@@ -208,9 +208,9 @@ export default function Login() {
         </View>
       )}
 
-      <Text className="text-xs font-semibold text-bark mb-1.5">Password *</Text>
+      <Text className="text-xs font-semibold text-bark mb-1.5">{t("auth.password")} *</Text>
       <TextInput
-        placeholder="Enter your password"
+        placeholder={t("auth.loginPasswordPlaceholder")}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -222,7 +222,7 @@ export default function Login() {
 
       {/* GOOGLE SIGN IN */}
       <View className="items-center my-4">
-        <Text className="text-xs text-bark/50 font-semibold uppercase">Or continue with</Text>
+        <Text className="text-xs text-bark/50 font-semibold uppercase">{t("auth.orContinueWith")}</Text>
       </View>
 
       <Pressable
@@ -230,7 +230,7 @@ export default function Login() {
         className="bg-sand border border-line rounded-card py-3 px-4 flex-row items-center justify-center mb-4"
       >
         <MaterialCommunityIcons name="google" size={20} color={theme.clay} />
-        <Text className="font-bold text-bark text-sm ml-2.5">Continue with Google</Text>
+        <Text className="font-bold text-bark text-sm ml-2.5">{t("auth.continueWithGoogle")}</Text>
       </Pressable>
 
       <Pressable onPress={() => router.push("/(auth)/role-select")} className="mt-2 items-center">

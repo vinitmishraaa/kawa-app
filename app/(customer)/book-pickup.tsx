@@ -153,7 +153,7 @@ export default function BookPickupScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color={theme.bark} />
         </Pressable>
         <Text className="text-xl font-bold text-bark">
-          {step === 1 ? "1. Select Scrap" : step === 2 ? "2. Choose Kabadiwala" : "3. Schedule & Address"}
+          {step === 1 ? t("bookPickup.step1Title") : step === 2 ? t("bookPickup.step2Title") : t("bookPickup.step3Title")}
         </Text>
         <View className="w-8" />
       </View>
@@ -181,10 +181,10 @@ export default function BookPickupScreen() {
       {/* STEP 1: SCRAP PRODUCTS */}
       {step === 1 && (
         <View>
-          <Text className="text-base font-bold text-bark mb-2">What scrap do you want to sell?</Text>
+          <Text className="text-base font-bold text-bark mb-2">{t("bookPickup.selectCategory")}</Text>
           <CategoryPicker selectedId={selectedCategory} onSelect={setSelectedCategory} />
 
-          <Text className="text-sm font-semibold text-bark mb-2 mt-4">Estimated Quantity</Text>
+          <Text className="text-sm font-semibold text-bark mb-2 mt-4">{t("bookPickup.approxQuantity")}</Text>
           <View className="flex-row mb-4">
             <TextInput
               value={quantity}
@@ -216,13 +216,13 @@ export default function BookPickupScreen() {
             className="bg-sand border border-leaf/40 rounded-card p-3 flex-row items-center justify-center mb-5"
           >
             <MaterialCommunityIcons name="plus-circle-outline" size={20} color={theme.leaf} />
-            <Text className="text-leaf font-bold text-sm ml-2">Add This Item to List</Text>
+            <Text className="text-leaf font-bold text-sm ml-2">{t("bookPickup.addToList")}</Text>
           </Pressable>
 
           {/* Added items list */}
           {items.length > 0 && (
             <View className="bg-sand rounded-card p-4 mb-5 border border-line">
-              <Text className="text-sm font-bold text-bark mb-2">Items to Sell ({items.length}):</Text>
+              <Text className="text-sm font-bold text-bark mb-2">{t("bookPickup.itemsToSell")} ({items.length}):</Text>
               {items.map((item, idx) => (
                 <View
                   key={idx}
@@ -247,7 +247,7 @@ export default function BookPickupScreen() {
           )}
 
           <PrimaryButton
-            label="Next: Choose Nearest Kabadiwala"
+            label={t("bookPickup.nextChooseKabadiwala")}
             onPress={() => {
               if (items.length === 0 && (!quantity || Number(quantity) <= 0)) {
                 Alert.alert("Quantity Required", "Please enter estimated quantity or add an item.");
@@ -265,20 +265,61 @@ export default function BookPickupScreen() {
       {/* STEP 2: NEAREST KABADIWALAS */}
       {step === 2 && (
         <View>
-          <Text className="text-base font-bold text-bark mb-1">Select Nearest Kabadiwala</Text>
+          <Text className="text-base font-bold text-bark mb-1">{t("bookPickup.selectKabadiwalaTitle")}</Text>
           <Text className="text-xs text-bark/60 mb-4">
-            Compare rates, check ratings and reviews, and pick who collects your scrap.
+            {t("bookPickup.selectKabadiwalaSubtitle")}
           </Text>
 
           {loadingKabadiwalas ? (
             <View className="py-8 items-center">
               <ActivityIndicator color={theme.leaf} size="large" />
-              <Text className="text-sm text-bark/60 mt-3">Finding nearest verified kabadiwalas...</Text>
+              <Text className="text-sm text-bark/60 mt-3">{t("bookPickup.searchingKabadiwalas")}</Text>
             </View>
           ) : kabadiwalas.length === 0 ? (
             <View className="bg-sand rounded-card p-6 items-center border border-line mb-4">
-              <MaterialCommunityIcons name="map-marker-alert-outline" size={40} color={theme.line} />
-              <Text className="text-bark/70 text-center mt-3">No Kabadiwalas registered nearby.</Text>
+              <View className="w-16 h-16 rounded-full bg-warn/15 items-center justify-center mb-3">
+                <MaterialCommunityIcons name="truck-remove-outline" size={36} color={theme.warn} />
+              </View>
+              <Text className="text-lg font-bold text-bark text-center">
+                {t("bookPickup.noKabadiwalasTitle")}
+              </Text>
+              <Text className="text-xs text-bark/70 text-center mt-2 mb-5 leading-5">
+                {t("bookPickup.noKabadiwalasSub")}
+              </Text>
+
+              {/* Primary: List Scrap on Marketplace */}
+              <View className="w-full mb-2.5">
+                <PrimaryButton
+                  label={t("bookPickup.listScrapInstead")}
+                  onPress={() => router.push("/(customer)/add-scrap")}
+                />
+              </View>
+
+              {/* Secondary: Refresh Location / Retry */}
+              <View className="w-full mb-2.5">
+                <PrimaryButton
+                  label={t("bookPickup.refreshLocation")}
+                  onPress={() => {
+                    if (coords) fetchKabadiwalas(coords);
+                  }}
+                  variant="secondary"
+                />
+              </View>
+
+              {/* Tertiary: Notify me */}
+              <Pressable
+                onPress={() =>
+                  Alert.alert(
+                    t("bookPickup.notifyMe"),
+                    "We will notify you via push notification as soon as a verified scrap collector registers in your area.",
+                    [{ text: "OK" }]
+                  )
+                }
+                className="py-2.5 px-4 rounded-xl flex-row items-center justify-center mt-1"
+              >
+                <MaterialCommunityIcons name="bell-ring-outline" size={16} color={theme.leaf} />
+                <Text className="text-leaf text-xs font-bold ml-1.5">{t("bookPickup.notifyMe")}</Text>
+              </Pressable>
             </View>
           ) : (
             kabadiwalas.map((k) => (
@@ -298,7 +339,7 @@ export default function BookPickupScreen() {
           {selectedKabadiwala && (
             <View className="mt-3">
               <PrimaryButton
-                label={`Continue with ${selectedKabadiwala.name ?? "Selected Kabadiwala"}`}
+                label={t("bookPickup.continueWithKabadiwala", { name: selectedKabadiwala.name ?? "Selected Kabadiwala" })}
                 onPress={() => setStep(3)}
               />
             </View>
@@ -312,7 +353,7 @@ export default function BookPickupScreen() {
           {selectedKabadiwala && (
             <View className="bg-leafLight rounded-card p-4 mb-4 border border-leaf/30 flex-row items-center justify-between">
               <View>
-                <Text className="text-xs text-leaf font-bold">SELECTED KABADIWALA</Text>
+                <Text className="text-xs text-leaf font-bold">{t("bookPickup.selectedKabadiwalaBadge")}</Text>
                 <Text className="font-bold text-bark text-base mt-0.5">
                   {selectedKabadiwala.name ?? "Local Kabadiwala"}
                 </Text>
@@ -324,7 +365,7 @@ export default function BookPickupScreen() {
                 onPress={() => setStep(2)}
                 className="py-1 px-3 bg-white rounded-full border border-line"
               >
-                <Text className="text-xs font-bold text-bark">Change</Text>
+                <Text className="text-xs font-bold text-bark">{t("bookPickup.changeKabadiwala")}</Text>
               </Pressable>
             </View>
           )}
@@ -336,26 +377,26 @@ export default function BookPickupScreen() {
             onSelectSlot={setSelectedSlot}
           />
 
-          <Text className="text-sm font-semibold text-bark mb-2">Pickup Address</Text>
+          <Text className="text-sm font-semibold text-bark mb-2">{t("bookPickup.pickupAddress")}</Text>
           <TextInput
             value={address}
             onChangeText={setAddress}
-            placeholder="Flat / House No., Landmark, Street"
+            placeholder={t("bookPickup.addressPlaceholder")}
             placeholderTextColor="#8a7d68"
             className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
           />
 
-          <Text className="text-sm font-semibold text-bark mb-2">Notes for Kabadiwala (Optional)</Text>
+          <Text className="text-sm font-semibold text-bark mb-2">{t("bookPickup.additionalNotes")}</Text>
           <TextInput
             value={notes}
             onChangeText={setNotes}
-            placeholder="e.g. Call before coming, heavy cartons"
+            placeholder={t("bookPickup.notesPlaceholder")}
             placeholderTextColor="#8a7d68"
             className="bg-sand border border-line rounded-card px-4 py-3 mb-6 text-base text-bark"
           />
 
           <PrimaryButton
-            label="Confirm & Book Pickup"
+            label={t("bookPickup.confirmPickupBtn")}
             onPress={handleConfirmBooking}
             loading={submitting}
           />

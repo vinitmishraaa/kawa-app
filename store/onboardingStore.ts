@@ -2,6 +2,8 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Role } from "../services/auth";
 
+import i18n from "../i18n";
+
 const LANGUAGE_KEY = "kawa:language";
 const PERMISSIONS_DONE_KEY = "kawa:permissionsDone";
 
@@ -27,14 +29,21 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
       AsyncStorage.getItem(LANGUAGE_KEY),
       AsyncStorage.getItem(PERMISSIONS_DONE_KEY),
     ]);
+    const finalLang = language ?? "en";
+    try {
+      i18n.changeLanguage(finalLang);
+    } catch {}
     set({
-      language: language ?? "en",
+      language: finalLang,
       permissionsDone: permissionsDone === "true",
     });
   },
 
   setLanguage: async (lang) => {
     await AsyncStorage.setItem(LANGUAGE_KEY, lang);
+    try {
+      i18n.changeLanguage(lang);
+    } catch {}
     set({ language: lang });
   },
 

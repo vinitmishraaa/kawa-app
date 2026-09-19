@@ -107,7 +107,7 @@ export default function Signup() {
     );
   }
 
-  const roleTitle = selectedRole === "customer" ? "Customer" : "Kabadiwala";
+  const roleTitle = selectedRole === "customer" ? t("roleSelect.customer") : t("roleSelect.kabadiwala");
 
   return (
     <ScreenContainer scroll>
@@ -120,10 +120,12 @@ export default function Signup() {
               color={theme.leaf}
             />
           </View>
-          <Text className="text-2xl font-bold text-bark">Create {roleTitle} Account</Text>
+          <Text className="text-2xl font-bold text-bark">
+            {selectedRole === "customer" ? t("auth.createCustomerAccount") : t("auth.createKabadiwalaAccount")}
+          </Text>
         </View>
         <Text className="text-xs text-bark/70 mt-1">
-          Join Kawa to easily buy, sell, and recycle scrap in your neighborhood.
+          {t("auth.signupSubtitle")}
         </Text>
       </View>
 
@@ -140,7 +142,7 @@ export default function Signup() {
               signupMethod === "email" ? "text-bark" : "text-bark/60"
             }`}
           >
-            ✉️ Email ID
+            {t("auth.emailTab")}
           </Text>
         </Pressable>
         <Pressable
@@ -154,14 +156,14 @@ export default function Signup() {
               signupMethod === "phone" ? "text-bark" : "text-bark/60"
             }`}
           >
-            📱 Phone Number
+            {t("auth.mobileTab")}
           </Text>
         </Pressable>
       </View>
 
-      <Text className="text-xs font-semibold text-bark mb-1.5">Full Name *</Text>
+      <Text className="text-xs font-semibold text-bark mb-1.5">{t("auth.fullName")}</Text>
       <TextInput
-        placeholder="Enter your name"
+        placeholder={t("auth.fullNamePlaceholder")}
         value={name}
         onChangeText={setName}
         className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
@@ -170,9 +172,9 @@ export default function Signup() {
 
       {signupMethod === "email" ? (
         <>
-          <Text className="text-xs font-semibold text-bark mb-1.5">Email Address *</Text>
+          <Text className="text-xs font-semibold text-bark mb-1.5">{t("auth.emailAddress")}</Text>
           <TextInput
-            placeholder="e.g. name@gmail.com"
+            placeholder={t("auth.emailPlaceholder")}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -180,9 +182,9 @@ export default function Signup() {
             className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
             placeholderTextColor="#8a7d68"
           />
-          <Text className="text-xs font-semibold text-bark mb-1.5">Phone Number (Optional)</Text>
+          <Text className="text-xs font-semibold text-bark mb-1.5">{t("auth.phoneNumberOptional")}</Text>
           <TextInput
-            placeholder="10-digit mobile number"
+            placeholder={t("auth.phonePlaceholder")}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -193,9 +195,9 @@ export default function Signup() {
         </>
       ) : (
         <>
-          <Text className="text-xs font-semibold text-bark mb-1.5">Phone Number *</Text>
+          <Text className="text-xs font-semibold text-bark mb-1.5">{t("auth.phoneNumber")}</Text>
           <TextInput
-            placeholder="10-digit mobile number (e.g. 9876543210)"
+            placeholder={t("auth.phonePlaceholder")}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -203,9 +205,9 @@ export default function Signup() {
             className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
             placeholderTextColor="#8a7d68"
           />
-          <Text className="text-xs font-semibold text-bark mb-1.5">Email Address (Optional)</Text>
+          <Text className="text-xs font-semibold text-bark mb-1.5">{t("auth.emailAddressOptional")}</Text>
           <TextInput
-            placeholder="e.g. name@gmail.com"
+            placeholder={t("auth.emailPlaceholder")}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -216,9 +218,9 @@ export default function Signup() {
         </>
       )}
 
-      <Text className="text-xs font-semibold text-bark mb-1.5">Password (min 6 characters) *</Text>
+      <Text className="text-xs font-semibold text-bark mb-1.5">{t("auth.passwordRequirement")}</Text>
       <TextInput
-        placeholder="Choose secure password"
+        placeholder={t("auth.passwordPlaceholder")}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -226,11 +228,11 @@ export default function Signup() {
         placeholderTextColor="#8a7d68"
       />
 
-      <PrimaryButton label={`Create ${roleTitle} Profile`} onPress={handleSubmit} loading={loading} />
+      <PrimaryButton label={t("auth.createProfileButton", { role: roleTitle })} onPress={handleSubmit} loading={loading} />
 
       {/* GOOGLE SIGN IN BUTTON */}
       <View className="items-center my-4">
-        <Text className="text-xs text-bark/50 font-semibold uppercase">Or continue with</Text>
+        <Text className="text-xs text-bark/50 font-semibold uppercase">{t("auth.orContinueWith")}</Text>
       </View>
 
       <Pressable
@@ -238,7 +240,7 @@ export default function Signup() {
         className="bg-sand border border-line rounded-card py-3 px-4 flex-row items-center justify-center mb-4"
       >
         <MaterialCommunityIcons name="google" size={20} color={theme.clay} />
-        <Text className="font-bold text-bark text-sm ml-2.5">Continue with Google</Text>
+        <Text className="font-bold text-bark text-sm ml-2.5">{t("auth.continueWithGoogle")}</Text>
       </Pressable>
 
       <Pressable onPress={() => router.push("/(auth)/login")} className="mt-2 items-center">

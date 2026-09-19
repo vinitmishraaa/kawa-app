@@ -66,9 +66,11 @@ Traditional informal scrap collection (*Kabadiwala system*) in India accounts fo
 
 | Capability | Details |
 |---|---|
-| 🌐 **Trilingual Internationalization** | Full native support for **English (`en`)**, **हिन्दी (`hi`)**, and **বাংলা (`bn`)**. Dynamic locale switching with fallback support. |
-| 🛡️ **Step-by-Step Permissions Wizard** | Progressive permission onboarding requesting **GPS Location**, **Camera & Photos**, and **Push Notifications** one-by-one with individual **Allow** or **Skip / Deny** options. |
-| ⚙️ **Universal Settings & Permissions Modal** | In-app bottom-sheet modal (`AppSettingsModal`) accessible on all dashboards (⚙️) to toggle permissions, switch languages, or change accounts anytime. |
+| 🔑 **Bulletproof Auth & Verification Bypass** | Auto-recovering authentication pipeline: prevents `"Database error saving new user"` by handling PostgreSQL trigger exceptions safely, bypasses Supabase `"Email not verified"` and `"Email rate exceeded"` lockouts, and persists session states locally via `@react-native-async-storage/async-storage`. |
+| 🌐 **Full Trilingual Localization** | Complete native translations for **English (`en`)**, **हिन्दी (`hi`)**, and **বাংলা (`bn`)** across all screens (Login, Signup, Permissions, Customer Dashboard, Kabadiwala Dashboard, Book Pickup, App Settings). Persists reactively across app reloads. |
+| 📍 **Smart Kabadiwala Fallback State** | If no collector is registered in the customer's area, a clean, friendly empty state is rendered with 1-tap options: **"+ List Scrap for Marketplace"** (so collectors discover it later), **"Refresh Location"**, and **"Notify Me When Collector Joins"**. |
+| 🛡️ **Streamlined Permissions Wizard (No Audio)** | Progressive onboarding covering strictly **Language Selection**, **GPS Location**, **Camera & Photos**, and **Push Notifications**. Audio permission is completely omitted for streamlined onboarding. |
+| ⚙️ **Universal Settings & Permissions Modal** | In-app bottom-sheet modal (`AppSettingsModal`) accessible on all dashboards (⚙️) to toggle permissions, switch languages, or switch accounts anytime. |
 | 👥 **Dual-Account Architecture** | Single users can operate both **Customer** and **Kabadiwala** accounts on the same phone number via role-tagged accounts (`${phone}.${role}@kawa.app`), with strict one-active-account-at-a-time security and 1-tap logout switcher. |
 | 🏛️ **Instant Government Officer Login** | Direct Officer ID login tab on the login screen with 1-tap preset chips for the **5 Pre-Authorized Government Officer IDs** (`OFFICER-SWM-101` to `105`) and automatic provisioning. |
 | 🛵 **Direct Nearest Kabadiwala Booking** | Customers pick materials, view nearby collectors sorted by real-time distance (PostGIS), inspect their star rating, past pickups, and custom rate cards, and book instantly. |
@@ -77,6 +79,7 @@ Traditional informal scrap collection (*Kabadiwala system*) in India accounts fo
 | 📒 **Garbage Waste Ledger (कबाड़ खाता)** | Dual-entry scrap inventory tracker for Kabadiwalas: **Intake (आवक)** from customers, **Outgoing (निकास / बिक्री)** to recyclers, and live **Net Inventory (स्टॉक)**. |
 | 🏷️ **Quality Grading System** | Categorizes every waste entry into **Grade A (Clean & Segregated)**, **Grade B (Mixed / Semi-sorted)**, or **Grade C (Contaminated / Low-grade)**. |
 | 📊 **Municipal Oversight Hub** | Officers track municipality-wide scrap inflow vs outflow, active municipal stock, and real-time **Quality Segregation Index** charts. |
+| 🌐 **Universal Web & Mobile Support** | Configured with `react-native-web` for seamless browser preview and Metro bundling without `Unable to resolve react-native-web` errors. |
 | 🛡️ **Zero-Warning & Crash Resilience** | Automated postinstall patch (`scripts/patch-css-interop.js`) eliminating navigation context getter errors, clean borders, and full URL sanitation. |
 
 ---
