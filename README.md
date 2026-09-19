@@ -67,16 +67,17 @@ Traditional informal scrap collection (*Kabadiwala system*) in India accounts fo
 | Capability | Details |
 |---|---|
 | 🌐 **Trilingual Internationalization** | Full native support for **English (`en`)**, **हिन्दी (`hi`)**, and **বাংলা (`bn`)**. Dynamic locale switching with fallback support. |
-| 📍 **GPS-First Onboarding** | First app launch initiates **Language Selection ➔ Location (GPS) Permission ➔ Role Selection ➔ Login/Signup**. |
-| 📱 **Flexible Authentication** | Sign up and log in using either **Email + Password** or **10-Digit Mobile Phone Number** (or Google OAuth). No mandatory paid SMS OTP dependency. |
+| 🛡️ **Step-by-Step Permissions Wizard** | Progressive permission onboarding requesting **GPS Location**, **Camera & Photos**, and **Push Notifications** one-by-one with individual **Allow** or **Skip / Deny** options. |
+| ⚙️ **Universal Settings & Permissions Modal** | In-app bottom-sheet modal (`AppSettingsModal`) accessible on all dashboards (⚙️) to toggle permissions, switch languages, or change accounts anytime. |
+| 👥 **Dual-Account Architecture** | Single users can operate both **Customer** and **Kabadiwala** accounts on the same phone number via role-tagged accounts (`${phone}.${role}@kawa.app`), with strict one-active-account-at-a-time security and 1-tap logout switcher. |
+| 🏛️ **Instant Government Officer Login** | Direct Officer ID login tab on the login screen with 1-tap preset chips for the **5 Pre-Authorized Government Officer IDs** (`OFFICER-SWM-101` to `105`) and automatic provisioning. |
 | 🛵 **Direct Nearest Kabadiwala Booking** | Customers pick materials, view nearby collectors sorted by real-time distance (PostGIS), inspect their star rating, past pickups, and custom rate cards, and book instantly. |
 | ⏰ **Preferred Pickup Time Slots** | Customers choose convenient collection windows: **Morning (08:00 AM - 12:00 PM)**, **Afternoon (12:00 PM - 04:00 PM)**, or **Evening (04:00 PM - 08:00 PM)**. |
 | 🗺️ **Planned Route Sequencing (प्लांट रूट)** | Kabadiwalas view an interactive Leaflet/OpenStreetMap routing screen that organizes all pending pickups in an optimal stop sequence with a 1-tap **"Open in Google Maps"** navigation button. |
 | 📒 **Garbage Waste Ledger (कबाड़ खाता)** | Dual-entry scrap inventory tracker for Kabadiwalas: **Intake (आवक)** from customers, **Outgoing (निकास / बिक्री)** to recyclers, and live **Net Inventory (स्टॉक)**. |
 | 🏷️ **Quality Grading System** | Categorizes every waste entry into **Grade A (Clean & Segregated)**, **Grade B (Mixed / Semi-sorted)**, or **Grade C (Contaminated / Low-grade)**. |
-| 🏛️ **Municipal Officer Security Gate** | Enforces instant access control restricted to **5 Pre-Authorized Government Officer IDs** (`OFFICER-SWM-101` to `105`) mapped to municipal zones. |
 | 📊 **Municipal Oversight Hub** | Officers track municipality-wide scrap inflow vs outflow, active municipal stock, and real-time **Quality Segregation Index** charts. |
-| 🛡️ **Zero-Warning Clean UI** | Auto-filtered development alert pop-ups and full Supabase URL sanitation ensuring a clean user testing experience. |
+| 🛡️ **Zero-Warning & Crash Resilience** | Automated postinstall patch (`scripts/patch-css-interop.js`) eliminating navigation context getter errors, clean borders, and full URL sanitation. |
 
 ---
 
@@ -253,7 +254,15 @@ kawa-app/
 │   ├── index.tsx                  # Smart router: permissions ➔ language ➔ role dashboard
 │   └── _layout.tsx                # Global root layout with LogBox warning suppression
 │
-├── components/                    # Reusable atomic UI components (Button, Input, Card, Modal)
+├── components/                    # Reusable atomic UI components
+│   ├── AppSettingsModal.tsx       # Live permissions toggles, language & account switcher
+│   ├── KabadiwalaCard.tsx         # Collector card with ratings, distance, and rate chip
+│   ├── KabadiwalaReviewsModal.tsx # Customer feedback reviews modal
+│   ├── LeafletMap.tsx             # Interactive OpenStreetMap container
+│   ├── PrimaryButton.tsx          # Standard action button
+│   ├── ScreenContainer.tsx        # Safe area container
+│   └── TimeSlotPicker.tsx         # Morning/Afternoon/Evening time slot selector
+│
 ├── constants/
 │   ├── authorizedOfficers.ts      # 5 Pre-Authorized Government Officer IDs & Zone mapping
 │   ├── categories.ts              # Scrap categories, subcategories, and baseline rates
@@ -264,15 +273,19 @@ kawa-app/
 │   ├── hi.json                    # Hindi strings (हिन्दी)
 │   └── bn.json                    # Bengali strings (বাংলা)
 │
+├── scripts/                       # Build & postinstall patches
+│   └── patch-css-interop.js       # NavigationStateContext getter protection patch
+│
 ├── services/                      # Supabase client & API services
 │   ├── supabase.ts                # Sanitized Supabase initialization client
-│   ├── auth.ts                    # Email / Phone authentication service
+│   ├── auth.ts                    # Email / Phone / Officer authentication service
 │   └── queries/                   # Domain queries (bookings, ledger, officers, listings)
 │
 ├── store/                         # Zustand state management
 │   ├── authStore.ts               # User session, role, and profile state
 │   ├── scrapStore.ts              # Customer scrap cart and active booking state
-│   └── ledgerStore.ts             # Kabadiwala waste ledger & inventory state
+│   ├── ledgerStore.ts             # Kabadiwala waste ledger & inventory state
+│   └── onboardingStore.ts         # Permissions, language, and selected role store
 │
 ├── supabase/                      # Database SQL migrations & triggers
 │   ├── schema.sql                 # Core tables: profiles, scrap_listings, bookings, PostGIS
@@ -335,22 +348,29 @@ npx expo start
 
 ## 🧪 Testing Guide (All 3 Personas)
 
+### Onboarding & Permissions Wizard
+1. On fresh launch, select your language: **हिन्दी (Hindi)**, **English**, or **বাংলা (Bengali)**.
+2. Complete the **3-Step Permissions Wizard**:
+   - **Step 1/3 (GPS Location)**: Test tapping **✓ Allow Location** or **✕ Skip / Deny for Now**.
+   - **Step 2/3 (Camera & Photos)**: Test tapping **✓ Allow Camera** or **✕ Skip / Deny for Now**.
+   - **Step 3/3 (Notifications)**: Test tapping **✓ Allow Notifications** or **✕ Skip / Deny for Now**.
+3. Inspect the overview summary and tap **Continue to App ➔**.
+
 ### Test Persona 1: Customer (कस्टमर)
-1. Launch the app and select **हिन्दी (Hindi)** or **English** or **বাংলা (Bengali)**.
-2. Grant Location permission.
-3. Select **Customer (ग्राहक)** role.
-4. Log in or sign up using your email or a 10-digit mobile number (e.g., `9876543210`).
-5. Tap **Book Pickup** on the customer dashboard.
-6. Select scrap materials (e.g., *Paper 15 kg, Plastic 5 kg*).
-7. Select your nearest Kabadiwala from the real-time distance list.
-8. Choose a preferred time slot: **Morning (08:00 AM - 12:00 PM)**.
-9. Enter your address and tap **Book Pickup**.
+1. Select **Customer (ग्राहक)** role.
+2. Sign up or log in using an email or a 10-digit mobile number (e.g. `9876543210`).
+3. Tap **Book Pickup** on the customer dashboard.
+4. Select scrap materials (e.g., *Paper 15 kg, Plastic 5 kg*).
+5. Select your nearest Kabadiwala from the real-time distance list.
+6. Choose a preferred time slot: **Morning (08:00 AM - 12:00 PM)**.
+7. Enter your address and tap **Book Pickup**.
+8. Tap the **⚙️ Settings** icon in the header: verify device permissions status, toggle permissions, or switch languages on-the-fly.
 
 ### Test Persona 2: Kabadiwala (कबाड़ी वाला)
-1. Switch account or log out from profile.
+1. In the customer dashboard, tap the **⚙️ Settings** icon and select **🔄 Switch to Another Account** (or tap Logout).
 2. Select **Kabadiwala (कबाड़ी वाला)** role.
-3. Log in using your email or 10-digit mobile number.
-4. On the **Dashboard**, view the customer booking created above. Tap to call or coordinate.
+3. Sign up or log in using the same or different 10-digit mobile number (role-tagged system prevents account collisions!).
+4. On the **Dashboard**, view the customer booking created above. Tap to coordinate.
 5. Tap **Planned Route (रूट प्लान)**:
    - See the customer stop plotted on the OpenStreetMap / Leaflet map.
    - Tap **Open in Google Maps** to verify one-click turn-by-turn navigation.
@@ -360,15 +380,15 @@ npx expo start
    - Record an **Outgoing (निकास)** entry when selling to recyclers.
 
 ### Test Persona 3: Municipal Officer (नगर निगम अधिकारी)
-1. Select **Officer (अधिकारी)** role on role selection.
-2. Enter your email/phone and provide any of the 5 Authorized Officer IDs:
-   - Example: `OFFICER-SWM-101`
-3. Instant verification takes you directly to the **Municipal Oversight Hub**.
-4. Review:
-   - City-wide Total Inflow vs Outflow metrics.
-   - Active Municipal Stock.
-   - **Quality Segregation Index** (Grade A, B, C percentages).
-5. Open **Records** to inspect the complete audit ledger.
+1. Tap the **⚙️ Settings** icon and log out or select **Officer (अधिकारी)** role.
+2. On the login screen, switch to the **🏛️ Officer** tab:
+   - Tap any preset chip (e.g. `OFFICER-SWM-101`) or type it manually.
+   - Enter your password (e.g. `123456`).
+3. Instant authorization takes you straight to the **Municipal Oversight Hub**:
+   - Review city-wide Total Inflow vs Outflow metrics and circulating stock.
+   - Inspect the live **Quality Segregation Index** (Grade A, B, C percentages).
+4. Tap **Open Full Waste Audit Records** to inspect the master ledger.
+5. Tap **⚙️ Settings** to test permission toggling or account switching.
 
 ---
 
