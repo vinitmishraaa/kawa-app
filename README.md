@@ -66,6 +66,12 @@ Traditional informal scrap collection (*Kabadiwala system*) in India accounts fo
 
 | Capability | Details |
 |---|---|
+| 🏛️ **Streamlined Officer Login & Web Dashboard** | Simplified officer authentication: asks strictly for **Officer ID** and **Password** (with Eye toggle). Completely resolved browser alert limitations by providing an instant in-page **Access Authorized Success Card** and prominent **"Open Officer Dashboard ➔"** button with automatic routing on Web browsers and Mobile alike. |
+| 💰 **Scrap Market Price Index & Collector Margins** | Dedicated oversight tab in Officer Dashboard displaying benchmark **Customer Buy Rates** (₹/kg), **Municipal Resale Rates** (₹/kg), and calculated **Collector Profit Margins** (₹/kg and %) across all scrap commodities (*Copper, Brass, Aluminium, Iron, Paper, Cardboard, Plastic, E-Waste, Glass, Mixed*). |
+| 📜 **Overdue Stock Monitoring & Legal Notice Dispatcher** | Municipal officers monitor registered Kabadiwalas, held scrap stock (kg), and days overdue. Officers can issue formal **Municipal Legal Notices / SWM Compliance Orders** citing Section 12 bylaws with instant high-priority push alerts. |
+| 🚨 **Urgent Municipal Compliance Banner & Handover Flow** | Kabadiwala dashboard highlights overdue municipal orders with an urgent Red/Amber compliance banner and a 1-tap **"🚚 Handover Stock to Officer (अधिकारी को कबाड़ सौंपें)"** button directing straight to `/sell-to-officer`. |
+| 📞 **Direct Contact Details & 1-Tap Call/WhatsApp** | Customers and Kabadiwalas can view and update their contact information (Phone, WhatsApp number, Address). Active booking cards feature direct 1-tap **"📞 Call"** and **"💬 WhatsApp"** buttons for immediate, frictionless coordination. |
+| 🧹 **Clean Interface (Price Trends Icon Removed)** | The unused price trends logo has been removed across Customer, Kabadiwala, and Officer dashboards for a cleaner, modern experience. |
 | 🔵 **Continue with Google** | Full cross-platform Google authentication for both web and mobile (`expo-linking` / Supabase OAuth) with instant demo authentication fallback for hackathons and judging presentations. |
 | ⚡ **Zero-Freeze Instant Hydration** | Non-blocking dashboard initialization: cached profile restoration from AsyncStorage in <50ms with timeout-guarded background refresh. Dashboards, tabs, and action buttons are interactable immediately without full-screen loading spinners. |
 | 📸 **Kabadiwala Shop Photo & Yard Banner** | Scrap collectors can add or change their physical shop / scrap yard photo using Camera or Gallery (or 1-tap demo photo). Displayed live on collector command hub and customer discovery cards. |
@@ -141,9 +147,16 @@ Traditional informal scrap collection (*Kabadiwala system*) in India accounts fo
 ### 3. 🏛️ Municipal Officer (नगर निगम अधिकारी / মিউনিসিপ্যাল অফিসার)
 *Designed for Urban Local Bodies (ULB), Municipal Corporations (SWM Departments), and Recycling Hub Directors.*
 
-- **High-Security Authentication**:
-  - Login requires entering one of the **5 Pre-Authorized Government Officer IDs**.
-  - Immediate verification and role assignment with zero administrative bottlenecks.
+- **Streamlined Government Authentication**:
+  - Login requires entering one of the **5 Pre-Authorized Government Officer IDs** and secret password.
+  - In-page Access Authorized card with prominent **"Open Officer Dashboard ➔"** button with automatic navigation on Web browsers and Mobile alike.
+- **Scrap Market Price Index & Collector Margins**:
+  - Full transparency into real benchmark prices: Customer Buy Rate (₹/kg) vs Municipal Resale Rate (₹/kg).
+  - Calculates the net margin (₹/kg profit and margin percentage) kept by registered Kabadiwalas across all commodities.
+- **Collector Inventory Monitoring & Legal Notice Dispatcher**:
+  - Monitors local registered Kabadiwalas, held scrap stock (kg), and days overdue since last municipal handover.
+  - 1-Tap **"Issue Legal Notice"** modal to dispatch formal compliance orders (Warning Notice, Municipal Legal Notice, Final SWM Order) citing Section 12 SWM by-laws with high-priority push notifications.
+  - Direct 1-tap **"Call"** and **"WhatsApp"** contact buttons to reach collectors immediately.
 - **Municipal Waste Oversight Hub**:
   - **Total Waste Inflow vs Outflow**: Aggregated metrics across all registered collectors in the municipal zone.
   - **Active Municipal Scrap Volume**: Current un-recycled inventory residing across local collection hubs.
@@ -151,8 +164,6 @@ Traditional informal scrap collection (*Kabadiwala system*) in India accounts fo
 - **Master Audit Ledger (`records.tsx`)**:
   - Real-time immutable audit trail of all scrap collections, handovers, transactions, and kabadiwala activity.
   - Filterable by date, material category, municipal zone, and collector ID.
-- **Material Price Trends**:
-  - Aggregates historical wholesale transactions to track commodity pricing fluctuations across paper, plastic, metals, and e-waste.
 
 ---
 

@@ -8,7 +8,6 @@ import { PrimaryButton } from "../../components/PrimaryButton";
 import { signInUnified, signInWithGoogle } from "../../services/auth";
 import { useAuthStore } from "../../store/authStore";
 import { useOnboardingStore } from "../../store/onboardingStore";
-import { AUTHORIZED_OFFICER_IDS } from "../../constants/authorizedOfficers";
 import { theme } from "../../constants/theme";
 
 export default function Login() {
@@ -215,33 +214,6 @@ export default function Login() {
         placeholderTextColor="#8a7d68"
       />
 
-      {/* OFFICER PRESET BADGES */}
-      {loginMethod === "officer" && (
-        <View className="mb-3">
-          <Text className="text-[11px] text-bark/60 mb-1 font-medium">{t("auth.officerPresetHint")}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-            {AUTHORIZED_OFFICER_IDS.map((o) => (
-              <Pressable
-                key={o.officerId}
-                onPress={() => setIdentifier(o.officerId)}
-                className={`px-2.5 py-1.5 rounded-lg mr-2 border ${
-                  identifier === o.officerId
-                    ? "bg-leafLight border-leaf"
-                    : "bg-sand border-line"
-                }`}
-              >
-                <Text
-                  className={`text-xs font-bold ${
-                    identifier === o.officerId ? "text-leaf" : "text-bark/70"
-                  }`}
-                >
-                  {o.officerId} ({o.name.split(" ")[0]})
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      )}
 
       <Text className="text-xs font-semibold text-bark mb-1.5">{t("auth.password")} *</Text>
       <View className="relative justify-center mb-5">

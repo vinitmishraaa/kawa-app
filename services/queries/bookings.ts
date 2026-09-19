@@ -129,23 +129,41 @@ export async function bookListing(params: {
 }
 
 export async function getBookingsForCustomer(customerId: string) {
-  const { data, error } = await supabase
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*, scrap_listings(*), kabadiwala:profiles!kabadiwala_id(id, name, shop_name, phone, whatsapp, address)")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false });
+    if (!error && data) return data;
+  } catch {
+    // fallback below
+  }
+  const { data: fallbackData } = await supabase
     .from("bookings")
     .select("*, scrap_listings(*)")
     .eq("customer_id", customerId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data;
+  return fallbackData ?? [];
 }
 
 export async function getBookingsForKabadiwala(kabadiwalaId: string) {
-  const { data, error } = await supabase
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*, scrap_listings(*), customer:profiles!customer_id(id, name, phone, whatsapp, address)")
+      .eq("kabadiwala_id", kabadiwalaId)
+      .order("created_at", { ascending: false });
+    if (!error && data) return data;
+  } catch {
+    // fallback below
+  }
+  const { data: fallbackData } = await supabase
     .from("bookings")
     .select("*, scrap_listings(*)")
     .eq("kabadiwala_id", kabadiwalaId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data;
+  return fallbackData ?? [];
 }
 
 export async function getBookingById(id: string) {

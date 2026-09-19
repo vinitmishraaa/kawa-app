@@ -9,6 +9,8 @@ export interface Profile {
   role: "customer" | "kabadiwala" | "officer";
   name: string | null;
   phone?: string | null;
+  whatsapp?: string | null;
+  address?: string | null;
   language?: string | null;
   photo_url?: string | null;
   shop_photo_url?: string | null;

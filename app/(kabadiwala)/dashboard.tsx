@@ -44,6 +44,11 @@ import {
 import { signOut } from "../../services/auth";
 import { supabase } from "../../services/supabase";
 import { AppSettingsModal } from "../../components/AppSettingsModal";
+import {
+  getNoticesForKabadiwala,
+  acknowledgeNotice,
+  type MunicipalNotice,
+} from "../../services/queries/notices";
 
 function buildInitialLedger(customRates?: Record<string, number> | null) {
   const rates = customRates ?? getDefaultPriceRates();
@@ -143,6 +148,18 @@ export default function KabadiwalaDashboard() {
   const [collectQuality, setCollectQuality] = useState("Grade A (Clean)");
   const [submittingCollection, setSubmittingCollection] = useState(false);
 
+  // Municipal Notices State
+  const [notices, setNotices] = useState<MunicipalNotice[]>([]);
+  const [selectedNoticeForModal, setSelectedNoticeForModal] = useState<MunicipalNotice | null>(null);
+
+  // Shop Profile & Contact Edit Modal State
+  const [shopModalOpen, setShopModalOpen] = useState(false);
+  const [editShopName, setEditShopName] = useState(profile?.shop_name ?? "");
+  const [editShopPhone, setEditShopPhone] = useState(profile?.phone ?? "");
+  const [editShopWhatsapp, setEditShopWhatsapp] = useState(profile?.whatsapp ?? profile?.phone ?? "");
+  const [editShopAddress, setEditShopAddress] = useState(profile?.address ?? "");
+  const [savingShopProfile, setSavingShopProfile] = useState(false);
+
   async function handlePickShopPhoto() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -234,15 +251,17 @@ export default function KabadiwalaDashboard() {
 
       const currentRates = profile.price_rates ?? getDefaultPriceRates();
 
-      const [bookingsData, nearbyListingsData, ledgerData] = await Promise.all([
+      const [bookingsData, nearbyListingsData, ledgerData, noticesData] = await Promise.all([
         getBookingsForKabadiwala(profile.id).catch(() => []),
         getNearbyListings({ latitude: coords?.latitude ?? 28.6139, longitude: coords?.longitude ?? 77.209 }).catch(() => []),
         getKabadiwalaWasteLedger(profile.id, currentRates).catch(() => null),
+        getNoticesForKabadiwala(profile.id).catch(() => []),
       ]);
 
       if (bookingsData) setBookings(bookingsData as any);
       if (nearbyListingsData) setListings(nearbyListingsData);
       if (ledgerData) setLedger(ledgerData);
+      if (noticesData) setNotices(noticesData);
     } catch {
       // Keep UI active on errors
     }
@@ -302,6 +321,67 @@ export default function KabadiwalaDashboard() {
     } catch (err: any) {
       Alert.alert("Error", err?.message ?? "Could not update status");
     }
+  }
+
+  async function handleSaveShopProfile() {
+    if (!editShopName.trim() || !editShopPhone.trim()) {
+      Alert.alert("Required Fields", "Please provide your scrap shop name and phone number.");
+      return;
+    }
+    setSavingShopProfile(true);
+    try {
+      await updateProfile({
+        shop_name: editShopName.trim(),
+        phone: editShopPhone.trim(),
+        whatsapp: editShopWhatsapp.trim() || editShopPhone.trim(),
+        address: editShopAddress.trim() || undefined,
+      });
+      Alert.alert("Contact Details Updated! ✅", "Your scrap business details have been saved.");
+      setShopModalOpen(false);
+    } catch (err: any) {
+      Alert.alert("Update Error", err?.message ?? "Could not save details.");
+    } finally {
+      setSavingShopProfile(false);
+    }
+  }
+
+  async function handleAcknowledgeNotice(noticeId: string) {
+    try {
+      await acknowledgeNotice(noticeId);
+      Alert.alert("Notice Acknowledged", "You have acknowledged this municipal compliance notice.");
+      setSelectedNoticeForModal(null);
+      if (profile) {
+        const updated = await getNoticesForKabadiwala(profile.id);
+        setNotices(updated);
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err?.message ?? "Could not acknowledge notice.");
+    }
+  }
+
+  function handleCallCustomer(phone?: string) {
+    if (!phone) {
+      Alert.alert("Phone Unavailable", "Customer phone number is not available.");
+      return;
+    }
+    Linking.openURL(`tel:${phone}`).catch(() => {
+      Alert.alert("Call Unavailable", `Phone dialer could not be launched for ${phone}`);
+    });
+  }
+
+  function handleWhatsAppCustomer(phone?: string, name?: string) {
+    if (!phone) {
+      Alert.alert("WhatsApp Unavailable", "Customer contact number is not available.");
+      return;
+    }
+    const cleanPhone = phone.replace(/[^0-9]/g, "");
+    const formatted = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
+    const url = `https://wa.me/${formatted}?text=${encodeURIComponent(
+      `Namaste ${name || "Customer"}, this is your KAWA scrap collector. I am coordinating your scheduled scrap pickup.`
+    )}`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert("WhatsApp Unavailable", "Could not launch WhatsApp.");
+    });
   }
 
   function openCollectModal(b: Booking) {
@@ -454,14 +534,64 @@ export default function KabadiwalaDashboard() {
           <Pressable onPress={() => setSettingsOpen(true)} className="mr-2 p-2 bg-sand rounded-full border border-line">
             <MaterialCommunityIcons name="cog" size={20} color={theme.bark} />
           </Pressable>
-          <Pressable onPress={() => router.push("/price-trends")} className="mr-2 p-2 bg-sand rounded-full border border-line">
-            <MaterialCommunityIcons name="chart-line" size={20} color={theme.bark} />
-          </Pressable>
           <Pressable onPress={handleLogout} className="p-2 bg-sand rounded-full border border-line">
             <MaterialCommunityIcons name="logout" size={20} color={theme.bark} />
           </Pressable>
         </View>
       </View>
+
+      {/* URGENT MUNICIPAL COMPLIANCE NOTICE BANNER */}
+      {(() => {
+        const activeNotice = notices.find((n) => n.status === "pending") || (notices.length > 0 ? notices[0] : null);
+        if (!activeNotice) return null;
+
+        return (
+          <View className="bg-clay/10 border-2 border-clay rounded-2xl p-4 mb-3 shadow-sm">
+            <View className="flex-row items-center justify-between mb-1.5">
+              <View className="flex-row items-center flex-1 mr-2">
+                <MaterialCommunityIcons name="gavel" size={20} color={theme.clay} />
+                <Text className="font-black text-clay text-xs ml-1.5 uppercase">
+                  {activeNotice.notice_type.replace("_", " ")}: Municipal Notice
+                </Text>
+              </View>
+              <View className="px-2 py-0.5 bg-clay rounded-md">
+                <Text className="text-white text-[10px] font-black uppercase">
+                  {activeNotice.days_overdue} Days Overdue
+                </Text>
+              </View>
+            </View>
+
+            <Text className="text-xs font-bold text-bark">
+              {activeNotice.subject}
+            </Text>
+            <Text className="text-[11px] text-bark/80 mt-1 leading-4" numberOfLines={2}>
+              {activeNotice.message}
+            </Text>
+            <Text className="text-[10px] text-bark/60 mt-1">
+              Issued by: {activeNotice.officer_name} ({activeNotice.officer_department}) • Stock: {activeNotice.stock_held_kg} kg
+            </Text>
+
+            <View className="flex-row gap-2 mt-3">
+              <Pressable
+                onPress={() => router.push("/(kabadiwala)/sell-to-officer")}
+                className="flex-1 py-2.5 px-3 bg-leaf rounded-xl flex-row items-center justify-center shadow-sm"
+              >
+                <MaterialCommunityIcons name="truck-delivery" size={16} color="#ffffff" />
+                <Text className="text-white font-black text-xs ml-1.5">
+                  Handover Stock to Officer
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setSelectedNoticeForModal(activeNotice)}
+                className="py-2.5 px-3 bg-white border border-line rounded-xl items-center justify-center"
+              >
+                <Text className="text-bark font-bold text-xs">View Order</Text>
+              </Pressable>
+            </View>
+          </View>
+        );
+      })()}
 
       {/* Shop Profile & Photo Banner */}
       <View className="bg-sand rounded-card p-3 mb-3 border border-line">
@@ -486,21 +616,28 @@ export default function KabadiwalaDashboard() {
                 <MaterialCommunityIcons name="check-decagram" size={14} color={theme.leaf} />
               </View>
               <Text className="text-[11px] text-bark/60 mt-0.5">
-                {profile?.shop_photo_url
-                  ? "Shop Photo Live • Customers can view"
-                  : "Upload photo of your scrap shop/godown"}
+                {profile?.phone ? `📞 ${profile.phone}` : "No contact saved"} • {profile?.address ? profile.address.slice(0, 25) + "..." : "Local Mandi"}
               </Text>
             </View>
           </View>
-          <Pressable
-            onPress={handleChoosePhotoSource}
-            className="py-1.5 px-3 bg-leaf rounded-xl flex-row items-center"
-          >
-            <MaterialCommunityIcons name="camera" size={14} color="#FFF" />
-            <Text className="text-white text-xs font-bold ml-1">
-              {profile?.shop_photo_url ? "Change" : "+ Photo"}
-            </Text>
-          </Pressable>
+          <View className="flex-row gap-1.5">
+            <Pressable
+              onPress={() => setShopModalOpen(true)}
+              className="py-1.5 px-2.5 bg-white border border-line rounded-xl flex-row items-center"
+            >
+              <MaterialCommunityIcons name="pencil-outline" size={14} color={theme.bark} />
+              <Text className="text-bark text-xs font-bold ml-1">Edit</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleChoosePhotoSource}
+              className="py-1.5 px-2.5 bg-leaf rounded-xl flex-row items-center"
+            >
+              <MaterialCommunityIcons name="camera" size={14} color="#FFF" />
+              <Text className="text-white text-xs font-bold ml-1">
+                {profile?.shop_photo_url ? "Photo" : "+ Photo"}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -610,6 +747,36 @@ export default function KabadiwalaDashboard() {
                     {b.pickup_address && (
                       <Text className="text-xs text-bark/80 mt-1.5">📍 {b.pickup_address}</Text>
                     )}
+                  </View>
+
+                  {/* Customer Contact & Direct Communication */}
+                  <View className="flex-row items-center justify-between py-2 px-1 border-t border-b border-line/40 my-1">
+                    <View className="flex-1 mr-2">
+                      <Text className="text-xs font-bold text-bark" numberOfLines={1}>
+                        👤 {b.customer?.name || "Citizen Customer"}
+                      </Text>
+                      <Text className="text-[11px] text-bark/60">
+                        📞 {b.customer?.phone || b.customer?.whatsapp || "Mobile on file"}
+                      </Text>
+                    </View>
+                    <View className="flex-row gap-1.5">
+                      <Pressable
+                        onPress={() => handleCallCustomer(b.customer?.phone || b.customer?.whatsapp)}
+                        className="px-2.5 py-1.5 bg-white border border-line rounded-lg flex-row items-center shadow-xs"
+                        accessibilityLabel="Call Customer"
+                      >
+                        <MaterialCommunityIcons name="phone" size={13} color={theme.bark} />
+                        <Text className="text-xs font-bold text-bark ml-1">Call</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => handleWhatsAppCustomer(b.customer?.whatsapp || b.customer?.phone, b.customer?.name)}
+                        className="px-2.5 py-1.5 bg-leafLight border border-leaf/40 rounded-lg flex-row items-center shadow-xs"
+                        accessibilityLabel="WhatsApp Customer"
+                      >
+                        <MaterialCommunityIcons name="whatsapp" size={13} color={theme.leaf} />
+                        <Text className="text-xs font-bold text-leaf ml-1">WhatsApp</Text>
+                      </Pressable>
+                    </View>
                   </View>
 
                   {/* Action Controls */}
@@ -1336,6 +1503,184 @@ export default function KabadiwalaDashboard() {
               onPress={submitDirectIntake}
               loading={submittingDirect}
             />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ================= MUNICIPAL NOTICE DETAIL & ACKNOWLEDGE MODAL ================= */}
+      <Modal
+        visible={!!selectedNoticeForModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setSelectedNoticeForModal(null)}
+      >
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="bg-sand rounded-t-3xl p-5 max-h-[85%] border-t border-line">
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center">
+                <MaterialCommunityIcons name="gavel" size={24} color={theme.clay} />
+                <Text className="text-base font-black text-bark ml-2">
+                  Municipal Legal Notice
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setSelectedNoticeForModal(null)}
+                className="w-8 h-8 rounded-full bg-white items-center justify-center border border-line"
+              >
+                <MaterialCommunityIcons name="close" size={18} color={theme.bark} />
+              </Pressable>
+            </View>
+
+            {selectedNoticeForModal && (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View className="bg-white border-2 border-clay/40 rounded-card p-4 mb-4">
+                  <View className="flex-row items-center justify-between pb-2 mb-2 border-b border-line/50">
+                    <Text className="text-xs font-bold text-clay uppercase tracking-wider">
+                      OFFICIAL SWM COMPLIANCE ORDER
+                    </Text>
+                    <Text className="text-[11px] text-bark/60">
+                      {new Date(selectedNoticeForModal.issued_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+
+                  <Text className="text-sm font-bold text-bark mb-1">
+                    {selectedNoticeForModal.subject}
+                  </Text>
+                  <Text className="text-xs text-bark/70 mb-3">
+                    Issued by: {selectedNoticeForModal.officer_name} • {selectedNoticeForModal.officer_department}
+                  </Text>
+
+                  <View className="bg-sand/70 p-3 rounded-xl border border-line/60 mb-3">
+                    <Text className="text-xs text-bark font-medium leading-5">
+                      {selectedNoticeForModal.message}
+                    </Text>
+                  </View>
+
+                  <View className="flex-row justify-between items-center py-2 border-t border-line/40">
+                    <Text className="text-xs text-bark/70">Required Stock Handover:</Text>
+                    <Text className="text-sm font-black text-clay">
+                      {selectedNoticeForModal.stock_held_kg} kg
+                    </Text>
+                  </View>
+
+                  <View className="flex-row justify-between items-center py-1">
+                    <Text className="text-xs text-bark/70">Days Overdue:</Text>
+                    <Text className="text-xs font-bold text-clay">
+                      {selectedNoticeForModal.days_overdue} days
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Actions */}
+                <View className="gap-2.5 mb-2">
+                  <Pressable
+                    onPress={() => {
+                      setSelectedNoticeForModal(null);
+                      router.push("/(kabadiwala)/sell-to-officer");
+                    }}
+                    className="py-3 bg-leaf rounded-xl items-center justify-center shadow-sm"
+                  >
+                    <Text className="text-white font-black text-sm">
+                      🚚 Handover Stock to Officer Now
+                    </Text>
+                  </Pressable>
+
+                  {selectedNoticeForModal.status === "pending" && (
+                    <Pressable
+                      onPress={() => handleAcknowledgeNotice(selectedNoticeForModal.id)}
+                      className="py-3 bg-sand border border-line rounded-xl items-center justify-center"
+                    >
+                      <Text className="text-bark font-bold text-xs">
+                        ✍️ Acknowledge Order (आदेश स्वीकार करें)
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ================= SHOP & CONTACT PROFILE EDIT MODAL ================= */}
+      <Modal
+        visible={shopModalOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShopModalOpen(false)}
+      >
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="bg-sand rounded-t-3xl p-5 max-h-[85%] border-t border-line">
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center">
+                <MaterialCommunityIcons name="storefront" size={24} color={theme.leaf} />
+                <Text className="text-base font-black text-bark ml-2">
+                  Edit Scrap Shop & Contact
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setShopModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-white items-center justify-center border border-line"
+              >
+                <MaterialCommunityIcons name="close" size={18} color={theme.bark} />
+              </Pressable>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text className="text-xs font-bold text-bark uppercase tracking-wider mb-1">
+                Shop / Scrap Center Name *
+              </Text>
+              <TextInput
+                value={editShopName}
+                onChangeText={setEditShopName}
+                placeholder="e.g. Ramesh Scrap Yard"
+                className="bg-white border border-line rounded-xl px-4 py-3 mb-3 text-sm text-bark font-semibold"
+                placeholderTextColor="#8a7d68"
+              />
+
+              <Text className="text-xs font-bold text-bark uppercase tracking-wider mb-1">
+                Primary Contact Phone *
+              </Text>
+              <TextInput
+                value={editShopPhone}
+                onChangeText={setEditShopPhone}
+                keyboardType="phone-pad"
+                maxLength={10}
+                placeholder="10-digit phone number"
+                className="bg-white border border-line rounded-xl px-4 py-3 mb-3 text-sm text-bark"
+                placeholderTextColor="#8a7d68"
+              />
+
+              <Text className="text-xs font-bold text-bark uppercase tracking-wider mb-1">
+                WhatsApp Business Number
+              </Text>
+              <TextInput
+                value={editShopWhatsapp}
+                onChangeText={setEditShopWhatsapp}
+                keyboardType="phone-pad"
+                maxLength={10}
+                placeholder="10-digit WhatsApp number"
+                className="bg-white border border-line rounded-xl px-4 py-3 mb-3 text-sm text-bark"
+                placeholderTextColor="#8a7d68"
+              />
+
+              <Text className="text-xs font-bold text-bark uppercase tracking-wider mb-1">
+                Shop / Yard Physical Address
+              </Text>
+              <TextInput
+                value={editShopAddress}
+                onChangeText={setEditShopAddress}
+                placeholder="Plot / Shop number, Mandi road, Zone"
+                className="bg-white border border-line rounded-xl px-4 py-3 mb-4 text-sm text-bark"
+                placeholderTextColor="#8a7d68"
+              />
+
+              <PrimaryButton
+                label="Save Shop & Contact Details"
+                onPress={handleSaveShopProfile}
+                loading={savingShopProfile}
+              />
+            </ScrollView>
           </View>
         </View>
       </Modal>
