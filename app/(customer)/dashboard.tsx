@@ -11,6 +11,7 @@ import { useAuthStore } from "../../store/authStore";
 import { getMyListings, type ScrapListing } from "../../services/queries/listings";
 import { getBookingsForCustomer, type Booking } from "../../services/queries/bookings";
 import { signOut } from "../../services/auth";
+import { AppSettingsModal } from "../../components/AppSettingsModal";
 import { theme } from "../../constants/theme";
 import { SCRAP_CATEGORIES } from "../../constants/scrapCategories";
 
@@ -23,6 +24,7 @@ export default function CustomerDashboard() {
   const [listings, setListings] = useState<ScrapListing[] | null>(null);
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile) return;
@@ -83,10 +85,13 @@ export default function CustomerDashboard() {
           <Text className="text-sm font-semibold text-leaf">{profile?.name ?? "Customer"}</Text>
         </View>
         <View className="flex-row items-center">
-          <Pressable onPress={() => router.push("/price-trends")} className="mr-3 p-2 bg-sand rounded-full">
+          <Pressable onPress={() => setSettingsOpen(true)} className="mr-2 p-2 bg-sand rounded-full border border-line">
+            <MaterialCommunityIcons name="cog" size={20} color={theme.bark} />
+          </Pressable>
+          <Pressable onPress={() => router.push("/price-trends")} className="mr-2 p-2 bg-sand rounded-full border border-line">
             <MaterialCommunityIcons name="chart-line" size={20} color={theme.bark} />
           </Pressable>
-          <Pressable onPress={handleLogout} className="p-2 bg-sand rounded-full">
+          <Pressable onPress={handleLogout} className="p-2 bg-sand rounded-full border border-line">
             <MaterialCommunityIcons name="logout" size={20} color={theme.bark} />
           </Pressable>
         </View>
@@ -255,6 +260,9 @@ export default function CustomerDashboard() {
           )}
         />
       )}
+
+      {/* Universal Settings & Permissions Modal */}
+      <AppSettingsModal visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </ScreenContainer>
   );
 }

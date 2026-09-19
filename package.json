@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "dev-client": "expo start --dev-client",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "node scripts/patch-css-interop.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

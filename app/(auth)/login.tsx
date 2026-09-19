@@ -1,40 +1,62 @@
-import { useState } from "react";
-import { Text, TextInput, Pressable, View, Alert } from "react-native";
+import { useEffect, useState } from "react";
+import { Text, TextInput, Pressable, View, Alert, ScrollView } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenContainer } from "../../components/ScreenContainer";
 import { PrimaryButton } from "../../components/PrimaryButton";
-import { signIn } from "../../services/auth";
+import { signInUnified } from "../../services/auth";
 import { useAuthStore } from "../../store/authStore";
+import { useOnboardingStore } from "../../store/onboardingStore";
+import { AUTHORIZED_OFFICER_IDS } from "../../constants/authorizedOfficers";
 import { theme } from "../../constants/theme";
 
 export default function Login() {
   const { t } = useTranslation();
+  const session = useAuthStore((s) => s.session);
+  const profile = useAuthStore((s) => s.profile);
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
+  const selectedRole = useOnboardingStore((s) => s.selectedRole);
 
-  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
+  const [loginMethod, setLoginMethod] = useState<"email" | "phone" | "officer">(
+    selectedRole === "officer" ? "officer" : "phone"
+  );
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // If already logged in, redirect straight to their active dashboard
+  useEffect(() => {
+    if (session && profile) {
+      if (profile.role === "customer") {
+        router.replace("/(customer)/dashboard");
+      } else if (profile.role === "kabadiwala") {
+        router.replace("/(kabadiwala)/dashboard");
+      } else if (profile.role === "officer") {
+        router.replace("/(officer)/dashboard");
+      }
+    }
+  }, [session, profile]);
+
   async function handleSubmit() {
     if (!identifier.trim() || !password) {
-      Alert.alert("Input Required", "Please enter your email or phone number, and password.");
+      Alert.alert(
+        "Input Required",
+        loginMethod === "officer"
+          ? "Please enter your Officer ID and password."
+          : "Please enter your email or phone number, and password."
+      );
       return;
-    }
-
-    let finalEmail = identifier.trim();
-
-    // If phone number entered (10 digits)
-    const digitsOnly = identifier.replace(/\D/g, "");
-    if (loginMethod === "phone" || (digitsOnly.length === 10 && !identifier.includes("@"))) {
-      finalEmail = `${digitsOnly}@kawa.app`;
     }
 
     setLoading(true);
     try {
-      await signIn({ email: finalEmail, password });
+      await signInUnified({
+        identifier: identifier.trim(),
+        password,
+        preferredRole: selectedRole || undefined,
+      });
+
       await refreshProfile();
       const p = useAuthStore.getState().profile;
 
@@ -48,7 +70,10 @@ export default function Login() {
         router.replace("/");
       }
     } catch (err: any) {
-      Alert.alert("Login Failed", "Invalid credentials. Please check your details and try again.");
+      Alert.alert(
+        "Login Failed",
+        err?.message ?? "Invalid credentials. Please verify your details and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -57,7 +82,7 @@ export default function Login() {
   function handleGoogleLogin() {
     Alert.alert(
       "Google Sign-In",
-      "Google authentication integration is active. Please enter your email or registered phone number to log into your dashboard.",
+      "Google authentication integration is active. Please enter your email or phone number to log into your account.",
       [{ text: "OK" }]
     );
   }
@@ -69,30 +94,19 @@ export default function Login() {
           {t("auth.loginTitle")}
         </Text>
         <Text className="text-xs text-bark/70 mt-1">
-          Log into your Customer, Kabadiwala, or Officer account.
+          Sign into your Customer, Kabadiwala, or Municipal Officer account.
         </Text>
       </View>
 
-      {/* LOGIN METHOD TOGGLE */}
+      {/* LOGIN METHOD TOGGLE (No dynamic CSS shadow variables) */}
       <View className="flex-row mb-4 bg-sand rounded-xl p-1 border border-line">
         <Pressable
-          onPress={() => setLoginMethod("email")}
+          onPress={() => {
+            setLoginMethod("phone");
+            setIdentifier("");
+          }}
           className={`flex-1 py-2.5 rounded-lg items-center ${
-            loginMethod === "email" ? "bg-white shadow-sm" : ""
-          }`}
-        >
-          <Text
-            className={`font-bold text-xs ${
-              loginMethod === "email" ? "text-bark" : "text-bark/60"
-            }`}
-          >
-            ✉️ Email ID
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setLoginMethod("phone")}
-          className={`flex-1 py-2.5 rounded-lg items-center ${
-            loginMethod === "phone" ? "bg-white shadow-sm" : ""
+            loginMethod === "phone" ? "bg-white border border-line/40" : ""
           }`}
         >
           <Text
@@ -100,28 +114,103 @@ export default function Login() {
               loginMethod === "phone" ? "text-bark" : "text-bark/60"
             }`}
           >
-            📱 Mobile Number
+            📱 Mobile
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => {
+            setLoginMethod("email");
+            setIdentifier("");
+          }}
+          className={`flex-1 py-2.5 rounded-lg items-center ${
+            loginMethod === "email" ? "bg-white border border-line/40" : ""
+          }`}
+        >
+          <Text
+            className={`font-bold text-xs ${
+              loginMethod === "email" ? "text-bark" : "text-bark/60"
+            }`}
+          >
+            ✉️ Email
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => {
+            setLoginMethod("officer");
+            setIdentifier("OFFICER-SWM-101");
+          }}
+          className={`flex-1 py-2.5 rounded-lg items-center ${
+            loginMethod === "officer" ? "bg-white border border-line/40" : ""
+          }`}
+        >
+          <Text
+            className={`font-bold text-xs ${
+              loginMethod === "officer" ? "text-leaf" : "text-bark/60"
+            }`}
+          >
+            🏛️ Officer
           </Text>
         </Pressable>
       </View>
 
+      {/* INPUT FIELD ACCORDING TO METHOD */}
       <Text className="text-xs font-semibold text-bark mb-1.5">
-        {loginMethod === "email" ? "Email Address *" : "Registered Mobile Number *"}
+        {loginMethod === "phone"
+          ? "Registered Mobile Number *"
+          : loginMethod === "email"
+          ? "Email Address *"
+          : "Authorized Government Officer ID *"}
       </Text>
       <TextInput
-        placeholder={loginMethod === "email" ? "e.g. name@gmail.com" : "e.g. 9876543210"}
+        placeholder={
+          loginMethod === "phone"
+            ? "e.g. 9876543210"
+            : loginMethod === "email"
+            ? "e.g. name@gmail.com"
+            : "e.g. OFFICER-SWM-101"
+        }
         value={identifier}
         onChangeText={setIdentifier}
-        autoCapitalize="none"
-        keyboardType={loginMethod === "email" ? "email-address" : "phone-pad"}
+        autoCapitalize={loginMethod === "officer" ? "characters" : "none"}
+        keyboardType={loginMethod === "phone" ? "phone-pad" : loginMethod === "email" ? "email-address" : "default"}
         maxLength={loginMethod === "phone" ? 10 : undefined}
         className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
         placeholderTextColor="#8a7d68"
       />
 
+      {/* OFFICER PRESET BADGES */}
+      {loginMethod === "officer" && (
+        <View className="mb-3">
+          <Text className="text-[11px] text-bark/60 mb-1 font-medium">Quick select authorized officer ID:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+            {AUTHORIZED_OFFICER_IDS.map((o) => (
+              <Pressable
+                key={o.officerId}
+                onPress={() => setIdentifier(o.officerId)}
+                className={`px-2.5 py-1.5 rounded-lg mr-2 border ${
+                  identifier === o.officerId
+                    ? "bg-leafLight border-leaf"
+                    : "bg-sand border-line"
+                }`}
+              >
+                <Text
+                  className={`text-xs font-bold ${
+                    identifier === o.officerId ? "text-leaf" : "text-bark/70"
+                  }`}
+                >
+                  {o.officerId} ({o.name.split(" ")[0]})
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       <Text className="text-xs font-semibold text-bark mb-1.5">Password *</Text>
       <TextInput
-        placeholder="Enter password"
+        placeholder="Enter your password"
         value={password}
         onChangeText={setPassword}
         secureTextEntry

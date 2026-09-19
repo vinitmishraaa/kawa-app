@@ -13,6 +13,8 @@ export interface Profile {
   verified: boolean;
   rating: number;
   push_token?: string | null;
+  gov_id_number?: string | null;
+  department?: string | null;
 }
 
 interface AuthState {

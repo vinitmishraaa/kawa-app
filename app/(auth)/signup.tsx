@@ -68,9 +68,9 @@ export default function Signup() {
       return;
     }
 
-    // Derive email if signing up via phone
+    // Derive email if signing up via phone (using role tag to support both customer & kabadiwala on same phone)
     const finalEmail = signupMethod === "phone"
-      ? `${phone.trim()}@kawa.app`
+      ? `${phone.trim()}.${selectedRole}@kawa.app`
       : email.trim();
 
     setLoading(true);
@@ -132,7 +132,7 @@ export default function Signup() {
         <Pressable
           onPress={() => setSignupMethod("email")}
           className={`flex-1 py-2.5 rounded-lg items-center ${
-            signupMethod === "email" ? "bg-white shadow-sm" : ""
+            signupMethod === "email" ? "bg-white border border-line/40" : ""
           }`}
         >
           <Text
@@ -146,7 +146,7 @@ export default function Signup() {
         <Pressable
           onPress={() => setSignupMethod("phone")}
           className={`flex-1 py-2.5 rounded-lg items-center ${
-            signupMethod === "phone" ? "bg-white shadow-sm" : ""
+            signupMethod === "phone" ? "bg-white border border-line/40" : ""
           }`}
         >
           <Text

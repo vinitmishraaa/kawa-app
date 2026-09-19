@@ -42,3 +42,12 @@ export function findAuthorizedOfficer(id: string): AuthorizedOfficer | null {
   const normalized = id.trim().toUpperCase();
   return AUTHORIZED_OFFICER_IDS.find((o) => o.officerId.toUpperCase() === normalized) ?? null;
 }
+
+export function getOfficerCanonicalEmail(officerId: string): string {
+  const clean = officerId.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  return `${clean}@kawa.app`;
+}
+
+export function isAuthorizedOfficerId(id: string): boolean {
+  return findAuthorizedOfficer(id) !== null;
+}

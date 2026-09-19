@@ -84,7 +84,7 @@ export default function OfficerRecords() {
         <Pressable
           onPress={() => setFlow("all")}
           className={`flex-1 py-2 rounded-lg items-center ${
-            flow === "all" ? "bg-white shadow-sm" : ""
+            flow === "all" ? "bg-white border border-line/40" : ""
           }`}
         >
           <Text className={`font-bold text-[11px] ${flow === "all" ? "text-bark" : "text-bark/60"}`}>
@@ -94,7 +94,7 @@ export default function OfficerRecords() {
         <Pressable
           onPress={() => setFlow("customer_intake")}
           className={`flex-1 py-2 rounded-lg items-center ${
-            flow === "customer_intake" ? "bg-white shadow-sm" : ""
+            flow === "customer_intake" ? "bg-white border border-line/40" : ""
           }`}
         >
           <Text className={`font-bold text-[11px] ${flow === "customer_intake" ? "text-leaf" : "text-bark/60"}`}>
@@ -104,7 +104,7 @@ export default function OfficerRecords() {
         <Pressable
           onPress={() => setFlow("officer_handovers")}
           className={`flex-1 py-2 rounded-lg items-center ${
-            flow === "officer_handovers" ? "bg-white shadow-sm" : ""
+            flow === "officer_handovers" ? "bg-white border border-line/40" : ""
           }`}
         >
           <Text className={`font-bold text-[11px] ${flow === "officer_handovers" ? "text-clay" : "text-bark/60"}`}>

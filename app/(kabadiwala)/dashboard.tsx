@@ -34,6 +34,7 @@ import {
   QUALITY_GRADES,
 } from "../../services/queries/transactions";
 import { signOut } from "../../services/auth";
+import { AppSettingsModal } from "../../components/AppSettingsModal";
 
 export default function KabadiwalaDashboard() {
   const { t } = useTranslation();
@@ -47,6 +48,7 @@ export default function KabadiwalaDashboard() {
   const [ledger, setLedger] = useState<any>(null);
   const [ledgerSubTab, setLedgerSubTab] = useState<"intake" | "outgoing">("intake");
   const [refreshing, setRefreshing] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Mark Collected Modal State
   const [collectingBooking, setCollectingBooking] = useState<Booking | null>(null);
@@ -157,10 +159,13 @@ export default function KabadiwalaDashboard() {
           <Text className="text-sm font-semibold text-leaf">{profile?.name ?? "Collector"}</Text>
         </View>
         <View className="flex-row items-center">
-          <Pressable onPress={() => router.push("/price-trends")} className="mr-3 p-2 bg-sand rounded-full">
+          <Pressable onPress={() => setSettingsOpen(true)} className="mr-2 p-2 bg-sand rounded-full border border-line">
+            <MaterialCommunityIcons name="cog" size={20} color={theme.bark} />
+          </Pressable>
+          <Pressable onPress={() => router.push("/price-trends")} className="mr-2 p-2 bg-sand rounded-full border border-line">
             <MaterialCommunityIcons name="chart-line" size={20} color={theme.bark} />
           </Pressable>
-          <Pressable onPress={handleLogout} className="p-2 bg-sand rounded-full">
+          <Pressable onPress={handleLogout} className="p-2 bg-sand rounded-full border border-line">
             <MaterialCommunityIcons name="logout" size={20} color={theme.bark} />
           </Pressable>
         </View>
@@ -171,7 +176,7 @@ export default function KabadiwalaDashboard() {
         <Pressable
           onPress={() => setActiveTab("pickups")}
           className={`flex-1 py-2 rounded-lg items-center ${
-            activeTab === "pickups" ? "bg-white shadow-sm" : ""
+            activeTab === "pickups" ? "bg-white border border-line/40" : ""
           }`}
         >
           <Text className={`font-bold text-xs ${activeTab === "pickups" ? "text-bark" : "text-bark/60"}`}>
@@ -181,7 +186,7 @@ export default function KabadiwalaDashboard() {
         <Pressable
           onPress={() => setActiveTab("route")}
           className={`flex-1 py-2 rounded-lg items-center ${
-            activeTab === "route" ? "bg-white shadow-sm" : ""
+            activeTab === "route" ? "bg-white border border-line/40" : ""
           }`}
         >
           <Text className={`font-bold text-xs ${activeTab === "route" ? "text-bark" : "text-bark/60"}`}>
@@ -191,7 +196,7 @@ export default function KabadiwalaDashboard() {
         <Pressable
           onPress={() => setActiveTab("ledger")}
           className={`flex-1 py-2 rounded-lg items-center ${
-            activeTab === "ledger" ? "bg-white shadow-sm" : ""
+            activeTab === "ledger" ? "bg-white border border-line/40" : ""
           }`}
         >
           <Text className={`font-bold text-xs ${activeTab === "ledger" ? "text-bark" : "text-bark/60"}`}>
@@ -576,6 +581,9 @@ export default function KabadiwalaDashboard() {
           </View>
         </View>
       </Modal>
+
+      {/* Universal Settings & Permissions Modal */}
+      <AppSettingsModal visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </ScreenContainer>
   );
 }

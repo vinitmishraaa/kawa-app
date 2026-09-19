@@ -1,36 +1,72 @@
 import { useState } from "react";
-import { Alert, Text, TextInput, View, Pressable } from "react-native";
+import { Alert, Text, TextInput, View, Pressable, ScrollView } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenContainer } from "../../components/ScreenContainer";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { theme } from "../../constants/theme";
-import { signUp } from "../../services/auth";
-import { findAuthorizedOfficer } from "../../constants/authorizedOfficers";
+import { signInOfficer, signUp } from "../../services/auth";
+import { AUTHORIZED_OFFICER_IDS, findAuthorizedOfficer } from "../../constants/authorizedOfficers";
 import { useAuthStore } from "../../store/authStore";
 
 export default function OfficerVerification() {
   const { t } = useTranslation();
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
 
-  const [officerCode, setOfficerCode] = useState("");
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [officerCode, setOfficerCode] = useState("OFFICER-SWM-101");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // When officer code changes, check if it matches an authorized officer
+  // Auto-fill officer name when code changes
   function handleCodeChange(code: string) {
     setOfficerCode(code);
     const authOfficer = findAuthorizedOfficer(code);
-    if (authOfficer && !name) {
+    if (authOfficer) {
       setName(authOfficer.name);
     }
   }
 
-  async function handleSubmit() {
+  async function handleOfficerLogin() {
+    const authOfficer = findAuthorizedOfficer(officerCode);
+    if (!authOfficer) {
+      Alert.alert(
+        "Access Denied: Invalid ID",
+        "Please enter one of the 5 authorized municipal officer IDs (e.g. OFFICER-SWM-101)."
+      );
+      return;
+    }
+
+    if (!password || password.length < 4) {
+      Alert.alert("Password Required", "Please enter your officer secret password.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signInOfficer({
+        officerId: authOfficer.officerId,
+        password,
+      });
+
+      await refreshProfile();
+      Alert.alert(
+        "Access Authorized",
+        `Welcome, ${authOfficer.name}!\nMunicipal Zone: ${authOfficer.zone}`,
+        [{ text: "Open Dashboard", onPress: () => router.replace("/(officer)/dashboard") }]
+      );
+    } catch (err: any) {
+      Alert.alert("Officer Authorization Failed", err?.message ?? "Invalid password or officer ID.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleOfficerRegister() {
     const authOfficer = findAuthorizedOfficer(officerCode);
     if (!authOfficer) {
       Alert.alert(
@@ -83,14 +119,68 @@ export default function OfficerVerification() {
         </View>
         <Text className="text-2xl font-bold text-bark">Government Officer Access</Text>
         <Text className="text-xs text-bark/70 mt-1">
-          Restricted to the 5 authorized municipal officers. Enter your government-issued Officer ID to unlock access.
+          Restricted to the 5 authorized municipal officers. Log in with your Officer ID to open the Municipal Waste Command Hub.
         </Text>
       </View>
 
-      {/* OFFICER ID INPUT (CRITICAL SECURITY CHECK) */}
+      {/* MODE TOGGLE: LOGIN VS REGISTER */}
+      <View className="flex-row mb-4 bg-sand rounded-xl p-1 border border-line">
+        <Pressable
+          onPress={() => setMode("login")}
+          className={`flex-1 py-2.5 rounded-lg items-center ${
+            mode === "login" ? "bg-white border border-line/40" : ""
+          }`}
+        >
+          <Text className={`font-bold text-xs ${mode === "login" ? "text-leaf" : "text-bark/60"}`}>
+            🔐 Officer Login
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setMode("register")}
+          className={`flex-1 py-2.5 rounded-lg items-center ${
+            mode === "register" ? "bg-white border border-line/40" : ""
+          }`}
+        >
+          <Text className={`font-bold text-xs ${mode === "register" ? "text-leaf" : "text-bark/60"}`}>
+            📝 Register / Custom
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* QUICK PRESET SELECTOR FOR THE 5 AUTHORIZED OFFICERS */}
+      <View className="mb-4">
+        <Text className="text-xs font-bold text-bark/70 uppercase tracking-wider mb-2">
+          Select Authorized Government Officer:
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+          {AUTHORIZED_OFFICER_IDS.map((o) => (
+            <Pressable
+              key={o.officerId}
+              onPress={() => handleCodeChange(o.officerId)}
+              className={`px-3 py-2 rounded-xl mr-2.5 border ${
+                officerCode === o.officerId
+                  ? "bg-leafLight border-leaf"
+                  : "bg-sand border-line"
+              }`}
+            >
+              <Text
+                className={`text-xs font-bold ${
+                  officerCode === o.officerId ? "text-leaf" : "text-bark"
+                }`}
+              >
+                {o.officerId}
+              </Text>
+              <Text className="text-[10px] text-bark/60 mt-0.5">{o.name.split(" ")[0]} • {o.zone}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* OFFICER ID INPUT */}
       <View className="bg-sand border-2 border-leaf/40 rounded-card p-4 mb-4">
         <Text className="text-xs font-bold text-bark uppercase tracking-wider mb-1.5">
-          1. Authorized Officer ID *
+          Government Officer ID *
         </Text>
         <TextInput
           placeholder="e.g. OFFICER-SWM-101"
@@ -111,65 +201,88 @@ export default function OfficerVerification() {
               </Text>
             </View>
           </View>
-        ) : officerCode.length > 3 ? (
+        ) : (
           <View className="flex-row items-center mt-2 bg-clay/10 p-2 rounded-lg">
             <MaterialCommunityIcons name="alert-circle-outline" size={16} color={theme.clay} />
             <Text className="text-[11px] text-clay ml-1.5 font-medium">
-              ID not recognized. Only the 5 pre-assigned Officer IDs can register.
+              ID not recognized. Please choose one of the 5 authorized officers.
             </Text>
           </View>
-        ) : null}
+        )}
       </View>
 
-      {/* OFFICER CREDENTIALS */}
-      <Text className="text-xs font-bold text-bark/70 uppercase tracking-wider mb-2">
-        2. Officer Profile & Login Details
-      </Text>
+      {mode === "login" ? (
+        /* LOGIN FORM */
+        <View>
+          <Text className="text-xs font-semibold text-bark mb-1.5">Officer Password *</Text>
+          <TextInput
+            placeholder="Enter password (e.g. 123456)"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            className="bg-sand border border-line rounded-card px-4 py-3 mb-5 text-base text-bark"
+            placeholderTextColor="#8a7d68"
+          />
 
-      <TextInput
-        placeholder="Official Full Name *"
-        value={name}
-        onChangeText={setName}
-        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
-        placeholderTextColor="#8a7d68"
-      />
-      <TextInput
-        placeholder="Official Email Address *"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
-        placeholderTextColor="#8a7d68"
-      />
-      <TextInput
-        placeholder="Phone Number (10 digits)"
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
-        placeholderTextColor="#8a7d68"
-      />
-      <TextInput
-        placeholder="Create Secret Password (min 6 characters) *"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        className="bg-sand border border-line rounded-card px-4 py-3 mb-5 text-base text-bark"
-        placeholderTextColor="#8a7d68"
-      />
+          <PrimaryButton
+            label="Authorize & Enter Officer Hub"
+            onPress={handleOfficerLogin}
+            loading={loading}
+          />
+        </View>
+      ) : (
+        /* REGISTRATION FORM */
+        <View>
+          <Text className="text-xs font-semibold text-bark mb-1.5">Full Name *</Text>
+          <TextInput
+            placeholder="Official Full Name"
+            value={name}
+            onChangeText={setName}
+            className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
+            placeholderTextColor="#8a7d68"
+          />
 
-      <PrimaryButton
-        label="Authorize & Enter Officer Hub"
-        onPress={handleSubmit}
-        loading={loading}
-      />
+          <Text className="text-xs font-semibold text-bark mb-1.5">Official Email Address *</Text>
+          <TextInput
+            placeholder="e.g. officer@swm.gov.in"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
+            placeholderTextColor="#8a7d68"
+          />
 
-      <Pressable onPress={() => router.push("/(auth)/login")} className="mt-4 items-center">
-        <Text className="text-leaf text-base font-semibold">Already authorized? Log in here</Text>
-      </Pressable>
+          <Text className="text-xs font-semibold text-bark mb-1.5">Phone Number (Optional)</Text>
+          <TextInput
+            placeholder="10-digit phone number"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            maxLength={10}
+            className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
+            placeholderTextColor="#8a7d68"
+          />
 
-      <View className="mt-3 mb-6">
+          <Text className="text-xs font-semibold text-bark mb-1.5">Create Password (min 6 characters) *</Text>
+          <TextInput
+            placeholder="Secret password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            className="bg-sand border border-line rounded-card px-4 py-3 mb-5 text-base text-bark"
+            placeholderTextColor="#8a7d68"
+          />
+
+          <PrimaryButton
+            label="Register & Enter Officer Hub"
+            onPress={handleOfficerRegister}
+            loading={loading}
+          />
+        </View>
+      )}
+
+      <View className="mt-4 mb-6">
         <PrimaryButton
           label="Choose another role"
           onPress={() => router.replace("/(auth)/role-select")}
