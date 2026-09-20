@@ -6,6 +6,7 @@ import { ScreenContainer } from "../../components/ScreenContainer";
 import { RoleCard } from "../../components/RoleCard";
 import { useOnboardingStore } from "../../store/onboardingStore";
 import { theme } from "../../constants/theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Role } from "../../services/auth";
 
 export default function RoleSelect() {
@@ -14,6 +15,7 @@ export default function RoleSelect() {
 
   function choose(role: Role) {
     setSelectedRole(role);
+    AsyncStorage.setItem("@kawa_intended_role", role).catch(() => {});
     if (role === "officer") {
       router.push("/(auth)/officer-verification");
     } else {

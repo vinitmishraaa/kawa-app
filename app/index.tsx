@@ -21,29 +21,57 @@ export default function Index() {
     let isMounted = true;
 
     async function routeUser() {
-      // 1. If cold launched with an OAuth redirect URL, handle it immediately
+      // 1. Detect if OAuth redirect is in progress
+      let initialUrl: string | null = null;
       try {
-        const initialUrl =
+        initialUrl =
           Platform.OS === "web" && typeof window !== "undefined"
             ? window.location.href
             : await Linking.getInitialURL();
+      } catch {}
 
-        if (initialUrl && (initialUrl.includes("code=") || initialUrl.includes("access_token="))) {
-          const res = await handleOAuthRedirectUrl(initialUrl);
-          if (res?.profile && isMounted) {
-            const storedRole = await AsyncStorage.getItem("@kawa_intended_role").catch(() => null);
-            const role = storedRole || res.profile.role;
-            if (role === "kabadiwala") {
+      const isOAuth =
+        Boolean(initialUrl && (initialUrl.includes("code=") || initialUrl.includes("access_token="))) ||
+        (Platform.OS === "web" && typeof window !== "undefined" && (window.location.search.includes("code=") || window.location.hash.includes("access_token")));
+
+      if (isOAuth) {
+        // Wait up to 4 seconds for Supabase / backend to finish session exchange
+        for (let i = 0; i < 16; i++) {
+          const { data: s } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+          if (s?.session?.user) {
+            const user = s.session.user;
+            const storedRole = ((await AsyncStorage.getItem("@kawa_intended_role").catch(() => null)) as any) || "customer";
+            const dbPayload = {
+              id: user.id,
+              role: storedRole,
+              name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "User",
+              phone: user.phone || null,
+              photo_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+              verified: true,
+              rating: 5,
+            };
+            try {
+              await supabase.from("profiles").upsert(dbPayload, { onConflict: "id" });
+            } catch {}
+            const inMemoryProfile = { ...dbPayload, email: user.email };
+            await useAuthStore.getState().setSessionAndProfile(s.session, inMemoryProfile as any);
+
+            if (Platform.OS === "web" && typeof window !== "undefined") {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            if (storedRole === "kabadiwala") {
               router.replace("/(kabadiwala)/dashboard");
-            } else if (role === "officer") {
+            } else if (storedRole === "officer") {
               router.replace("/(officer)/dashboard");
             } else {
               router.replace("/(customer)/dashboard");
             }
             return;
           }
+          await new Promise((r) => setTimeout(r, 250));
         }
-      } catch {}
+      }
 
       if (!isMounted) return;
 
