@@ -56,3 +56,26 @@ if (fs.existsSync(webColorSchemeFile)) {
   }
 }
 
+// Patch Metro FallbackWatcher to ignore Windows UNKNOWN (errno -4094) errors during filesystem crawl
+const metroWatcherFiles = [
+  path.join(__dirname, "..", "node_modules", "@expo", "metro-file-map", "build", "watchers", "FallbackWatcher.js"),
+  path.join(__dirname, "..", "node_modules", "metro-file-map", "src", "watchers", "FallbackWatcher.js"),
+];
+
+for (const metroFile of metroWatcherFiles) {
+  if (fs.existsSync(metroFile)) {
+    let watcherContent = fs.readFileSync(metroFile, "utf8");
+    if (!watcherContent.includes("error.errno === -4094") && !watcherContent.includes("error.code === 'UNKNOWN'")) {
+      watcherContent = watcherContent.replace(
+        /function isIgnorableFileError\(error\)\s*\{[\s\S]*?return\s*\(([\s\S]*?)\);?\s*\}/,
+        `function isIgnorableFileError(error) {
+    return ($1 || (error.code === 'UNKNOWN' && platform === 'win32') || (error.errno === -4094 && platform === 'win32') || (error.code === 'EPERM' && platform === 'win32'));
+}`
+      );
+      fs.writeFileSync(metroFile, watcherContent, "utf8");
+      console.log(`[patch] Successfully patched Metro FallbackWatcher at ${metroFile}`);
+    }
+  }
+}
+
+
