@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import { router } from "expo-router";
 import * as Linking from "expo-linking";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuthStore } from "../store/authStore";
 import { useOnboardingStore } from "../store/onboardingStore";
 import { handleOAuthRedirectUrl } from "../services/auth";
@@ -46,9 +47,11 @@ export default function Index() {
 
       // 2. If user is authenticated, route immediately to their dashboard
       if (profile) {
-        if (profile.role === "kabadiwala") {
+        const storedRole = await AsyncStorage.getItem("@kawa_intended_role").catch(() => null);
+        const targetRole = storedRole || profile.role;
+        if (targetRole === "kabadiwala") {
           router.replace("/(kabadiwala)/dashboard");
-        } else if (profile.role === "officer") {
+        } else if (targetRole === "officer") {
           router.replace("/(officer)/dashboard");
         } else {
           router.replace("/(customer)/dashboard");
@@ -69,13 +72,15 @@ export default function Index() {
     routeUser();
 
     // Safety timeout: Never stay stuck on loading view for more than 1.5 seconds!
-    const safetyTimer = setTimeout(() => {
+    const safetyTimer = setTimeout(async () => {
       if (!isMounted) return;
       const currentProf = useAuthStore.getState().profile;
       if (currentProf) {
-        if (currentProf.role === "kabadiwala") {
+        const storedRole = await AsyncStorage.getItem("@kawa_intended_role").catch(() => null);
+        const targetRole = storedRole || currentProf.role;
+        if (targetRole === "kabadiwala") {
           router.replace("/(kabadiwala)/dashboard");
-        } else if (currentProf.role === "officer") {
+        } else if (targetRole === "officer") {
           router.replace("/(officer)/dashboard");
         } else {
           router.replace("/(customer)/dashboard");

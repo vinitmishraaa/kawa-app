@@ -12,8 +12,13 @@ import { theme } from "../../constants/theme";
 
 export default function Signup() {
   const { t } = useTranslation();
-  const selectedRole = useOnboardingStore((s) => s.selectedRole);
+  const storeRole = useOnboardingStore((s) => s.selectedRole);
+  const setSelectedRole = useOnboardingStore((s) => s.setSelectedRole);
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
+
+  const [activeRole, setActiveRole] = useState<"customer" | "kabadiwala">(
+    storeRole === "kabadiwala" ? "kabadiwala" : "customer"
+  );
 
   const [signupMethod, setSignupMethod] = useState<"email" | "phone">("email");
   const [name, setName] = useState("");
@@ -35,11 +40,6 @@ export default function Signup() {
   }
 
   async function handleSubmit() {
-    if (!selectedRole || selectedRole === "officer") {
-      router.replace("/(auth)/role-select");
-      return;
-    }
-
     if (!name.trim() || name.trim().length < 2) {
       Alert.alert("Name Required", "Please enter your full name (at least 2 characters).");
       return;
@@ -72,10 +72,10 @@ export default function Signup() {
     // Derive email (using role tag so a single user can have BOTH Customer and Kabadiwala accounts on same email or phone)
     let finalEmail = email.trim();
     if (signupMethod === "phone") {
-      finalEmail = `${phone.trim()}.${selectedRole}@kawa.app`;
+      finalEmail = `${phone.trim()}.${activeRole}@kawa.app`;
     } else {
       const [uPart, dPart] = email.trim().split("@");
-      finalEmail = `${uPart}.${selectedRole}@${dPart}`;
+      finalEmail = `${uPart}.${activeRole}@${dPart}`;
     }
 
     setLoading(true);
@@ -84,7 +84,7 @@ export default function Signup() {
         await signUp({
           email: finalEmail,
           password,
-          role: selectedRole,
+          role: activeRole,
           name: name.trim(),
           phone: phone.trim() || undefined,
         });
@@ -94,7 +94,7 @@ export default function Signup() {
           await signUp({
             email: email.trim(),
             password,
-            role: selectedRole,
+            role: activeRole,
             name: name.trim(),
             phone: phone.trim() || undefined,
           });
@@ -105,12 +105,10 @@ export default function Signup() {
 
       await refreshProfile();
 
-      if (selectedRole === "customer") {
-        router.replace("/(customer)/dashboard");
-      } else if (selectedRole === "kabadiwala") {
+      if (activeRole === "kabadiwala") {
         router.replace("/(kabadiwala)/dashboard");
       } else {
-        router.replace("/(officer)/dashboard");
+        router.replace("/(customer)/dashboard");
       }
     } catch (err: any) {
       Alert.alert("Registration Error", err?.message ?? "Could not create account. Try again.");
@@ -122,15 +120,12 @@ export default function Signup() {
   async function handleGoogleLogin() {
     setLoading(true);
     try {
-      const res = await signInWithGoogle(selectedRole as any);
+      const res = await signInWithGoogle(activeRole);
       if (res?.user) {
-        const targetRole = (res as any)?.profile?.role || selectedRole;
-        if (targetRole === "customer") {
-          router.replace("/(customer)/dashboard");
-        } else if (targetRole === "kabadiwala") {
+        if (activeRole === "kabadiwala") {
           router.replace("/(kabadiwala)/dashboard");
         } else {
-          router.replace("/(officer)/dashboard");
+          router.replace("/(customer)/dashboard");
         }
       }
     } catch (err: any) {
@@ -145,7 +140,7 @@ export default function Signup() {
     }
   }
 
-  const roleTitle = selectedRole === "customer" ? t("roleSelect.customer") : t("roleSelect.kabadiwala");
+  const roleTitle = activeRole === "customer" ? t("roleSelect.customer") : t("roleSelect.kabadiwala");
 
   return (
     <ScreenContainer scroll>
@@ -170,22 +165,71 @@ export default function Signup() {
         </Text>
       </View>
 
-      <View className="mt-2 mb-5">
+      <View className="mt-2 mb-3">
         <View className="flex-row items-center">
           <View className="w-10 h-10 rounded-full bg-leafLight items-center justify-center mr-2.5">
             <MaterialCommunityIcons
-              name={selectedRole === "customer" ? "account-outline" : "truck-outline"}
+              name={activeRole === "customer" ? "account-outline" : "truck-outline"}
               size={22}
               color={theme.leaf}
             />
           </View>
           <Text className="text-2xl font-bold text-bark">
-            {selectedRole === "customer" ? t("auth.createCustomerAccount") : t("auth.createKabadiwalaAccount")}
+            {activeRole === "customer" ? t("auth.createCustomerAccount") : t("auth.createKabadiwalaAccount")}
           </Text>
         </View>
         <Text className="text-xs text-bark/70 mt-1">
           {t("auth.signupSubtitle")}
         </Text>
+      </View>
+
+      {/* ROLE SELECTOR TABS: Customer vs Kabadiwala */}
+      <View className="flex-row bg-sand rounded-xl p-1 mb-4 border border-line">
+        <Pressable
+          onPress={() => {
+            setActiveRole("customer");
+            setSelectedRole("customer");
+          }}
+          className={`flex-1 py-2.5 rounded-lg items-center justify-center flex-row ${
+            activeRole === "customer" ? "bg-leaf shadow-sm" : "bg-transparent"
+          }`}
+        >
+          <MaterialCommunityIcons
+            name="account-outline"
+            size={18}
+            color={activeRole === "customer" ? "#FFFFFF" : theme.bark}
+          />
+          <Text
+            className={`font-bold text-xs ml-1.5 ${
+              activeRole === "customer" ? "text-white" : "text-bark"
+            }`}
+          >
+            {t("roleSelect.customer", "Customer")}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => {
+            setActiveRole("kabadiwala");
+            setSelectedRole("kabadiwala");
+          }}
+          className={`flex-1 py-2.5 rounded-lg items-center justify-center flex-row ${
+            activeRole === "kabadiwala" ? "bg-leaf shadow-sm" : "bg-transparent"
+          }`}
+        >
+          <MaterialCommunityIcons
+            name="truck-outline"
+            size={18}
+            color={activeRole === "kabadiwala" ? "#FFFFFF" : theme.bark}
+          />
+          <Text
+            className={`font-bold text-xs ml-1.5 ${
+              activeRole === "kabadiwala" ? "text-white" : "text-bark"
+            }`}
+          >
+            {t("roleSelect.kabadiwala", "Kabadiwala")}
+          </Text>
+        </Pressable>
       </View>
 
       {/* SIGNUP METHOD TOGGLE */}

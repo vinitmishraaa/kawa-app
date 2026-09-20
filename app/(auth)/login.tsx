@@ -61,14 +61,13 @@ export default function Login() {
       await refreshProfile();
       const p = useAuthStore.getState().profile;
 
-      if (p?.role === "customer" || activeRole === "customer") {
-        router.replace("/(customer)/dashboard");
-      } else if (p?.role === "kabadiwala" || activeRole === "kabadiwala") {
+      const roleToNavigate = activeRole || p?.role || "customer";
+      if (roleToNavigate === "kabadiwala") {
         router.replace("/(kabadiwala)/dashboard");
-      } else if (p?.role === "officer" || activeRole === "officer") {
+      } else if (roleToNavigate === "officer") {
         router.replace("/(officer)/dashboard");
       } else {
-        router.replace("/");
+        router.replace("/(customer)/dashboard");
       }
     } catch (err: any) {
       Alert.alert(
@@ -85,13 +84,12 @@ export default function Login() {
     try {
       const res = await signInWithGoogle(activeRole);
       if (res?.user) {
-        const targetRole = (res as any)?.profile?.role || activeRole;
-        if (targetRole === "customer") {
-          router.replace("/(customer)/dashboard");
-        } else if (targetRole === "kabadiwala") {
+        if (activeRole === "kabadiwala") {
           router.replace("/(kabadiwala)/dashboard");
-        } else {
+        } else if (activeRole === "officer") {
           router.replace("/(officer)/dashboard");
+        } else {
+          router.replace("/(customer)/dashboard");
         }
       }
     } catch (err: any) {

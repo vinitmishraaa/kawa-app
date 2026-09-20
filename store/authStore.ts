@@ -138,6 +138,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 // Real-time listener for Supabase authentication state changes
 supabase.auth.onAuthStateChange(async (event, session) => {
   if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user) {
+    const storedRole = await AsyncStorage.getItem("@kawa_intended_role").catch(() => null);
+
     let profileData: any = null;
     try {
       const { data } = await supabase
@@ -150,35 +152,34 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       }
     } catch {}
 
-    if (!profileData) {
-      profileData = {
-        id: session.user.id,
-        role: "customer",
-        name:
-          session.user.user_metadata?.full_name ||
-          session.user.user_metadata?.name ||
-          session.user.email?.split("@")[0] ||
-          "Google User",
-        email: session.user.email,
-        phone: session.user.phone || null,
-        photo_url: session.user.user_metadata?.avatar_url || null,
-        verified: true,
-        rating: 5,
-      };
-      try {
-        await supabase.from("profiles").upsert({
-          id: profileData.id,
-          role: profileData.role,
-          name: profileData.name,
-          phone: profileData.phone,
-          photo_url: profileData.photo_url,
-          verified: true,
-          rating: 5,
-        }, { onConflict: "id" });
-      } catch {}
-    }
+    // If an intended role was selected (e.g. kabadiwala), ALWAYS honor it!
+    const effectiveRole = (storedRole as any) || profileData?.role || "customer";
 
-    useAuthStore.getState().setSessionAndProfile(session, profileData);
+    const dbPayload = {
+      id: session.user.id,
+      role: effectiveRole,
+      name:
+        session.user.user_metadata?.full_name ||
+        session.user.user_metadata?.name ||
+        profileData?.name ||
+        session.user.email?.split("@")[0] ||
+        "User",
+      phone: session.user.phone || profileData?.phone || null,
+      photo_url: session.user.user_metadata?.avatar_url || profileData?.photo_url || null,
+      verified: true,
+      rating: profileData?.rating ?? 5,
+    };
+
+    try {
+      await supabase.from("profiles").upsert(dbPayload, { onConflict: "id" });
+    } catch {}
+
+    const inMemoryProfile = {
+      ...dbPayload,
+      email: session.user.email,
+    };
+
+    useAuthStore.getState().setSessionAndProfile(session, inMemoryProfile as any);
   } else if (event === "SIGNED_OUT") {
     useAuthStore.getState().reset();
   }

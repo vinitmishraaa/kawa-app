@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./supabase";
 import { findAuthorizedOfficer, getOfficerCanonicalEmail } from "../constants/authorizedOfficers";
 
@@ -502,17 +503,8 @@ export async function handleOAuthRedirectUrl(url: string, fallbackRole: Role = "
   }
 
   if (sessionData?.user) {
-    let activeRole = fallbackRole;
-    try {
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", sessionData.user.id)
-        .maybeSingle();
-      if (existingProfile?.role) {
-        activeRole = existingProfile.role;
-      }
-    } catch {}
+    const storedRole = await AsyncStorage.getItem("@kawa_intended_role").catch(() => null);
+    const activeRole: Role = (storedRole as Role) || fallbackRole || "customer";
 
     // Only include columns that physically exist in the Supabase `profiles` table:
     const dbPayload = {
@@ -557,6 +549,10 @@ export async function handleOAuthRedirectUrl(url: string, fallbackRole: Role = "
 
 export async function signInWithGoogle(role: Role = "customer") {
   WebBrowser.maybeCompleteAuthSession();
+
+  // Save the selected role so that across browser redirects,
+  // the app knows with 100% certainty whether the user signed in as Customer or Kabadiwala!
+  await AsyncStorage.setItem("@kawa_intended_role", role).catch(() => {});
 
   const redirectUrl =
     Platform.OS === "web"
