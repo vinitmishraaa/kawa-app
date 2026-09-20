@@ -84,9 +84,10 @@ export default function Login() {
     try {
       const res = await signInWithGoogle(activeRole);
       if (res?.user || res?.profile) {
-        if (activeRole === "kabadiwala") {
+        const targetRole = res.profile?.role || activeRole;
+        if (targetRole === "kabadiwala") {
           router.replace("/(kabadiwala)/dashboard");
-        } else if (activeRole === "officer") {
+        } else if (targetRole === "officer") {
           router.replace("/(officer)/dashboard");
         } else {
           router.replace("/(customer)/dashboard");

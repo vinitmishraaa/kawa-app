@@ -16,12 +16,10 @@ export default function Index() {
   const permissionsDone = useOnboardingStore((s) => s.permissionsDone);
 
   useEffect(() => {
-    if (isLoading || !isLoaded) return;
-
     let isMounted = true;
 
     async function routeUser() {
-      // 1. Detect if OAuth redirect is in progress
+      // 1. Check if launched with an OAuth redirect URL
       let initialUrl: string | null = null;
       try {
         initialUrl =
@@ -32,50 +30,37 @@ export default function Index() {
 
       const isOAuth =
         Boolean(initialUrl && (initialUrl.includes("code=") || initialUrl.includes("access_token="))) ||
-        (Platform.OS === "web" && typeof window !== "undefined" && (window.location.search.includes("code=") || window.location.hash.includes("access_token")));
+        (Platform.OS === "web" &&
+          typeof window !== "undefined" &&
+          (window.location.search.includes("code=") || window.location.hash.includes("access_token")));
 
-      if (isOAuth) {
-        // Wait up to 4 seconds for Supabase / backend to finish session exchange
-        for (let i = 0; i < 16; i++) {
-          const { data: s } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
-          if (s?.session?.user) {
-            const user = s.session.user;
-            const storedRole = ((await AsyncStorage.getItem("@kawa_intended_role").catch(() => null)) as any) || "customer";
-            const dbPayload = {
-              id: user.id,
-              role: storedRole,
-              name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "User",
-              phone: user.phone || null,
-              photo_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
-              verified: true,
-              rating: 5,
-            };
-            try {
-              await supabase.from("profiles").upsert(dbPayload, { onConflict: "id" });
-            } catch {}
-            const inMemoryProfile = { ...dbPayload, email: user.email };
-            await useAuthStore.getState().setSessionAndProfile(s.session, inMemoryProfile as any);
-
+      if (isOAuth && initialUrl) {
+        try {
+          const res = await handleOAuthRedirectUrl(initialUrl);
+          if (res?.profile && isMounted) {
             if (Platform.OS === "web" && typeof window !== "undefined") {
               window.history.replaceState({}, document.title, window.location.pathname);
             }
-
-            if (storedRole === "kabadiwala") {
+            const storedRole = await AsyncStorage.getItem("@kawa_intended_role").catch(() => null);
+            const targetRole = storedRole || res.profile.role;
+            if (targetRole === "kabadiwala") {
               router.replace("/(kabadiwala)/dashboard");
-            } else if (storedRole === "officer") {
+            } else if (targetRole === "officer") {
               router.replace("/(officer)/dashboard");
             } else {
               router.replace("/(customer)/dashboard");
             }
             return;
           }
-          await new Promise((r) => setTimeout(r, 250));
+        } catch (e) {
+          console.warn("[OAuth] Route redirect handling error:", e);
         }
       }
 
-      if (!isMounted) return;
+      // 2. Wait for authStore and onboardingStore initialization
+      if (isLoading || !isLoaded) return;
 
-      // 2. Check active profile or restore Supabase session
+      // 3. Check active profile or restore Supabase session
       let activeProfile = profile;
       if (!activeProfile) {
         const { data: supaSession } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
@@ -112,44 +97,20 @@ export default function Index() {
         return;
       }
 
-      // 3. If not authenticated:
-      // If permissions were already done in this app session, do not ask again
+      if (!isMounted) return;
+
+      // 4. If not authenticated:
       if (permissionsDone) {
         router.replace("/(auth)/role-select");
       } else {
-        // Cold start / fresh open: start with Language Selection
         router.replace("/(auth)/language-select");
       }
     }
 
     routeUser();
 
-    // Safety timeout: Never stay stuck on loading view for more than 1.5 seconds!
-    const safetyTimer = setTimeout(async () => {
-      if (!isMounted) return;
-      const currentProf = useAuthStore.getState().profile;
-      if (currentProf) {
-        const storedRole = await AsyncStorage.getItem("@kawa_intended_role").catch(() => null);
-        const targetRole = storedRole || currentProf.role;
-        if (targetRole === "kabadiwala") {
-          router.replace("/(kabadiwala)/dashboard");
-        } else if (targetRole === "officer") {
-          router.replace("/(officer)/dashboard");
-        } else {
-          router.replace("/(customer)/dashboard");
-        }
-      } else {
-        if (permissionsDone) {
-          router.replace("/(auth)/role-select");
-        } else {
-          router.replace("/(auth)/language-select");
-        }
-      }
-    }, 1500);
-
     return () => {
       isMounted = false;
-      clearTimeout(safetyTimer);
     };
   }, [isLoading, isLoaded, profile, permissionsDone]);
 

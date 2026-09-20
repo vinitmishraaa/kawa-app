@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
+import { makeRedirectUri } from "expo-auth-session";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./supabase";
 import { findAuthorizedOfficer, getOfficerCanonicalEmail } from "../constants/authorizedOfficers";
@@ -468,35 +469,35 @@ export function extractOAuthParams(url: string): Record<string, string> {
 }
 
 export async function handleOAuthRedirectUrl(url: string, fallbackRole: Role = "customer") {
-  const params = extractOAuthParams(url);
+  const params = url ? extractOAuthParams(url) : {};
   if (params.error || params.error_description) {
     console.error("[OAuth] Provider error:", params.error_description || params.error);
     throw new Error(params.error_description || params.error || "Google authentication failed.");
   }
 
-  if (!params.code && (!params.access_token || !params.refresh_token)) {
-    return null;
-  }
-
   let sessionData: any = null;
 
   if (params.code) {
-    const { data: exchangeData, error: exchangeErr } =
-      await supabase.auth.exchangeCodeForSession(params.code);
-    if (exchangeErr) {
-      console.warn("[Auth] exchangeCodeForSession notice:", exchangeErr.message);
-    } else {
-      sessionData = exchangeData;
+    try {
+      const { data: exchangeData, error: exchangeErr } =
+        await supabase.auth.exchangeCodeForSession(params.code);
+      if (!exchangeErr && exchangeData?.session) {
+        sessionData = exchangeData.session;
+      }
+    } catch (err) {
+      console.warn("[Auth] exchangeCodeForSession notice:", err);
     }
   } else if (params.access_token && params.refresh_token) {
-    const { data: sData, error: sessionErr } = await supabase.auth.setSession({
-      access_token: params.access_token,
-      refresh_token: params.refresh_token,
-    });
-    if (sessionErr) {
-      console.warn("[Auth] setSession notice:", sessionErr.message);
-    } else {
-      sessionData = sData;
+    try {
+      const { data: sData, error: sessionErr } = await supabase.auth.setSession({
+        access_token: params.access_token,
+        refresh_token: params.refresh_token,
+      });
+      if (!sessionErr && sData?.session) {
+        sessionData = sData.session;
+      }
+    } catch (err) {
+      console.warn("[Auth] setSession notice:", err);
     }
   }
 
@@ -562,7 +563,7 @@ export async function signInWithGoogle(role: Role = "customer") {
   const redirectUrl =
     Platform.OS === "web"
       ? (typeof window !== "undefined" ? window.location.origin : "http://localhost:8081")
-      : Linking.createURL("/");
+      : makeRedirectUri({ scheme: "kawa" });
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -585,97 +586,31 @@ export async function signInWithGoogle(role: Role = "customer") {
   if (Platform.OS === "web") {
     if (typeof window !== "undefined") {
       window.location.href = data.url;
-      return { data, error: null };
+      return null;
     }
   }
 
   // Mobile Google Sign-In via Secure System Browser (Chrome Custom Tabs / Safari)
-  const { useAuthStore } = await import("../store/authStore");
-  const storedRole = ((await AsyncStorage.getItem("@kawa_intended_role").catch(() => null)) as Role) || role || "customer";
+  const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
 
-  // 1. Launch the browser session in background
-  const browserPromise = WebBrowser.openAuthSessionAsync(data.url, redirectUrl).catch(() => null);
-
-  // 2. Poll in parallel: on Android, Chrome Custom Tabs can stay open even when the redirect URL
-  // is received by the system. Checking Supabase in parallel guarantees the app NEVER hangs!
-  let authenticatedResult: any = null;
-
-  for (let i = 0; i < 30; i++) {
-    // A. Check if authStore already captured session & profile (via onAuthStateChange or deep link)
-    const currentProfile = useAuthStore.getState().profile;
-    const currentSession = useAuthStore.getState().session;
-    if (currentProfile && currentSession) {
-      try { WebBrowser.dismissAuthSession(); } catch {}
-      authenticatedResult = { user: currentProfile, session: currentSession, profile: currentProfile };
-      break;
-    }
-
-    // B. Check direct Supabase session
-    const { data: directSession } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
-    if (directSession?.session?.user) {
-      const user = directSession.session.user;
-      const dbPayload = {
-        id: user.id,
-        role: storedRole,
-        name:
-          user.user_metadata?.full_name ||
-          user.user_metadata?.name ||
-          user.email?.split("@")[0] ||
-          "Google User",
-        phone: user.phone || null,
-        photo_url:
-          user.user_metadata?.avatar_url ||
-          user.user_metadata?.picture ||
-          null,
-        verified: true,
-        rating: 5,
-      };
-
-      try {
-        await supabase.from("profiles").upsert(dbPayload, { onConflict: "id" });
-      } catch (e) {
-        console.warn("[Auth] DB profile upsert notice:", e);
-      }
-
-      const inMemoryProfile = {
-        ...dbPayload,
-        email: user.email,
-      };
-
-      await useAuthStore.getState().setSessionAndProfile(directSession.session, inMemoryProfile as any);
-      const { useOnboardingStore } = await import("../store/onboardingStore");
-      await useOnboardingStore.getState().markPermissionsDone();
-
-      try { WebBrowser.dismissAuthSession(); } catch {}
-      authenticatedResult = { user, session: directSession.session, profile: inMemoryProfile };
-      break;
-    }
-
-    // C. Non-blocking check if browser finished with success URL
-    const browserResult = await Promise.race([
-      browserPromise,
-      new Promise((resolve) => setTimeout(() => resolve("timeout"), 500)),
-    ]);
-
-    if (browserResult && browserResult !== "timeout") {
-      const bRes = browserResult as any;
-      if (bRes.type === "success" && bRes.url) {
-        const handled = await handleOAuthRedirectUrl(bRes.url, role);
-        if (handled) {
-          try { WebBrowser.dismissAuthSession(); } catch {}
-          authenticatedResult = handled;
-          break;
-        }
-      }
+  if (res.type === "success" && res.url) {
+    const handled = await handleOAuthRedirectUrl(res.url, role);
+    if (handled) {
+      return handled;
     }
   }
 
-  if (authenticatedResult?.profile) {
-    return authenticatedResult;
+  // Check if session was already established or caught by deep link
+  const directCheck = await handleOAuthRedirectUrl("", role);
+  if (directCheck) {
+    return directCheck;
   }
 
-  try { WebBrowser.dismissAuthSession(); } catch {}
-  throw new Error("Google authentication timed out. Please try again.");
+  if (res.type === "cancel" || res.type === "dismiss") {
+    return null;
+  }
+
+  return null;
 }
 
 export async function getCurrentProfile() {
