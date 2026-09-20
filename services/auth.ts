@@ -477,15 +477,28 @@ export async function handleOAuthRedirectUrl(url: string, fallbackRole: Role = "
   if (params.code) {
     const { data: exchangeData, error: exchangeErr } =
       await supabase.auth.exchangeCodeForSession(params.code);
-    if (exchangeErr) throw exchangeErr;
-    sessionData = exchangeData;
+    if (exchangeErr) {
+      console.warn("[Auth] exchangeCodeForSession notice:", exchangeErr.message);
+    } else {
+      sessionData = exchangeData;
+    }
   } else if (params.access_token && params.refresh_token) {
     const { data: sData, error: sessionErr } = await supabase.auth.setSession({
       access_token: params.access_token,
       refresh_token: params.refresh_token,
     });
-    if (sessionErr) throw sessionErr;
-    sessionData = sData;
+    if (sessionErr) {
+      console.warn("[Auth] setSession notice:", sessionErr.message);
+    } else {
+      sessionData = sData;
+    }
+  }
+
+  if (!sessionData?.user) {
+    const { data: direct } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+    if (direct?.session?.user) {
+      sessionData = direct.session;
+    }
   }
 
   if (sessionData?.user) {
@@ -501,7 +514,8 @@ export async function handleOAuthRedirectUrl(url: string, fallbackRole: Role = "
       }
     } catch {}
 
-    const realProfile = {
+    // Only include columns that physically exist in the Supabase `profiles` table:
+    const dbPayload = {
       id: sessionData.user.id,
       role: activeRole,
       name:
@@ -509,7 +523,6 @@ export async function handleOAuthRedirectUrl(url: string, fallbackRole: Role = "
         sessionData.user.user_metadata?.name ||
         sessionData.user.email?.split("@")[0] ||
         "Google User",
-      email: sessionData.user.email,
       phone: sessionData.user.phone || null,
       photo_url:
         sessionData.user.user_metadata?.avatar_url ||
@@ -520,22 +533,31 @@ export async function handleOAuthRedirectUrl(url: string, fallbackRole: Role = "
     };
 
     try {
-      await supabase.from("profiles").upsert(realProfile, { onConflict: "id" });
-    } catch {}
+      await supabase.from("profiles").upsert(dbPayload, { onConflict: "id" });
+    } catch (e) {
+      console.warn("[Auth] DB profile upsert notice:", e);
+    }
+
+    const inMemoryProfile = {
+      ...dbPayload,
+      email: sessionData.user.email,
+    };
 
     const { useAuthStore } = await import("../store/authStore");
-    await useAuthStore.getState().setSessionAndProfile(sessionData.session, realProfile as any);
+    await useAuthStore.getState().setSessionAndProfile(sessionData.session || sessionData, inMemoryProfile as any);
 
     const { useOnboardingStore } = await import("../store/onboardingStore");
     await useOnboardingStore.getState().markPermissionsDone();
 
-    return { user: sessionData.user, session: sessionData.session, profile: realProfile };
+    return { user: sessionData.user, session: sessionData.session || sessionData, profile: inMemoryProfile };
   }
 
   return null;
 }
 
 export async function signInWithGoogle(role: Role = "customer") {
+  WebBrowser.maybeCompleteAuthSession();
+
   const redirectUrl =
     Platform.OS === "web"
       ? (typeof window !== "undefined" ? window.location.origin : undefined)
@@ -545,7 +567,7 @@ export async function signInWithGoogle(role: Role = "customer") {
     provider: "google",
     options: {
       redirectTo: redirectUrl,
-      skipBrowserRedirect: true,
+      skipBrowserRedirect: Platform.OS !== "web",
       queryParams: {
         access_type: "offline",
         prompt: "select_account",
@@ -574,7 +596,7 @@ export async function signInWithGoogle(role: Role = "customer") {
     if (handled) return handled;
   }
 
-  // If Android handled the deep link directly and updated authStore
+  // Check if session was already handled via onAuthStateChange or deep link
   const { useAuthStore } = await import("../store/authStore");
   const currentProfile = useAuthStore.getState().profile;
   const currentSession = useAuthStore.getState().session;
@@ -584,6 +606,25 @@ export async function signInWithGoogle(role: Role = "customer") {
 
   if (authResult.type === "cancel") {
     throw new Error("Google Sign-In was cancelled.");
+  }
+
+  // Fallback: direct session check
+  const { data: directSession } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+  if (directSession?.session?.user) {
+    const user = directSession.session.user;
+    const { data: dbProf } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+    const fallbackProfile = {
+      id: user.id,
+      role: dbProf?.role || role,
+      name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "User",
+      email: user.email,
+      phone: user.phone || null,
+      photo_url: user.user_metadata?.avatar_url || null,
+      verified: true,
+      rating: 5,
+    };
+    await useAuthStore.getState().setSessionAndProfile(directSession.session, fallbackProfile as any);
+    return { user, session: directSession.session, profile: fallbackProfile };
   }
 
   return { data, error: null };

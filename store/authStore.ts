@@ -44,13 +44,46 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     try {
+      // 1. Fast path: load local cached session
       const [storedSession, storedProfile] = await Promise.all([
         AsyncStorage.getItem(LOCAL_SESSION_KEY),
         AsyncStorage.getItem(LOCAL_PROFILE_KEY),
       ]);
       const session = storedSession ? JSON.parse(storedSession) : null;
       const profile = storedProfile ? JSON.parse(storedProfile) : null;
-      set({ session, profile, isLoading: false });
+      if (profile) {
+        set({ session, profile, isLoading: false });
+      } else {
+        set({ session: null, profile: null, isLoading: false });
+      }
+
+      // 2. Direct Supabase verification
+      const { data: { session: supaSession } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+      if (supaSession?.user && !profile) {
+        const { data: dbProfile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", supaSession.user.id)
+          .maybeSingle();
+
+        const activeProfile: Profile = dbProfile ? {
+          ...dbProfile,
+          email: supaSession.user.email,
+        } : {
+          id: supaSession.user.id,
+          role: "customer",
+          name: supaSession.user.user_metadata?.full_name || supaSession.user.user_metadata?.name || supaSession.user.email?.split("@")[0] || "User",
+          email: supaSession.user.email,
+          phone: supaSession.user.phone || null,
+          photo_url: supaSession.user.user_metadata?.avatar_url || null,
+          verified: true,
+          rating: 5,
+        };
+
+        set({ session: supaSession, profile: activeProfile, isLoading: false });
+        AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(supaSession)).catch(() => {});
+        AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(activeProfile)).catch(() => {});
+      }
     } catch {
       set({ session: null, profile: null, isLoading: false });
     }
@@ -101,3 +134,52 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ session: null, profile: null, isLoading: false });
   },
 }));
+
+// Real-time listener for Supabase authentication state changes
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user) {
+    let profileData: any = null;
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      if (data) {
+        profileData = { ...data, email: session.user.email };
+      }
+    } catch {}
+
+    if (!profileData) {
+      profileData = {
+        id: session.user.id,
+        role: "customer",
+        name:
+          session.user.user_metadata?.full_name ||
+          session.user.user_metadata?.name ||
+          session.user.email?.split("@")[0] ||
+          "Google User",
+        email: session.user.email,
+        phone: session.user.phone || null,
+        photo_url: session.user.user_metadata?.avatar_url || null,
+        verified: true,
+        rating: 5,
+      };
+      try {
+        await supabase.from("profiles").upsert({
+          id: profileData.id,
+          role: profileData.role,
+          name: profileData.name,
+          phone: profileData.phone,
+          photo_url: profileData.photo_url,
+          verified: true,
+          rating: 5,
+        }, { onConflict: "id" });
+      } catch {}
+    }
+
+    useAuthStore.getState().setSessionAndProfile(session, profileData);
+  } else if (event === "SIGNED_OUT") {
+    useAuthStore.getState().reset();
+  }
+});

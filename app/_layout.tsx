@@ -10,9 +10,12 @@ import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import * as WebBrowser from "expo-web-browser";
 import { useAuthStore } from "../store/authStore";
 import { useOnboardingStore } from "../store/onboardingStore";
 import { handleOAuthRedirectUrl } from "../services/auth";
+
+WebBrowser.maybeCompleteAuthSession();
 
 LogBox.ignoreAllLogs(true);
 

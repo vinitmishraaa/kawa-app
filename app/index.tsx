@@ -68,8 +68,26 @@ export default function Index() {
 
     routeUser();
 
+    // Safety timeout: Never stay stuck on loading view for more than 1.5 seconds!
+    const safetyTimer = setTimeout(() => {
+      if (!isMounted) return;
+      const currentProf = useAuthStore.getState().profile;
+      if (currentProf) {
+        if (currentProf.role === "kabadiwala") {
+          router.replace("/(kabadiwala)/dashboard");
+        } else if (currentProf.role === "officer") {
+          router.replace("/(officer)/dashboard");
+        } else {
+          router.replace("/(customer)/dashboard");
+        }
+      } else {
+        router.replace("/(auth)/role-select");
+      }
+    }, 1500);
+
     return () => {
       isMounted = false;
+      clearTimeout(safetyTimer);
     };
   }, [isLoading, isLoaded, profile, permissionsDone]);
 
