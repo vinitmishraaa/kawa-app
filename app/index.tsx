@@ -60,8 +60,13 @@ export default function Index() {
       }
 
       // 3. If not authenticated:
-      // Always start with Language Selection as explicitly requested
-      router.replace("/(auth)/language-select");
+      // If permissions were already done in this app session, do not ask again
+      if (permissionsDone) {
+        router.replace("/(auth)/role-select");
+      } else {
+        // Cold start / fresh open: start with Language Selection
+        router.replace("/(auth)/language-select");
+      }
     }
 
     routeUser();
@@ -81,7 +86,11 @@ export default function Index() {
           router.replace("/(customer)/dashboard");
         }
       } else {
-        router.replace("/(auth)/language-select");
+        if (permissionsDone) {
+          router.replace("/(auth)/role-select");
+        } else {
+          router.replace("/(auth)/language-select");
+        }
       }
     }, 1500);
 

@@ -28,17 +28,14 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
 
   loadPersisted: async () => {
     try {
-      const [language, permissionsDone] = await Promise.all([
-        AsyncStorage.getItem(LANGUAGE_KEY),
-        AsyncStorage.getItem(PERMISSIONS_DONE_KEY),
-      ]);
+      const language = await AsyncStorage.getItem(LANGUAGE_KEY);
       const finalLang = language ?? "en";
       try {
         i18n.changeLanguage(finalLang);
       } catch {}
       set({
         language: finalLang,
-        permissionsDone: permissionsDone === "true",
+        permissionsDone: false, // Cold start always starts false
         isLoaded: true,
       });
     } catch {
@@ -55,7 +52,6 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   },
 
   markPermissionsDone: async () => {
-    await AsyncStorage.setItem(PERMISSIONS_DONE_KEY, "true").catch(() => {});
     set({ permissionsDone: true });
   },
 }));

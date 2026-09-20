@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Text, Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -10,9 +11,10 @@ import { theme } from "../../constants/theme";
 export default function LanguageSelect() {
   const { t, i18n } = useTranslation();
   const setLanguage = useOnboardingStore((s) => s.setLanguage);
-  const language = useOnboardingStore((s) => s.language);
+  const [selectedLang, setSelectedLang] = useState<string | null>(null);
 
   async function choose(code: string) {
+    setSelectedLang(code);
     await setLanguage(code);
     i18n.changeLanguage(code);
     router.push("/(auth)/permissions");
@@ -26,7 +28,7 @@ export default function LanguageSelect() {
       </View>
 
       {LANGUAGES.map((lang) => {
-        const isSelected = language === lang.code;
+        const isSelected = selectedLang === lang.code;
         return (
           <Pressable
             key={lang.code}
@@ -35,10 +37,21 @@ export default function LanguageSelect() {
               isSelected ? "bg-leafLight border-leaf" : "bg-sand border-line"
             }`}
           >
-            <Text className="text-xl font-semibold text-bark">{lang.label}</Text>
-            {isSelected && (
-              <MaterialCommunityIcons name="check-circle" size={24} color={theme.leaf} />
-            )}
+            <View>
+              <Text className="text-xl font-semibold text-bark">{lang.label}</Text>
+              {lang.subLabel && (
+                <Text className="text-xs text-bark/60 mt-0.5">{lang.subLabel}</Text>
+              )}
+            </View>
+            <View
+              className={`w-6 h-6 rounded-full border-2 items-center justify-center ${
+                isSelected ? "border-leaf bg-leaf" : "border-bark/30 bg-transparent"
+              }`}
+            >
+              {isSelected ? (
+                <MaterialCommunityIcons name="check" size={14} color="#FFFFFF" />
+              ) : null}
+            </View>
           </Pressable>
         );
       })}
