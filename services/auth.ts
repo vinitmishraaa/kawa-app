@@ -354,8 +354,22 @@ export async function signInOfficer(params: {
 }
 
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  try {
+    await supabase.auth.signOut();
+  } catch {}
+  try {
+    const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
+    await AsyncStorage.multiRemove([
+      "@kawa_local_session",
+      "@kawa_local_profile",
+      "@kawa_supabase_session",
+      "supabase.auth.token",
+    ]);
+  } catch {}
+  try {
+    const { useAuthStore } = await import("../store/authStore");
+    useAuthStore.getState().reset();
+  } catch {}
 }
 
 export async function signInWithGoogle(role: Role = "customer") {

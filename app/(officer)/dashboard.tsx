@@ -9,6 +9,7 @@ import {
   TextInput,
   Modal,
   Linking,
+  Platform,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -110,16 +111,25 @@ export default function OfficerDashboard() {
   }
 
   async function logout() {
+    const doLogout = async () => {
+      await signOut().catch(() => {});
+      reset();
+      router.replace("/(auth)/role-select");
+    };
+
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.confirm("Are you sure you want to log out of the Officer Portal?")) {
+        await doLogout();
+      }
+      return;
+    }
+
     Alert.alert("Confirm Logout", "Are you sure you want to log out of the Officer Portal?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Log Out",
         style: "destructive",
-        onPress: async () => {
-          await signOut().catch(() => {});
-          reset();
-          router.replace("/(auth)/role-select");
-        },
+        onPress: doLogout,
       },
     ]);
   }
@@ -524,95 +534,113 @@ export default function OfficerDashboard() {
               </Text>
             </View>
 
-            {kabadiwalas.map((kabadi) => {
-              const isOverdue = kabadi.days_overdue >= 7;
+            {kabadiwalas.length === 0 ? (
+              <View className="bg-sand border border-line rounded-card p-6 items-center justify-center my-2">
+                <MaterialCommunityIcons name="account-group-outline" size={44} color="#8a7d68" />
+                <Text className="font-bold text-bark mt-2 text-sm">No Registered Kabadiwalas Yet</Text>
+                <Text className="text-xs text-bark/60 text-center mt-1 leading-5 px-4">
+                  When scrap collectors register on the platform and collect scrap from citizens, their live godown inventory, last handover date, and compliance status will show here.
+                </Text>
+              </View>
+            ) : (
+              kabadiwalas.map((kabadi) => {
+                const isOverdue = kabadi.stock_held_kg > 0 && kabadi.days_overdue >= 7;
 
-              return (
-                <View
-                  key={kabadi.id}
-                  className="bg-sand border border-line rounded-card p-4 mb-3"
-                >
-                  <View className="flex-row justify-between items-start mb-2">
-                    <View className="flex-1 mr-2">
-                      <Text className="text-base font-bold text-bark">{kabadi.name}</Text>
-                      <Text className="text-xs font-semibold text-leaf">
-                        {kabadi.shop_name || "Scrap Collection Yard"}
-                      </Text>
-                      {kabadi.address && (
-                        <Text className="text-xs text-bark/60 mt-1" numberOfLines={1}>
-                          📍 {kabadi.address}
+                return (
+                  <View
+                    key={kabadi.id}
+                    className="bg-sand border border-line rounded-card p-4 mb-3"
+                  >
+                    <View className="flex-row justify-between items-start mb-2">
+                      <View className="flex-1 mr-2">
+                        <Text className="text-base font-bold text-bark">{kabadi.name}</Text>
+                        <Text className="text-xs font-semibold text-leaf">
+                          {kabadi.shop_name || "Scrap Collection Yard"}
                         </Text>
-                      )}
-                    </View>
+                        {kabadi.address ? (
+                          <Text className="text-xs text-bark/60 mt-1" numberOfLines={1}>
+                            📍 {kabadi.address}
+                          </Text>
+                        ) : null}
+                      </View>
 
-                    {/* Overdue Tag */}
-                    <View
-                      className={`px-2.5 py-1 rounded-full ${
-                        isOverdue ? "bg-clay/20 border border-clay/40" : "bg-leafLight border border-leaf/30"
-                      }`}
-                    >
-                      <Text
-                        className={`text-[11px] font-bold ${
-                          isOverdue ? "text-clay" : "text-leaf"
+                      {/* Overdue Tag */}
+                      <View
+                        className={`px-2.5 py-1 rounded-full ${
+                          isOverdue ? "bg-clay/20 border border-clay/40" : "bg-leafLight border border-leaf/30"
                         }`}
                       >
-                        {isOverdue ? `⚠️ ${kabadi.days_overdue} Days Overdue` : "✅ Compliant"}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Stock Metrics Row */}
-                  <View className="flex-row bg-white rounded-xl p-3 border border-line/60 justify-between items-center my-2">
-                    <View>
-                      <Text className="text-[10px] uppercase font-bold text-bark/60">
-                        Held Scrap Stock
-                      </Text>
-                      <Text className="text-lg font-black text-bark">
-                        {kabadi.stock_held_kg} kg
-                      </Text>
+                        <Text
+                          className={`text-[11px] font-bold ${
+                            isOverdue ? "text-clay" : "text-leaf"
+                          }`}
+                        >
+                          {kabadi.stock_held_kg === 0
+                            ? "✅ 0 kg Stock"
+                            : isOverdue
+                            ? `⚠️ ${kabadi.days_overdue} Days Overdue`
+                            : "✅ Stock Compliant"}
+                        </Text>
+                      </View>
                     </View>
 
-                    <View className="items-end">
-                      <Text className="text-[10px] uppercase font-bold text-bark/60">
-                        Last Handover Date
-                      </Text>
-                      <Text className="text-xs font-bold text-bark mt-0.5">
-                        {kabadi.last_handover_date || "Over 7 days ago"}
-                      </Text>
+                    {/* Stock Metrics Row */}
+                    <View className="flex-row bg-white rounded-xl p-3 border border-line/60 justify-between items-center my-2">
+                      <View>
+                        <Text className="text-[10px] uppercase font-bold text-bark/60">
+                          Held Scrap Stock
+                        </Text>
+                        <Text className="text-lg font-black text-bark">
+                          {kabadi.stock_held_kg} kg
+                        </Text>
+                      </View>
+
+                      <View className="items-end">
+                        <Text className="text-[10px] uppercase font-bold text-bark/60">
+                          Last Handover Date
+                        </Text>
+                        <Text className="text-xs font-bold text-bark mt-0.5">
+                          {kabadi.last_handover_date || (kabadi.stock_held_kg > 0 ? "Pending first handover" : "No stock held")}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Action Controls: Notice & Direct Contact */}
+                    <View className="flex-row gap-2 mt-2">
+                      <Pressable
+                        onPress={() => openNoticeModal(kabadi)}
+                        className="flex-1 py-2.5 bg-clay rounded-xl flex-row items-center justify-center shadow-sm"
+                      >
+                        <MaterialCommunityIcons name="gavel" size={16} color="#ffffff" />
+                        <Text className="text-white font-bold text-xs ml-1.5">
+                          Issue Legal Notice
+                        </Text>
+                      </Pressable>
+
+                      {kabadi.phone ? (
+                        <Pressable
+                          onPress={() => handleCall(kabadi.phone)}
+                          className="p-2.5 bg-white border border-line rounded-xl items-center justify-center"
+                          accessibilityLabel="Call Kabadiwala"
+                        >
+                          <MaterialCommunityIcons name="phone" size={18} color={theme.bark} />
+                        </Pressable>
+                      ) : null}
+
+                      {kabadi.whatsapp || kabadi.phone ? (
+                        <Pressable
+                          onPress={() => handleWhatsApp(kabadi.whatsapp || kabadi.phone, kabadi.name)}
+                          className="p-2.5 bg-leafLight border border-leaf/40 rounded-xl items-center justify-center"
+                          accessibilityLabel="WhatsApp Kabadiwala"
+                        >
+                          <MaterialCommunityIcons name="whatsapp" size={18} color={theme.leaf} />
+                        </Pressable>
+                      ) : null}
                     </View>
                   </View>
-
-                  {/* Action Controls: Notice & Direct Contact */}
-                  <View className="flex-row gap-2 mt-2">
-                    <Pressable
-                      onPress={() => openNoticeModal(kabadi)}
-                      className="flex-1 py-2.5 bg-clay rounded-xl flex-row items-center justify-center shadow-sm"
-                    >
-                      <MaterialCommunityIcons name="gavel" size={16} color="#ffffff" />
-                      <Text className="text-white font-bold text-xs ml-1.5">
-                        Issue Legal Notice
-                      </Text>
-                    </Pressable>
-
-                    <Pressable
-                      onPress={() => handleCall(kabadi.phone)}
-                      className="p-2.5 bg-white border border-line rounded-xl items-center justify-center"
-                      accessibilityLabel="Call Kabadiwala"
-                    >
-                      <MaterialCommunityIcons name="phone" size={18} color={theme.bark} />
-                    </Pressable>
-
-                    <Pressable
-                      onPress={() => handleWhatsApp(kabadi.whatsapp || kabadi.phone, kabadi.name)}
-                      className="p-2.5 bg-leafLight border border-leaf/40 rounded-xl items-center justify-center"
-                      accessibilityLabel="WhatsApp Kabadiwala"
-                    >
-                      <MaterialCommunityIcons name="whatsapp" size={18} color={theme.leaf} />
-                    </Pressable>
-                  </View>
-                </View>
-              );
-            })}
+                );
+              })
+            )}
           </View>
         )}
       </ScrollView>

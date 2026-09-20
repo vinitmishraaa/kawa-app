@@ -34,76 +34,14 @@ export interface MonitoredKabadiwala {
 
 const STORAGE_KEY = "@kawa_municipal_notices";
 
-const DEFAULT_SAMPLE_KABADIWALAS: MonitoredKabadiwala[] = [
-  {
-    id: "kabadi-sample-01",
-    name: "Ramesh Scrap Traders",
-    shop_name: "Ramesh Scrap Yard (दुकान #14)",
-    phone: "9876543210",
-    whatsapp: "9876543210",
-    address: "Plot 14, Main Mandi Road, Industrial Area, Zone 1",
-    stock_held_kg: 215,
-    days_overdue: 14,
-    last_handover_date: "2026-09-05",
-    active_notice_count: 1,
-  },
-  {
-    id: "kabadi-sample-02",
-    name: "Gupta Metal Recyclers",
-    shop_name: "Gupta Kabadi Centre",
-    phone: "9812345678",
-    whatsapp: "9812345678",
-    address: "Shop 4, Old Station Road, Sector 3",
-    stock_held_kg: 140,
-    days_overdue: 9,
-    last_handover_date: "2026-09-11",
-    active_notice_count: 0,
-  },
-  {
-    id: "kabadi-sample-03",
-    name: "Ali Eco Scrap Collection",
-    shop_name: "Ali Kabadi Kendra",
-    phone: "9898989898",
-    whatsapp: "9898989898",
-    address: "Bypass Road, Near Bus Terminal",
-    stock_held_kg: 65,
-    days_overdue: 3,
-    last_handover_date: "2026-09-17",
-    active_notice_count: 0,
-  },
-];
-
-const DEFAULT_SAMPLE_NOTICES: MunicipalNotice[] = [
-  {
-    id: "notice-sample-001",
-    officer_id: "OFFICER-SWM-101",
-    officer_name: "Rajesh Sharma",
-    officer_department: "Solid Waste Management (Zone 1 - Central)",
-    kabadiwala_id: "kabadi-sample-01",
-    kabadiwala_name: "Ramesh Scrap Traders",
-    kabadiwala_phone: "9876543210",
-    stock_held_kg: 215,
-    days_overdue: 14,
-    notice_type: "legal_notice",
-    subject: "MUNICIPAL NOTICE: Immediate Scrap Stock Handover Required",
-    message:
-      "As per Solid Waste Management By-laws, your registered collection center has exceeded the 7-day holding limit with 215 kg accumulated scrap stock. You are required to schedule an immediate handover to the Municipal Corporation within 48 hours to avoid penalty.",
-    issued_at: new Date(Date.now() - 86400000).toISOString(),
-    status: "pending",
-  },
-];
-
-// Helper to read local notices
+// Helper to read local notices (real notices only)
 async function getStoredNotices(): Promise<MunicipalNotice[]> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_SAMPLE_NOTICES));
-      return DEFAULT_SAMPLE_NOTICES;
-    }
+    if (!raw) return [];
     return JSON.parse(raw);
   } catch {
-    return DEFAULT_SAMPLE_NOTICES;
+    return [];
   }
 }
 
@@ -160,7 +98,7 @@ export async function sendMunicipalNotice(params: {
       },
     ]);
   } catch {
-    // Graceful fallback to AsyncStorage
+    // Graceful fallback to local persistence
   }
 
   // 2. Persist in AsyncStorage
@@ -184,7 +122,7 @@ export async function sendMunicipalNotice(params: {
 }
 
 /**
- * Get all active and past notices for a given Kabadiwala
+ * Get all active and past notices for a given Kabadiwala (Real data only)
  */
 export async function getNoticesForKabadiwala(kabadiwalaId: string): Promise<MunicipalNotice[]> {
   try {
@@ -202,14 +140,11 @@ export async function getNoticesForKabadiwala(kabadiwalaId: string): Promise<Mun
   }
 
   const list = await getStoredNotices();
-  // Also match sample notices if this is the active user or sample ID
-  return list.filter(
-    (n) => n.kabadiwala_id === kabadiwalaId || n.kabadiwala_id === "kabadi-sample-01"
-  );
+  return list.filter((n) => n.kabadiwala_id === kabadiwalaId);
 }
 
 /**
- * Get notices issued by a specific officer
+ * Get notices issued by a specific officer (Real data only)
  */
 export async function getIssuedNoticesByOfficer(officerId: string): Promise<MunicipalNotice[]> {
   try {
@@ -227,7 +162,7 @@ export async function getIssuedNoticesByOfficer(officerId: string): Promise<Muni
   }
 
   const list = await getStoredNotices();
-  return list.filter((n) => n.officer_id === officerId || n.officer_id === "OFFICER-SWM-101");
+  return list.filter((n) => n.officer_id === officerId);
 }
 
 /**
@@ -249,38 +184,83 @@ export async function acknowledgeNotice(noticeId: string): Promise<void> {
 }
 
 /**
- * Fetch list of registered Kabadiwalas for municipal officer monitoring
+ * Fetch list of registered Kabadiwalas for municipal officer monitoring (Real profiles & real transactions only)
  */
 export async function getMonitoredKabadiwalas(): Promise<MonitoredKabadiwala[]> {
   try {
+    // 1. Fetch real registered kabadiwalas from profiles
     const { data: profiles, error } = await supabase
       .from("profiles")
       .select("id, name, shop_name, phone, whatsapp, address, created_at")
-      .eq("role", "kabadiwala")
-      .limit(20);
+      .eq("role", "kabadiwala");
 
-    if (!error && profiles && profiles.length > 0) {
-      const allNotices = await getStoredNotices();
-      return profiles.map((p, index) => {
-        const notices = allNotices.filter((n) => n.kabadiwala_id === p.id && n.status !== "resolved");
-        const daysOverdue = 4 + (index % 3) * 5; // dynamic sample days
-        return {
-          id: p.id,
-          name: p.name ?? "Registered Kabadiwala",
-          shop_name: p.shop_name ?? `${p.name ?? "Kabadi"} Scrap Shop`,
-          phone: p.phone ?? "9876543210",
-          whatsapp: p.whatsapp ?? p.phone ?? "9876543210",
-          address: p.address ?? "Zone 1 Municipal Ward",
-          stock_held_kg: 85 + index * 45,
-          days_overdue: daysOverdue,
-          last_handover_date: new Date(Date.now() - daysOverdue * 86400000).toISOString().split("T")[0],
-          active_notice_count: notices.length,
-        };
-      });
+    if (error || !profiles || profiles.length === 0) {
+      return [];
     }
-  } catch {
-    // Fallback
-  }
 
-  return DEFAULT_SAMPLE_KABADIWALAS;
+    // 2. Fetch real transactions to compute actual stock held by each kabadiwala
+    const { data: transactions } = await supabase
+      .from("transactions")
+      .select("id, from_user_id, from_role, to_user_id, to_role, quantity, created_at");
+
+    const allTx = transactions ?? [];
+    const allNotices = await getStoredNotices();
+
+    return profiles.map((p) => {
+      // Real intake: customer -> this kabadiwala
+      const intakes = allTx.filter((t) => t.to_user_id === p.id && t.from_role === "customer");
+      const totalInflowKg = intakes.reduce((sum, t) => sum + Number(t.quantity ?? 0), 0);
+
+      // Real outflow: this kabadiwala -> officer
+      const outflows = allTx.filter((t) => t.from_user_id === p.id && t.to_role === "officer");
+      const totalOutflowKg = outflows.reduce((sum, t) => sum + Number(t.quantity ?? 0), 0);
+
+      // Real stock held
+      const realStockKg = Math.max(0, Math.round(totalInflowKg - totalOutflowKg));
+
+      // Calculate days overdue only if stock is actually held (> 0)
+      let daysOverdue = 0;
+      let lastHandoverDate: string | undefined = undefined;
+
+      if (outflows.length > 0) {
+        // Sort to get latest outflow date
+        const sortedOutflows = [...outflows].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        lastHandoverDate = sortedOutflows[0].created_at.split("T")[0];
+        if (realStockKg > 0) {
+          const diffMs = Date.now() - new Date(sortedOutflows[0].created_at).getTime();
+          daysOverdue = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+        }
+      } else if (intakes.length > 0) {
+        // Stock collected from customers but zero officer handovers yet
+        const sortedIntakes = [...intakes].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        const oldestIntake = sortedIntakes[0];
+        const diffMs = Date.now() - new Date(oldestIntake.created_at).getTime();
+        daysOverdue = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+      }
+
+      const activeNotices = allNotices.filter(
+        (n) => n.kabadiwala_id === p.id && n.status !== "resolved"
+      );
+
+      return {
+        id: p.id,
+        name: p.name ?? "Registered Kabadiwala",
+        shop_name: p.shop_name ?? `${p.name ?? "Kabadiwala"}'s Scrap Center`,
+        phone: p.phone ?? "",
+        whatsapp: p.whatsapp ?? p.phone ?? "",
+        address: p.address ?? "",
+        stock_held_kg: realStockKg,
+        days_overdue: realStockKg > 0 ? daysOverdue : 0,
+        last_handover_date: lastHandoverDate,
+        active_notice_count: activeNotices.length,
+      };
+    });
+  } catch (err) {
+    console.warn("getMonitoredKabadiwalas query error:", err);
+    return [];
+  }
 }

@@ -54,58 +54,35 @@ function buildInitialLedger(customRates?: Record<string, number> | null) {
   const rates = customRates ?? getDefaultPriceRates();
   const categoryBreakdown = SCRAP_PRICE_CATALOG.map((item) => {
     const buyRate = rates[item.key] ?? item.defaultBuyRate;
-    const sampleStock: Record<string, { stockKg: number; spent: number }> = {
-      copper: { stockKg: 12, spent: 12 * 650 },
-      brass: { stockKg: 8, spent: 8 * 400 },
-      aluminium: { stockKg: 15, spent: 15 * 130 },
-      iron: { stockKg: 45, spent: 45 * 32 },
-      paper: { stockKg: 60, spent: 60 * 14 },
-      cardboard: { stockKg: 35, spent: 35 * 10 },
-      plastic: { stockKg: 28, spent: 28 * 18 },
-      ewaste: { stockKg: 10, spent: 10 * 45 },
-      glass: { stockKg: 20, spent: 20 * 4 },
-      other: { stockKg: 15, spent: 15 * 10 },
-    };
-    const sample = sampleStock[item.key] ?? { stockKg: 5, spent: 5 * buyRate };
-    const stockKg = sample.stockKg;
-    const spent = sample.spent;
-    const avgBuyRate = stockKg > 0 ? Math.round(spent / stockKg) : buyRate;
-    const expectedOfficerPayout = Math.round(stockKg * item.expectedOfficerRate);
-    const expectedProfit = expectedOfficerPayout - spent;
 
     return {
       key: item.key,
       nameEn: item.nameEn,
       nameHi: item.nameHi,
       icon: item.icon,
-      intakeKg: stockKg,
-      spent,
+      intakeKg: 0,
+      spent: 0,
       outgoingKg: 0,
       earned: 0,
-      stockKg,
-      avgBuyRate,
+      stockKg: 0,
+      avgBuyRate: buyRate,
       expectedOfficerRate: item.expectedOfficerRate,
-      expectedOfficerPayout,
-      expectedProfit,
+      expectedOfficerPayout: 0,
+      expectedProfit: 0,
     };
   });
-
-  const totalIntakeKg = categoryBreakdown.reduce((sum, c) => sum + c.stockKg, 0);
-  const totalIntakeSpent = categoryBreakdown.reduce((sum, c) => sum + c.spent, 0);
-  const totalExpectedOfficerPayout = categoryBreakdown.reduce((sum, c) => sum + c.expectedOfficerPayout, 0);
-  const totalProjectedProfit = categoryBreakdown.reduce((sum, c) => sum + c.expectedProfit, 0);
 
   return {
     intakeRows: [],
     outgoingRows: [],
-    totalIntakeKg,
+    totalIntakeKg: 0,
     totalOutgoingKg: 0,
-    totalIntakeSpent,
+    totalIntakeSpent: 0,
     totalOutgoingEarned: 0,
-    stockBalanceKg: totalIntakeKg,
+    stockBalanceKg: 0,
     categoryBreakdown,
-    totalExpectedOfficerPayout,
-    totalProjectedProfit,
+    totalExpectedOfficerPayout: 0,
+    totalProjectedProfit: 0,
   };
 }
 
@@ -542,7 +519,7 @@ export default function KabadiwalaDashboard() {
 
       {/* URGENT MUNICIPAL COMPLIANCE NOTICE BANNER */}
       {(() => {
-        const activeNotice = notices.find((n) => n.status === "pending") || (notices.length > 0 ? notices[0] : null);
+        const activeNotice = notices.find((n) => n.status === "pending" && n.kabadiwala_id === profile?.id);
         if (!activeNotice) return null;
 
         return (

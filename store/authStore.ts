@@ -43,64 +43,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
 
   initialize: async () => {
-    try {
-      // 1. Instant cache restore for zero UI freeze
-      const [savedSessionStr, savedProfileStr] = await Promise.all([
-        AsyncStorage.getItem(LOCAL_SESSION_KEY).catch(() => null),
-        AsyncStorage.getItem(LOCAL_PROFILE_KEY).catch(() => null),
-      ]);
-
-      if (savedProfileStr) {
-        try {
-          const savedProfile = JSON.parse(savedProfileStr);
-          const savedSession = savedSessionStr ? JSON.parse(savedSessionStr) : null;
-          set({ profile: savedProfile, session: savedSession, isLoading: false });
-        } catch {}
-      }
-
-      // 2. Fetch fresh Supabase session with 1.8s timeout so app never hangs
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<any>((resolve) =>
-        setTimeout(() => resolve({ data: { session: null } }), 1800)
-      );
-      const {
-        data: { session },
-      } = await Promise.race([sessionPromise, timeoutPromise]);
-
-      if (session) {
-        set({ session });
-        const profile = await Promise.race([
-          getCurrentProfile(),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 1800)),
-        ]);
-        if (profile) {
-          set({ profile: profile as Profile });
-          await AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(profile)).catch(() => {});
-          await AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(session)).catch(() => {});
-        }
-      }
-    } catch {
-      // Offline fallback
-    } finally {
-      set({ isLoading: false });
-    }
-
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session) {
-        set({ session });
-        const profile = await getCurrentProfile();
-        if (profile) {
-          set({ profile: profile as Profile });
-          await AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(profile)).catch(() => {});
-          await AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(session)).catch(() => {});
-        }
-      } else {
-        const hasLocal = await AsyncStorage.getItem(LOCAL_SESSION_KEY).catch(() => null);
-        if (!hasLocal) {
-          set({ session: null, profile: null });
-        }
-      }
-    });
+    // Start fresh on app launch so testing different roles is immediate
+    set({ session: null, profile: null, isLoading: false });
   },
 
   refreshProfile: async () => {
@@ -110,7 +54,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const profile = await getCurrentProfile();
       if (profile) {
         set({ profile: profile as Profile });
-        await AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(profile)).catch(() => {});
       }
     } catch {
       // Retain active profile on network failure
@@ -139,8 +82,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   reset: () => {
-    AsyncStorage.removeItem(LOCAL_SESSION_KEY).catch(() => {});
-    AsyncStorage.removeItem(LOCAL_PROFILE_KEY).catch(() => {});
+    AsyncStorage.multiRemove([
+      LOCAL_SESSION_KEY,
+      LOCAL_PROFILE_KEY,
+      "@kawa_supabase_session",
+      "supabase.auth.token",
+    ]).catch(() => {});
     set({ session: null, profile: null });
   },
 }));

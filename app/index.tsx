@@ -6,32 +6,18 @@ import { LoadingView } from "../components/LoadingView";
 
 export default function Index() {
   const isLoading = useAuthStore((s) => s.isLoading);
-  const session = useAuthStore((s) => s.session);
-  const profile = useAuthStore((s) => s.profile);
   const permissionsDone = useOnboardingStore((s) => s.permissionsDone);
 
   useEffect(() => {
     if (isLoading) return;
 
-    if (!session || !profile) {
-      if (!permissionsDone) {
-        router.replace("/(auth)/language-select");
-      } else {
-        router.replace("/(auth)/role-select");
-      }
-      return;
-    }
-
-    if (profile.role === "customer") {
-      router.replace("/(customer)/dashboard");
-    } else if (profile.role === "kabadiwala") {
-      router.replace("/(kabadiwala)/dashboard");
-    } else if (profile.role === "officer") {
-      router.replace("/(officer)/dashboard");
+    // Always start fresh on app restart so testing different roles is instant
+    if (!permissionsDone) {
+      router.replace("/(auth)/language-select");
     } else {
       router.replace("/(auth)/role-select");
     }
-  }, [isLoading, session, profile]);
+  }, [isLoading, permissionsDone]);
 
   return <LoadingView />;
 }

@@ -25,18 +25,6 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // If already logged in, redirect straight to their active dashboard
-  useEffect(() => {
-    if (session && profile) {
-      if (profile.role === "customer") {
-        router.replace("/(customer)/dashboard");
-      } else if (profile.role === "kabadiwala") {
-        router.replace("/(kabadiwala)/dashboard");
-      } else if (profile.role === "officer") {
-        router.replace("/(officer)/dashboard");
-      }
-    }
-  }, [session, profile]);
 
   async function handleSubmit() {
     if (!identifier.trim() || !password) {
