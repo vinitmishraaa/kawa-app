@@ -43,8 +43,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
 
   initialize: async () => {
-    // Start fresh on app launch so testing different roles is immediate
-    set({ session: null, profile: null, isLoading: false });
+    try {
+      const [storedSession, storedProfile] = await Promise.all([
+        AsyncStorage.getItem(LOCAL_SESSION_KEY),
+        AsyncStorage.getItem(LOCAL_PROFILE_KEY),
+      ]);
+      const session = storedSession ? JSON.parse(storedSession) : null;
+      const profile = storedProfile ? JSON.parse(storedProfile) : null;
+      set({ session, profile, isLoading: false });
+    } catch {
+      set({ session: null, profile: null, isLoading: false });
+    }
   },
 
   refreshProfile: async () => {
@@ -54,6 +63,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const profile = await getCurrentProfile();
       if (profile) {
         set({ profile: profile as Profile });
+        AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(profile)).catch(() => {});
       }
     } catch {
       // Retain active profile on network failure
@@ -61,7 +71,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setSessionAndProfile: async (session: any, profile: Profile) => {
-    set({ session, profile });
+    set({ session, profile, isLoading: false });
     await Promise.all([
       AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(session)).catch(() => {}),
       AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(profile)).catch(() => {}),
@@ -88,6 +98,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       "@kawa_supabase_session",
       "supabase.auth.token",
     ]).catch(() => {});
-    set({ session: null, profile: null });
+    set({ session: null, profile: null, isLoading: false });
   },
 }));

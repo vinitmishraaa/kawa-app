@@ -440,27 +440,99 @@ export async function signOut() {
   } catch {}
 }
 
-function extractOAuthParams(url: string): Record<string, string> {
+export function extractOAuthParams(url: string): Record<string, string> {
   const params: Record<string, string> = {};
-  const hashIndex = url.indexOf("#");
-  const queryIndex = url.indexOf("?");
-  const raw =
-    hashIndex !== -1
-      ? url.substring(hashIndex + 1)
-      : queryIndex !== -1
-      ? url.substring(queryIndex + 1)
-      : "";
-
-  if (raw) {
-    const parts = raw.split("&");
+  const extractFrom = (str: string) => {
+    const parts = str.split("&");
     for (const part of parts) {
       const [k, v] = part.split("=");
       if (k && v) {
         params[decodeURIComponent(k)] = decodeURIComponent(v);
       }
     }
+  };
+
+  const qIdx = url.indexOf("?");
+  const hIdx = url.indexOf("#");
+
+  if (qIdx !== -1) {
+    const queryPart = hIdx > qIdx ? url.substring(qIdx + 1, hIdx) : url.substring(qIdx + 1);
+    extractFrom(queryPart);
+  }
+  if (hIdx !== -1) {
+    const hashPart = url.substring(hIdx + 1);
+    extractFrom(hashPart);
   }
   return params;
+}
+
+export async function handleOAuthRedirectUrl(url: string, fallbackRole: Role = "customer") {
+  const params = extractOAuthParams(url);
+  if (!params.code && (!params.access_token || !params.refresh_token)) {
+    return null;
+  }
+
+  let sessionData: any = null;
+
+  if (params.code) {
+    const { data: exchangeData, error: exchangeErr } =
+      await supabase.auth.exchangeCodeForSession(params.code);
+    if (exchangeErr) throw exchangeErr;
+    sessionData = exchangeData;
+  } else if (params.access_token && params.refresh_token) {
+    const { data: sData, error: sessionErr } = await supabase.auth.setSession({
+      access_token: params.access_token,
+      refresh_token: params.refresh_token,
+    });
+    if (sessionErr) throw sessionErr;
+    sessionData = sData;
+  }
+
+  if (sessionData?.user) {
+    let activeRole = fallbackRole;
+    try {
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", sessionData.user.id)
+        .maybeSingle();
+      if (existingProfile?.role) {
+        activeRole = existingProfile.role;
+      }
+    } catch {}
+
+    const realProfile = {
+      id: sessionData.user.id,
+      role: activeRole,
+      name:
+        sessionData.user.user_metadata?.full_name ||
+        sessionData.user.user_metadata?.name ||
+        sessionData.user.email?.split("@")[0] ||
+        "Google User",
+      email: sessionData.user.email,
+      phone: sessionData.user.phone || null,
+      photo_url:
+        sessionData.user.user_metadata?.avatar_url ||
+        sessionData.user.user_metadata?.picture ||
+        null,
+      verified: true,
+      rating: 5,
+    };
+
+    try {
+      await supabase.from("profiles").upsert(realProfile, { onConflict: "id" });
+    } catch {}
+
+    const { useAuthStore } = await import("../store/authStore");
+    await useAuthStore.getState().setSessionAndProfile(sessionData.session, realProfile as any);
+
+    const { useOnboardingStore } = await import("../store/onboardingStore");
+    await useOnboardingStore.getState().markPermissionsDone();
+
+    return { user: sessionData.user, session: sessionData.session, profile: realProfile };
+  }
+
+  return null;
 }
 
 export async function signInWithGoogle(role: Role = "customer") {
@@ -476,7 +548,7 @@ export async function signInWithGoogle(role: Role = "customer") {
       skipBrowserRedirect: true,
       queryParams: {
         access_type: "offline",
-        prompt: "select_account", // Always prompt user to choose their real Google Account!
+        prompt: "select_account",
       },
     },
   });
@@ -486,27 +558,7 @@ export async function signInWithGoogle(role: Role = "customer") {
     throw new Error("Could not initialize Google authentication with backend.");
   }
 
-  // 1. Probe the authorization URL to verify if Google OAuth is configured on Supabase
-  const probeRes = await fetch(data.url, { method: "GET" }).catch(() => null);
-  if (probeRes) {
-    const text = await probeRes.text().catch(() => "");
-    if (
-      text.includes("validation_failed") ||
-      text.includes("Unsupported provider") ||
-      probeRes.status === 400
-    ) {
-      throw new Error(
-        "Google Authentication Setup Required:\n\n" +
-          "Google provider is not enabled in your Supabase backend yet.\n\n" +
-          "To enable real Google Sign-In:\n" +
-          "1. Open Supabase Dashboard -> Authentication -> Providers -> Google.\n" +
-          "2. Toggle 'Enable Google provider' and paste your Google Cloud Client ID & Secret.\n\n" +
-          "Until configured, please use secure Mobile Number or Email login."
-      );
-    }
-  }
-
-  // 2. Web Browser Google Sign-In
+  // Web Browser Google Sign-In
   if (Platform.OS === "web") {
     if (typeof window !== "undefined") {
       window.location.href = data.url;
@@ -514,56 +566,23 @@ export async function signInWithGoogle(role: Role = "customer") {
     }
   }
 
-  // 3. Mobile Google Sign-In via Secure System Browser (Chrome Custom Tabs / Safari)
+  // Mobile Google Sign-In via Secure System Browser (Chrome Custom Tabs / Safari)
   const authResult = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
 
   if (authResult.type === "success" && authResult.url) {
-    const params = extractOAuthParams(authResult.url);
-    let sessionData: any = null;
+    const handled = await handleOAuthRedirectUrl(authResult.url, role);
+    if (handled) return handled;
+  }
 
-    if (params.code) {
-      const { data: exchangeData, error: exchangeErr } =
-        await supabase.auth.exchangeCodeForSession(params.code);
-      if (exchangeErr) throw exchangeErr;
-      sessionData = exchangeData;
-    } else if (params.access_token && params.refresh_token) {
-      const { data: sData, error: sessionErr } = await supabase.auth.setSession({
-        access_token: params.access_token,
-        refresh_token: params.refresh_token,
-      });
-      if (sessionErr) throw sessionErr;
-      sessionData = sData;
-    }
+  // If Android handled the deep link directly and updated authStore
+  const { useAuthStore } = await import("../store/authStore");
+  const currentProfile = useAuthStore.getState().profile;
+  const currentSession = useAuthStore.getState().session;
+  if (currentProfile && currentSession) {
+    return { user: currentProfile, session: currentSession, profile: currentProfile };
+  }
 
-    if (sessionData?.user) {
-      // Upsert real authenticated Google profile with user's genuine name & email
-      const realProfile = {
-        id: sessionData.user.id,
-        role,
-        name:
-          sessionData.user.user_metadata?.full_name ||
-          sessionData.user.user_metadata?.name ||
-          sessionData.user.email?.split("@")[0] ||
-          "Google User",
-        email: sessionData.user.email,
-        phone: sessionData.user.phone || null,
-        photo_url:
-          sessionData.user.user_metadata?.avatar_url ||
-          sessionData.user.user_metadata?.picture ||
-          null,
-        verified: true,
-        rating: 5,
-      };
-
-        try {
-          await supabase.from("profiles").upsert(realProfile, { onConflict: "id" });
-        } catch {}
-
-        const { useAuthStore } = await import("../store/authStore");
-        await useAuthStore.getState().setSessionAndProfile(sessionData.session, realProfile as any);
-        return { user: sessionData.user, session: sessionData.session };
-    }
-  } else if (authResult.type === "cancel" || authResult.type === "dismiss") {
+  if (authResult.type === "cancel") {
     throw new Error("Google Sign-In was cancelled.");
   }
 

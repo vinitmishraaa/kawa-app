@@ -124,9 +124,10 @@ export default function Signup() {
     try {
       const res = await signInWithGoogle(selectedRole as any);
       if (res?.user) {
-        if (selectedRole === "customer") {
+        const targetRole = (res as any)?.profile?.role || selectedRole;
+        if (targetRole === "customer") {
           router.replace("/(customer)/dashboard");
-        } else if (selectedRole === "kabadiwala") {
+        } else if (targetRole === "kabadiwala") {
           router.replace("/(kabadiwala)/dashboard");
         } else {
           router.replace("/(officer)/dashboard");

@@ -11,6 +11,7 @@ interface OnboardingState {
   selectedRole: Role | null;
   language: string;
   permissionsDone: boolean;
+  isLoaded: boolean;
   setSelectedRole: (role: Role) => void;
   loadPersisted: () => Promise<void>;
   setLanguage: (lang: string) => Promise<void>;
@@ -21,26 +22,32 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   selectedRole: null,
   language: "en",
   permissionsDone: false,
+  isLoaded: false,
 
   setSelectedRole: (role) => set({ selectedRole: role }),
 
   loadPersisted: async () => {
-    const [language, permissionsDone] = await Promise.all([
-      AsyncStorage.getItem(LANGUAGE_KEY),
-      AsyncStorage.getItem(PERMISSIONS_DONE_KEY),
-    ]);
-    const finalLang = language ?? "en";
     try {
-      i18n.changeLanguage(finalLang);
-    } catch {}
-    set({
-      language: finalLang,
-      permissionsDone: permissionsDone === "true",
-    });
+      const [language, permissionsDone] = await Promise.all([
+        AsyncStorage.getItem(LANGUAGE_KEY),
+        AsyncStorage.getItem(PERMISSIONS_DONE_KEY),
+      ]);
+      const finalLang = language ?? "en";
+      try {
+        i18n.changeLanguage(finalLang);
+      } catch {}
+      set({
+        language: finalLang,
+        permissionsDone: permissionsDone === "true",
+        isLoaded: true,
+      });
+    } catch {
+      set({ isLoaded: true });
+    }
   },
 
   setLanguage: async (lang) => {
-    await AsyncStorage.setItem(LANGUAGE_KEY, lang);
+    await AsyncStorage.setItem(LANGUAGE_KEY, lang).catch(() => {});
     try {
       i18n.changeLanguage(lang);
     } catch {}
@@ -48,7 +55,7 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   },
 
   markPermissionsDone: async () => {
-    await AsyncStorage.setItem(PERMISSIONS_DONE_KEY, "true");
+    await AsyncStorage.setItem(PERMISSIONS_DONE_KEY, "true").catch(() => {});
     set({ permissionsDone: true });
   },
 }));

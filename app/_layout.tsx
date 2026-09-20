@@ -3,7 +3,8 @@ import "../i18n";
 
 import { useEffect, useState } from "react";
 import { LogBox } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
+import * as Linking from "expo-linking";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -11,6 +12,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useAuthStore } from "../store/authStore";
 import { useOnboardingStore } from "../store/onboardingStore";
+import { handleOAuthRedirectUrl } from "../services/auth";
 
 LogBox.ignoreAllLogs(true);
 
@@ -32,6 +34,33 @@ export default function RootLayout() {
       setOnboardingLoaded(true);
     });
   }, [initialize, loadPersisted]);
+
+  useEffect(() => {
+    const handleDeepLink = async (event: { url: string }) => {
+      if (event.url && (event.url.includes("code=") || event.url.includes("access_token="))) {
+        try {
+          const res = await handleOAuthRedirectUrl(event.url);
+          if (res?.profile) {
+            const role = res.profile.role;
+            if (role === "kabadiwala") {
+              router.replace("/(kabadiwala)/dashboard");
+            } else if (role === "officer") {
+              router.replace("/(officer)/dashboard");
+            } else {
+              router.replace("/(customer)/dashboard");
+            }
+          }
+        } catch (e) {
+          console.warn("[OAuth] Deep link error:", e);
+        }
+      }
+    };
+
+    const sub = Linking.addEventListener("url", handleDeepLink);
+    return () => {
+      sub.remove();
+    };
+  }, []);
 
   /*
    * Push notifications
