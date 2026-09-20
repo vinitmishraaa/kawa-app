@@ -60,13 +60,8 @@ export default function Index() {
       }
 
       // 3. If not authenticated:
-      // If permissions / language were completed previously, go straight to role select
-      if (permissionsDone) {
-        router.replace("/(auth)/role-select");
-      } else {
-        // First-time app launch only
-        router.replace("/(auth)/language-select");
-      }
+      // Always start with Language Selection as explicitly requested
+      router.replace("/(auth)/language-select");
     }
 
     routeUser();
@@ -86,7 +81,7 @@ export default function Index() {
           router.replace("/(customer)/dashboard");
         }
       } else {
-        router.replace("/(auth)/role-select");
+        router.replace("/(auth)/language-select");
       }
     }, 1500);
 

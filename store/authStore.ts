@@ -66,12 +66,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           .eq("id", supaSession.user.id)
           .maybeSingle();
 
+        const storedRole = ((await AsyncStorage.getItem("@kawa_intended_role").catch(() => null)) as any) || "customer";
+        const effectiveRole = dbProfile?.role || storedRole;
+
         const activeProfile: Profile = dbProfile ? {
           ...dbProfile,
+          role: effectiveRole,
           email: supaSession.user.email,
         } : {
           id: supaSession.user.id,
-          role: "customer",
+          role: effectiveRole,
           name: supaSession.user.user_metadata?.full_name || supaSession.user.user_metadata?.name || supaSession.user.email?.split("@")[0] || "User",
           email: supaSession.user.email,
           phone: supaSession.user.phone || null,
@@ -79,6 +83,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           verified: true,
           rating: 5,
         };
+
+        try {
+          await supabase.from("profiles").upsert({
+            id: activeProfile.id,
+            role: activeProfile.role,
+            name: activeProfile.name,
+            phone: activeProfile.phone,
+            photo_url: activeProfile.photo_url,
+            verified: true,
+            rating: 5,
+          }, { onConflict: "id" });
+        } catch {}
 
         set({ session: supaSession, profile: activeProfile, isLoading: false });
         AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(supaSession)).catch(() => {});

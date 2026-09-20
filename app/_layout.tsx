@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import * as WebBrowser from "expo-web-browser";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuthStore } from "../store/authStore";
 import { useOnboardingStore } from "../store/onboardingStore";
 import { handleOAuthRedirectUrl } from "../services/auth";
@@ -44,7 +45,8 @@ export default function RootLayout() {
         try {
           const res = await handleOAuthRedirectUrl(event.url);
           if (res?.profile) {
-            const role = res.profile.role;
+            const storedRole = await AsyncStorage.getItem("@kawa_intended_role").catch(() => null);
+            const role = storedRole || res.profile.role;
             if (role === "kabadiwala") {
               router.replace("/(kabadiwala)/dashboard");
             } else if (role === "officer") {
