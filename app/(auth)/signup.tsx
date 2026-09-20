@@ -69,20 +69,39 @@ export default function Signup() {
       return;
     }
 
-    // Derive email if signing up via phone (using role tag to support both customer & kabadiwala on same phone)
-    const finalEmail = signupMethod === "phone"
-      ? `${phone.trim()}.${selectedRole}@kawa.app`
-      : email.trim();
+    // Derive email (using role tag so a single user can have BOTH Customer and Kabadiwala accounts on same email or phone)
+    let finalEmail = email.trim();
+    if (signupMethod === "phone") {
+      finalEmail = `${phone.trim()}.${selectedRole}@kawa.app`;
+    } else {
+      const [uPart, dPart] = email.trim().split("@");
+      finalEmail = `${uPart}.${selectedRole}@${dPart}`;
+    }
 
     setLoading(true);
     try {
-      await signUp({
-        email: finalEmail,
-        password,
-        role: selectedRole,
-        name: name.trim(),
-        phone: phone.trim() || undefined,
-      });
+      try {
+        await signUp({
+          email: finalEmail,
+          password,
+          role: selectedRole,
+          name: name.trim(),
+          phone: phone.trim() || undefined,
+        });
+      } catch (subErr: any) {
+        // Fallback to standard email if provider enforces domain rules
+        if (signupMethod === "email") {
+          await signUp({
+            email: email.trim(),
+            password,
+            role: selectedRole,
+            name: name.trim(),
+            phone: phone.trim() || undefined,
+          });
+        } else {
+          throw subErr;
+        }
+      }
 
       await refreshProfile();
 

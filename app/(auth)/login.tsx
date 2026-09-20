@@ -1,38 +1,51 @@
-import { useEffect, useState } from "react";
-import { Text, TextInput, Pressable, View, Alert, ScrollView } from "react-native";
+import { useState } from "react";
+import { Text, TextInput, Pressable, View, Alert } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenContainer } from "../../components/ScreenContainer";
 import { PrimaryButton } from "../../components/PrimaryButton";
-import { signInUnified, signInWithGoogle } from "../../services/auth";
+import { signInUnified, signInWithGoogle, type Role } from "../../services/auth";
 import { useAuthStore } from "../../store/authStore";
 import { useOnboardingStore } from "../../store/onboardingStore";
 import { theme } from "../../constants/theme";
 
 export default function Login() {
   const { t } = useTranslation();
-  const session = useAuthStore((s) => s.session);
-  const profile = useAuthStore((s) => s.profile);
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
   const selectedRole = useOnboardingStore((s) => s.selectedRole);
+  const setSelectedRole = useOnboardingStore((s) => s.setSelectedRole);
 
-  const [loginMethod, setLoginMethod] = useState<"email" | "phone" | "officer">(
-    selectedRole === "officer" ? "officer" : "phone"
+  // 1. Primary Role Selection: Customer vs Kabadiwala vs Municipal Officer
+  const [activeRole, setActiveRole] = useState<Role>(
+    selectedRole === "kabadiwala" ? "kabadiwala" : selectedRole === "officer" ? "officer" : "customer"
   );
+
+  // 2. Input Method for Citizen / Scrap Collector: Phone or Email
+  const [method, setMethod] = useState<"phone" | "email">("phone");
+
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  function handleRoleChange(role: Role) {
+    setActiveRole(role);
+    setSelectedRole(role);
+    setIdentifier(""); // Strictly empty - zero prefill or suggestions
+    setPassword("");
+  }
 
   async function handleSubmit() {
-    if (!identifier.trim() || !password) {
+    const trimmedId = identifier.trim();
+    if (!trimmedId || !password) {
       Alert.alert(
-        t("auth.inputRequired"),
-        loginMethod === "officer"
+        t("auth.inputRequired", "Input Required"),
+        activeRole === "officer"
           ? "Please enter your Officer ID and password."
-          : t("auth.enterCredentials")
+          : activeRole === "kabadiwala"
+          ? "Please enter your Kabadiwala mobile/email and password."
+          : "Please enter your Customer mobile/email and password."
       );
       return;
     }
@@ -40,19 +53,19 @@ export default function Login() {
     setLoading(true);
     try {
       await signInUnified({
-        identifier: identifier.trim(),
+        identifier: trimmedId,
         password,
-        preferredRole: selectedRole || undefined,
+        preferredRole: activeRole,
       });
 
       await refreshProfile();
       const p = useAuthStore.getState().profile;
 
-      if (p?.role === "customer") {
+      if (p?.role === "customer" || activeRole === "customer") {
         router.replace("/(customer)/dashboard");
-      } else if (p?.role === "kabadiwala") {
+      } else if (p?.role === "kabadiwala" || activeRole === "kabadiwala") {
         router.replace("/(kabadiwala)/dashboard");
-      } else if (p?.role === "officer") {
+      } else if (p?.role === "officer" || activeRole === "officer") {
         router.replace("/(officer)/dashboard");
       } else {
         router.replace("/");
@@ -70,7 +83,6 @@ export default function Login() {
   async function handleGoogleLogin() {
     setLoading(true);
     try {
-      const activeRole = (selectedRole ?? "customer") as any;
       const res = await signInWithGoogle(activeRole);
       if (res?.user) {
         if (activeRole === "customer") {
@@ -111,140 +123,284 @@ export default function Login() {
         </Text>
       </View>
 
-      <View className="mt-2 mb-5">
+      <View className="mt-2 mb-4">
         <Text className="text-3xl font-extrabold text-bark">
-          {t("auth.loginTitle")}
+          {t("auth.loginTitle", "Welcome Back")}
         </Text>
         <Text className="text-xs text-bark/70 mt-1">
-          {t("auth.loginSubtitle")}
+          Select your role to sign into the correct dashboard.
         </Text>
       </View>
 
-      {/* LOGIN METHOD TOGGLE (No dynamic CSS shadow variables) */}
-      <View className="flex-row mb-4 bg-sand rounded-xl p-1 border border-line">
-        <Pressable
-          onPress={() => {
-            setLoginMethod("phone");
-            setIdentifier("");
-          }}
-          className={`flex-1 py-2.5 rounded-lg items-center ${
-            loginMethod === "phone" ? "bg-white border border-line/40" : ""
-          }`}
-        >
-          <Text
-            className={`font-bold text-xs ${
-              loginMethod === "phone" ? "text-bark" : "text-bark/60"
+      {/* PRIMARY ROLE SELECTOR TABS (Customer vs Kabadiwala vs Officer) */}
+      <View className="mb-4">
+        <Text className="text-xs font-bold text-bark uppercase tracking-wider mb-2">
+          Choose Account Type *
+        </Text>
+        <View className="flex-row bg-sand rounded-2xl p-1 border border-line">
+          {/* Customer Tab */}
+          <Pressable
+            onPress={() => handleRoleChange("customer")}
+            className={`flex-1 py-2.5 rounded-xl items-center flex-row justify-center ${
+              activeRole === "customer" ? "bg-white border border-line/60 shadow-sm" : ""
             }`}
           >
-            {t("auth.mobileTab")}
-          </Text>
-        </Pressable>
+            <MaterialCommunityIcons
+              name="account-outline"
+              size={18}
+              color={activeRole === "customer" ? theme.bark : "#8a7d68"}
+            />
+            <Text
+              className={`font-bold text-xs ml-1.5 ${
+                activeRole === "customer" ? "text-bark" : "text-bark/60"
+              }`}
+            >
+              Customer
+            </Text>
+          </Pressable>
 
-        <Pressable
-          onPress={() => {
-            setLoginMethod("email");
-            setIdentifier("");
-          }}
-          className={`flex-1 py-2.5 rounded-lg items-center ${
-            loginMethod === "email" ? "bg-white border border-line/40" : ""
-          }`}
-        >
-          <Text
-            className={`font-bold text-xs ${
-              loginMethod === "email" ? "text-bark" : "text-bark/60"
+          {/* Kabadiwala Tab */}
+          <Pressable
+            onPress={() => handleRoleChange("kabadiwala")}
+            className={`flex-1 py-2.5 rounded-xl items-center flex-row justify-center ${
+              activeRole === "kabadiwala" ? "bg-white border border-line/60 shadow-sm" : ""
             }`}
           >
-            {t("auth.emailTab")}
-          </Text>
-        </Pressable>
+            <MaterialCommunityIcons
+              name="truck-outline"
+              size={18}
+              color={activeRole === "kabadiwala" ? theme.leaf : "#8a7d68"}
+            />
+            <Text
+              className={`font-bold text-xs ml-1.5 ${
+                activeRole === "kabadiwala" ? "text-leaf" : "text-bark/60"
+              }`}
+            >
+              Kabadiwala
+            </Text>
+          </Pressable>
 
-        <Pressable
-          onPress={() => {
-            setLoginMethod("officer");
-            setIdentifier("OFFICER-SWM-101");
-          }}
-          className={`flex-1 py-2.5 rounded-lg items-center ${
-            loginMethod === "officer" ? "bg-white border border-line/40" : ""
-          }`}
-        >
-          <Text
-            className={`font-bold text-xs ${
-              loginMethod === "officer" ? "text-leaf" : "text-bark/60"
+          {/* Officer Tab */}
+          <Pressable
+            onPress={() => handleRoleChange("officer")}
+            className={`flex-1 py-2.5 rounded-xl items-center flex-row justify-center ${
+              activeRole === "officer" ? "bg-white border border-line/60 shadow-sm" : ""
             }`}
           >
-            {t("auth.officerTab")}
-          </Text>
-        </Pressable>
+            <MaterialCommunityIcons
+              name="shield-check-outline"
+              size={18}
+              color={activeRole === "officer" ? theme.clay : "#8a7d68"}
+            />
+            <Text
+              className={`font-bold text-xs ml-1.5 ${
+                activeRole === "officer" ? "text-clay" : "text-bark/60"
+              }`}
+            >
+              Officer
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
-      {/* INPUT FIELD ACCORDING TO METHOD */}
-      <Text className="text-xs font-semibold text-bark mb-1.5">
-        {loginMethod === "phone"
-          ? t("auth.phoneNumber")
-          : loginMethod === "email"
-          ? t("auth.emailAddress")
-          : t("auth.officerId")}
-      </Text>
-      <TextInput
-        placeholder={
-          loginMethod === "phone"
-            ? t("auth.phonePlaceholder")
-            : loginMethod === "email"
-            ? t("auth.emailPlaceholder")
-            : t("auth.officerIdPlaceholder")
-        }
-        value={identifier}
-        onChangeText={setIdentifier}
-        autoCapitalize={loginMethod === "officer" ? "characters" : "none"}
-        keyboardType={loginMethod === "phone" ? "phone-pad" : loginMethod === "email" ? "email-address" : "default"}
-        maxLength={loginMethod === "phone" ? 10 : undefined}
-        className="bg-sand border border-line rounded-card px-4 py-3 mb-3 text-base text-bark"
-        placeholderTextColor="#8a7d68"
-      />
+      {/* OFFICER SPECIFIC LOGIN FORM */}
+      {activeRole === "officer" ? (
+        <View className="bg-white border border-line rounded-card p-5 mb-5 shadow-sm">
+          <View className="flex-row items-center mb-3">
+            <View className="w-8 h-8 rounded-full bg-clay/10 items-center justify-center mr-2">
+              <MaterialCommunityIcons name="shield-lock" size={18} color={theme.clay} />
+            </View>
+            <View>
+              <Text className="text-xs font-bold text-bark">Municipal Waste Command Hub</Text>
+              <Text className="text-[10px] text-bark/60">Authorized SWM Officers Portal</Text>
+            </View>
+          </View>
 
-
-      <Text className="text-xs font-semibold text-bark mb-1.5">{t("auth.password")} *</Text>
-      <View className="relative justify-center mb-5">
-        <TextInput
-          placeholder={t("auth.loginPasswordPlaceholder")}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry={!showPassword}
-          className="bg-sand border border-line rounded-card pl-4 pr-12 py-3 text-base text-bark"
-          placeholderTextColor="#8a7d68"
-        />
-        <Pressable
-          onPress={() => setShowPassword((prev) => !prev)}
-          className="absolute right-3 p-1.5"
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-        >
-          <MaterialCommunityIcons
-            name={showPassword ? "eye-outline" : "eye-off-outline"}
-            size={22}
-            color={theme.bark}
+          <Text className="text-xs font-bold text-bark uppercase tracking-wider mb-1.5">
+            Government Officer ID *
+          </Text>
+          <TextInput
+            placeholder="Enter Officer ID (e.g. OFFICER-SWM-101)"
+            value={identifier}
+            onChangeText={setIdentifier}
+            autoCapitalize="characters"
+            className="bg-sand border border-line rounded-xl px-4 py-3 mb-3 text-base text-bark font-bold tracking-wider"
+            placeholderTextColor="#8a7d68"
           />
-        </Pressable>
-      </View>
 
-      <PrimaryButton label={t("auth.loginButton")} onPress={handleSubmit} loading={loading} />
+          <Text className="text-xs font-bold text-bark uppercase tracking-wider mb-1.5">
+            Officer Secret Password *
+          </Text>
+          <View className="relative justify-center mb-5">
+            <TextInput
+              placeholder="Enter officer password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              className="bg-sand border border-line rounded-xl pl-4 pr-12 py-3 text-base text-bark"
+              placeholderTextColor="#8a7d68"
+            />
+            <Pressable
+              onPress={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 p-1.5"
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+            >
+              <MaterialCommunityIcons
+                name={showPassword ? "eye-outline" : "eye-off-outline"}
+                size={22}
+                color={theme.bark}
+              />
+            </Pressable>
+          </View>
 
-      {/* GOOGLE SIGN IN */}
-      <View className="items-center my-4">
-        <Text className="text-xs text-bark/50 font-semibold uppercase">{t("auth.orContinueWith")}</Text>
-      </View>
+          <PrimaryButton
+            label="Authorize & Open Dashboard ➔"
+            onPress={handleSubmit}
+            loading={loading}
+          />
+        </View>
+      ) : (
+        /* CUSTOMER OR KABADIWALA LOGIN FORM */
+        <View className="bg-white border border-line rounded-card p-5 mb-5 shadow-sm">
+          {/* Method Sub-Tabs: Mobile vs Email */}
+          <View className="flex-row mb-4 bg-sand rounded-xl p-1 border border-line">
+            <Pressable
+              onPress={() => {
+                setMethod("phone");
+                setIdentifier("");
+              }}
+              className={`flex-1 py-2 rounded-lg items-center ${
+                method === "phone" ? "bg-white border border-line/40 shadow-xs" : ""
+              }`}
+            >
+              <Text
+                className={`font-bold text-xs ${
+                  method === "phone" ? "text-bark" : "text-bark/60"
+                }`}
+              >
+                📱 Mobile Number
+              </Text>
+            </Pressable>
 
+            <Pressable
+              onPress={() => {
+                setMethod("email");
+                setIdentifier("");
+              }}
+              className={`flex-1 py-2 rounded-lg items-center ${
+                method === "email" ? "bg-white border border-line/40 shadow-xs" : ""
+              }`}
+            >
+              <Text
+                className={`font-bold text-xs ${
+                  method === "email" ? "text-bark" : "text-bark/60"
+                }`}
+              >
+                ✉️ Email Address
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Identifier Input */}
+          <Text className="text-xs font-bold text-bark uppercase tracking-wider mb-1.5">
+            {activeRole === "customer"
+              ? method === "phone"
+                ? "Customer Mobile Number *"
+                : "Customer Email Address *"
+              : method === "phone"
+              ? "Kabadiwala Mobile Number *"
+              : "Kabadiwala Email Address *"}
+          </Text>
+          <TextInput
+            placeholder={
+              method === "phone"
+                ? "10-digit mobile number (e.g. 9876543210)"
+                : "Enter email (e.g. name@gmail.com)"
+            }
+            value={identifier}
+            onChangeText={setIdentifier}
+            autoCapitalize="none"
+            keyboardType={method === "phone" ? "phone-pad" : "email-address"}
+            maxLength={method === "phone" ? 10 : undefined}
+            className="bg-sand border border-line rounded-xl px-4 py-3 mb-3 text-base text-bark"
+            placeholderTextColor="#8a7d68"
+          />
+
+          {/* Password Input with Eye Toggle */}
+          <Text className="text-xs font-bold text-bark uppercase tracking-wider mb-1.5">
+            Password *
+          </Text>
+          <View className="relative justify-center mb-5">
+            <TextInput
+              placeholder="Enter your password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              className="bg-sand border border-line rounded-xl pl-4 pr-12 py-3 text-base text-bark"
+              placeholderTextColor="#8a7d68"
+            />
+            <Pressable
+              onPress={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 p-1.5"
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+            >
+              <MaterialCommunityIcons
+                name={showPassword ? "eye-outline" : "eye-off-outline"}
+                size={22}
+                color={theme.bark}
+              />
+            </Pressable>
+          </View>
+
+          {/* Submit Button */}
+          <PrimaryButton
+            label={
+              activeRole === "customer"
+                ? "Log In as Customer ➔"
+                : "Log In as Kabadiwala ➔"
+            }
+            onPress={handleSubmit}
+            loading={loading}
+          />
+
+          {/* GOOGLE SIGN IN (Bulletproofed with demo session fallback) */}
+          <View className="items-center my-4">
+            <Text className="text-xs text-bark/50 font-semibold uppercase">
+              {t("auth.orContinueWith", "Or continue with")}
+            </Text>
+          </View>
+
+          <Pressable
+            onPress={handleGoogleLogin}
+            className="bg-sand border border-line rounded-xl py-3 px-4 flex-row items-center justify-center"
+          >
+            <MaterialCommunityIcons name="google" size={20} color={theme.clay} />
+            <Text className="font-bold text-bark text-sm ml-2.5">
+              Continue with Google ({activeRole === "customer" ? "Customer" : "Kabadiwala"})
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Direct Switch to Create Account */}
       <Pressable
-        onPress={handleGoogleLogin}
-        className="bg-sand border border-line rounded-card py-3 px-4 flex-row items-center justify-center mb-4"
+        onPress={() => {
+          setSelectedRole(activeRole);
+          if (activeRole === "officer") {
+            router.push("/(auth)/officer-verification");
+          } else {
+            router.push("/(auth)/signup");
+          }
+        }}
+        className="mt-2 mb-6 items-center"
       >
-        <MaterialCommunityIcons name="google" size={20} color={theme.clay} />
-        <Text className="font-bold text-bark text-sm ml-2.5">{t("auth.continueWithGoogle")}</Text>
-      </Pressable>
-
-      <Pressable onPress={() => router.push("/(auth)/role-select")} className="mt-2 items-center">
-        <Text className="text-leaf text-base font-semibold">{t("auth.noAccount")}</Text>
+        <Text className="text-leaf text-sm font-bold">
+          Don't have an account? Create {activeRole === "officer" ? "Officer Profile" : activeRole === "kabadiwala" ? "Kabadiwala Account" : "Customer Account"} ➔
+        </Text>
       </Pressable>
     </ScreenContainer>
   );

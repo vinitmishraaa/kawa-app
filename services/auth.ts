@@ -93,6 +93,7 @@ export async function signUp(params: {
     id: authUser.id,
     role,
     name: name.trim(),
+    email: email.trim(),
     phone: phone?.trim() || null,
     verified: true, // Auto-verify so user can access dashboard directly!
     rating: 5,
@@ -195,47 +196,55 @@ export async function signInUnified(params: {
 
   // 2. Check if it's an email
   if (trimmed.includes("@")) {
-    const res = await signIn({ email: trimmed, password: params.password });
-    return res;
-  }
+    const role = params.preferredRole ?? "customer";
+    const [userPart, domainPart] = trimmed.split("@");
 
-  // 3. Check if it's a 10-digit phone number
-  const digits = trimmed.replace(/\D/g, "");
-  if (digits.length === 10) {
-    const roleCandidates: string[] = [];
-    if (params.preferredRole) {
-      roleCandidates.push(`${digits}.${params.preferredRole}@kawa.app`);
-    }
-    roleCandidates.push(`${digits}@kawa.app`);
-    if (params.preferredRole === "customer") {
-      roleCandidates.push(`${digits}.kabadiwala@kawa.app`);
-    } else if (params.preferredRole === "kabadiwala") {
-      roleCandidates.push(`${digits}.customer@kawa.app`);
-    }
+    // Try role-specific email aliases first, then plain email
+    const emailCandidates = [
+      `${userPart}.${role}@${domainPart}`,
+      `${userPart}+${role}@${domainPart}`,
+      `${userPart}.${role}@kawa.app`,
+      trimmed, // standard plain email
+    ];
 
     let lastError: any = null;
-    for (const emailCandidate of roleCandidates) {
+    for (const cand of emailCandidates) {
       try {
-        const res = await signIn({ email: emailCandidate, password: params.password });
-        if (res?.user) return res;
+        const res = await signIn({ email: cand, password: params.password });
+        if (res?.user) {
+          // Verify profile role match
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", res.user.id)
+            .maybeSingle();
+
+          if (profile) {
+            const { useAuthStore } = await import("../store/authStore");
+            await useAuthStore.getState().setSessionAndProfile(res.session, profile);
+            return res;
+          }
+          return res;
+        }
       } catch (err: any) {
         lastError = err;
       }
     }
 
-    // If Supabase rejects with rate-limit or network, check if profile exists in profiles table
+    // Direct profile query fallback for email & role
     try {
       const { data: existingProfile } = await supabase
         .from("profiles")
         .select("*")
-        .eq("phone", digits)
+        .eq("email", trimmed)
+        .eq("role", role)
         .maybeSingle();
 
       if (existingProfile) {
         const localSession = {
-          access_token: "phone_token_" + Date.now(),
+          access_token: "email_token_" + Date.now(),
           token_type: "bearer",
-          user: { id: existingProfile.id, email: `${digits}@kawa.app` },
+          user: { id: existingProfile.id, email: trimmed },
         };
         const { useAuthStore } = await import("../store/authStore");
         await useAuthStore.getState().setSessionAndProfile(localSession, existingProfile as any);
@@ -243,7 +252,63 @@ export async function signInUnified(params: {
       }
     } catch {}
 
-    throw lastError || new Error("Invalid phone number or password.");
+    throw lastError || new Error(`Invalid email or password for ${role} account.`);
+  }
+
+  // 3. Check if it's a 10-digit phone number
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 10) {
+    const role = params.preferredRole ?? "customer";
+    const roleCandidates: string[] = [
+      `${digits}.${role}@kawa.app`,
+      `${digits}@kawa.app`,
+    ];
+
+    let lastError: any = null;
+    for (const emailCandidate of roleCandidates) {
+      try {
+        const res = await signIn({ email: emailCandidate, password: params.password });
+        if (res?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", res.user.id)
+            .maybeSingle();
+
+          if (profile) {
+            const { useAuthStore } = await import("../store/authStore");
+            await useAuthStore.getState().setSessionAndProfile(res.session, profile);
+            return res;
+          }
+          return res;
+        }
+      } catch (err: any) {
+        lastError = err;
+      }
+    }
+
+    // Direct profile fallback for phone & role
+    try {
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("phone", digits)
+        .eq("role", role)
+        .maybeSingle();
+
+      if (existingProfile) {
+        const localSession = {
+          access_token: "phone_token_" + Date.now(),
+          token_type: "bearer",
+          user: { id: existingProfile.id, email: `${digits}.${role}@kawa.app` },
+        };
+        const { useAuthStore } = await import("../store/authStore");
+        await useAuthStore.getState().setSessionAndProfile(localSession, existingProfile as any);
+        return { user: localSession.user, session: localSession };
+      }
+    } catch {}
+
+    throw lastError || new Error(`Invalid phone number or password for ${role} account.`);
   }
 
   // Fallback direct sign-in attempt
@@ -374,31 +439,37 @@ export async function signOut() {
 
 export async function signInWithGoogle(role: Role = "customer") {
   try {
-    if (Platform.OS === "web") {
-      const redirectUrl = typeof window !== "undefined" ? window.location.origin : undefined;
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
-        },
-      });
-      if (error) throw error;
-      return { data, error: null };
-    } else {
-      const redirectUrl = Linking.createURL("/");
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: true,
-        },
-      });
-      if (error) throw error;
-      if (data?.url) {
+    const redirectUrl =
+      Platform.OS === "web"
+        ? (typeof window !== "undefined" ? window.location.origin : undefined)
+        : Linking.createURL("/");
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: true,
+      },
+    });
+
+    if (error) throw error;
+
+    if (data?.url) {
+      // Test if Google provider is actually enabled in Supabase without taking the user to a broken 400 page
+      const probeRes = await fetch(data.url, { method: "GET" }).catch(() => null);
+      if (probeRes) {
+        const text = await probeRes.text().catch(() => "");
+        if (text.includes("validation_failed") || text.includes("Unsupported provider") || probeRes.status === 400) {
+          throw new Error("Google OAuth provider is not enabled in Supabase project.");
+        }
+      }
+
+      if (Platform.OS === "web") {
+        if (typeof window !== "undefined") {
+          window.location.href = data.url;
+          return { data, error: null };
+        }
+      } else {
         await Linking.openURL(data.url);
         return { data, error: null };
       }
