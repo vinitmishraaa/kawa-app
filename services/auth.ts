@@ -1,7 +1,10 @@
 import { Platform } from "react-native";
 import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import { supabase } from "./supabase";
 import { findAuthorizedOfficer, getOfficerCanonicalEmail } from "../constants/authorizedOfficers";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export type Role = "customer" | "kabadiwala" | "officer";
 
@@ -437,79 +440,127 @@ export async function signOut() {
   } catch {}
 }
 
-export async function signInWithGoogle(role: Role = "customer") {
-  try {
-    const redirectUrl =
-      Platform.OS === "web"
-        ? (typeof window !== "undefined" ? window.location.origin : undefined)
-        : Linking.createURL("/");
+function extractOAuthParams(url: string): Record<string, string> {
+  const params: Record<string, string> = {};
+  const hashIndex = url.indexOf("#");
+  const queryIndex = url.indexOf("?");
+  const raw =
+    hashIndex !== -1
+      ? url.substring(hashIndex + 1)
+      : queryIndex !== -1
+      ? url.substring(queryIndex + 1)
+      : "";
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: true,
-      },
-    });
-
-    if (error) throw error;
-
-    if (data?.url) {
-      // Test if Google provider is actually enabled in Supabase without taking the user to a broken 400 page
-      const probeRes = await fetch(data.url, { method: "GET" }).catch(() => null);
-      if (probeRes) {
-        const text = await probeRes.text().catch(() => "");
-        if (text.includes("validation_failed") || text.includes("Unsupported provider") || probeRes.status === 400) {
-          throw new Error("Google OAuth provider is not enabled in Supabase project.");
-        }
-      }
-
-      if (Platform.OS === "web") {
-        if (typeof window !== "undefined") {
-          window.location.href = data.url;
-          return { data, error: null };
-        }
-      } else {
-        await Linking.openURL(data.url);
-        return { data, error: null };
+  if (raw) {
+    const parts = raw.split("&");
+    for (const part of parts) {
+      const [k, v] = part.split("=");
+      if (k && v) {
+        params[decodeURIComponent(k)] = decodeURIComponent(v);
       }
     }
-  } catch (err: any) {
-    // If Supabase Google OAuth provider is not configured or in Expo Go demo environment:
-    // Create an authenticated Google User session so user is never blocked during judging / demo!
-    const googleId = "g_user_" + Math.random().toString(36).substring(2, 9);
-    const googleUser = {
-      id: googleId,
-      email: "google.user@gmail.com",
-      user_metadata: {
-        role,
-        name: "Google User",
-        avatar_url: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
-      },
-    };
-    const googleSession = {
-      access_token: "google_active_token_" + Date.now(),
-      token_type: "bearer",
-      user: googleUser,
-    };
-    const googleProfile = {
-      id: googleId,
-      role,
-      name: "Google User",
-      phone: "9876543210",
-      photo_url: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop",
-      verified: true,
-      rating: 5,
-    };
-
-    try {
-      await supabase.from("profiles").upsert(googleProfile, { onConflict: "id" });
-    } catch {}
-
-    const { useAuthStore } = await import("../store/authStore");
-    await useAuthStore.getState().setSessionAndProfile(googleSession, googleProfile);
-    return { user: googleUser, session: googleSession };
   }
+  return params;
+}
+
+export async function signInWithGoogle(role: Role = "customer") {
+  const redirectUrl =
+    Platform.OS === "web"
+      ? (typeof window !== "undefined" ? window.location.origin : undefined)
+      : Linking.createURL("/");
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: redirectUrl,
+      skipBrowserRedirect: true,
+      queryParams: {
+        access_type: "offline",
+        prompt: "select_account", // Always prompt user to choose their real Google Account!
+      },
+    },
+  });
+
+  if (error) throw error;
+  if (!data?.url) {
+    throw new Error("Could not initialize Google authentication with backend.");
+  }
+
+  // 1. Probe the authorization URL to verify if Google OAuth is configured on Supabase
+  const probeRes = await fetch(data.url, { method: "GET" }).catch(() => null);
+  if (probeRes) {
+    const text = await probeRes.text().catch(() => "");
+    if (
+      text.includes("validation_failed") ||
+      text.includes("Unsupported provider") ||
+      probeRes.status === 400
+    ) {
+      throw new Error(
+        "Google Authentication Setup Required:\n\n" +
+          "Google provider is not enabled in your Supabase backend yet.\n\n" +
+          "To enable real Google Sign-In:\n" +
+          "1. Open Supabase Dashboard -> Authentication -> Providers -> Google.\n" +
+          "2. Toggle 'Enable Google provider' and paste your Google Cloud Client ID & Secret.\n\n" +
+          "Until configured, please use secure Mobile Number or Email login."
+      );
+    }
+  }
+
+  // 2. Web Browser Google Sign-In
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") {
+      window.location.href = data.url;
+      return { data, error: null };
+    }
+  }
+
+  // 3. Mobile Google Sign-In via Secure System Browser (Chrome Custom Tabs / Safari)
+  const authResult = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+  if (authResult.type === "success" && authResult.url) {
+    const params = extractOAuthParams(authResult.url);
+    if (params.access_token && params.refresh_token) {
+      const { data: sessionData, error: sessionErr } = await supabase.auth.setSession({
+        access_token: params.access_token,
+        refresh_token: params.refresh_token,
+      });
+
+      if (sessionErr) throw sessionErr;
+
+      if (sessionData.user) {
+        // Upsert real authenticated Google profile with user's genuine name & email
+        const realProfile = {
+          id: sessionData.user.id,
+          role,
+          name:
+            sessionData.user.user_metadata?.full_name ||
+            sessionData.user.user_metadata?.name ||
+            sessionData.user.email?.split("@")[0] ||
+            "Google User",
+          email: sessionData.user.email,
+          phone: sessionData.user.phone || null,
+          photo_url:
+            sessionData.user.user_metadata?.avatar_url ||
+            sessionData.user.user_metadata?.picture ||
+            null,
+          verified: true,
+          rating: 5,
+        };
+
+        try {
+          await supabase.from("profiles").upsert(realProfile, { onConflict: "id" });
+        } catch {}
+
+        const { useAuthStore } = await import("../store/authStore");
+        await useAuthStore.getState().setSessionAndProfile(sessionData.session, realProfile as any);
+        return { user: sessionData.user, session: sessionData.session };
+      }
+    }
+  } else if (authResult.type === "cancel" || authResult.type === "dismiss") {
+    throw new Error("Google Sign-In was cancelled.");
+  }
+
+  return { data, error: null };
 }
 
 export async function getCurrentProfile() {

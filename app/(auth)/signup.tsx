@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Text, TextInput, View, Pressable, Alert } from "react-native";
+import { Text, TextInput, View, Pressable, Alert, Platform } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -133,7 +133,12 @@ export default function Signup() {
         }
       }
     } catch (err: any) {
-      Alert.alert("Google Sign-In", err?.message ?? "Failed to complete Google Sign-In.");
+      const msg = err?.message ?? "Failed to complete Google Sign-In.";
+      if (Platform.OS === "web") {
+        if (typeof window !== "undefined") window.alert(msg);
+      } else {
+        Alert.alert("Google Sign-In", msg);
+      }
     } finally {
       setLoading(false);
     }
