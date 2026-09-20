@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import { router } from "expo-router";
 import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../services/supabase";
 import { useAuthStore } from "../store/authStore";
 import { useOnboardingStore } from "../store/onboardingStore";
 import { handleOAuthRedirectUrl } from "../services/auth";
@@ -30,7 +31,8 @@ export default function Index() {
         if (initialUrl && (initialUrl.includes("code=") || initialUrl.includes("access_token="))) {
           const res = await handleOAuthRedirectUrl(initialUrl);
           if (res?.profile && isMounted) {
-            const role = res.profile.role;
+            const storedRole = await AsyncStorage.getItem("@kawa_intended_role").catch(() => null);
+            const role = storedRole || res.profile.role;
             if (role === "kabadiwala") {
               router.replace("/(kabadiwala)/dashboard");
             } else if (role === "officer") {
@@ -45,10 +47,33 @@ export default function Index() {
 
       if (!isMounted) return;
 
-      // 2. If user is authenticated, route immediately to their dashboard
-      if (profile) {
+      // 2. Check active profile or restore Supabase session
+      let activeProfile = profile;
+      if (!activeProfile) {
+        const { data: supaSession } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+        if (supaSession?.session?.user) {
+          const user = supaSession.session.user;
+          const storedRole = ((await AsyncStorage.getItem("@kawa_intended_role").catch(() => null)) as any) || "customer";
+          const dbPayload = {
+            id: user.id,
+            role: storedRole,
+            name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "User",
+            phone: user.phone || null,
+            photo_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+            verified: true,
+            rating: 5,
+          };
+          try {
+            await supabase.from("profiles").upsert(dbPayload, { onConflict: "id" });
+          } catch {}
+          activeProfile = { ...dbPayload, email: user.email } as any;
+          await useAuthStore.getState().setSessionAndProfile(supaSession.session, activeProfile as any);
+        }
+      }
+
+      if (activeProfile && isMounted) {
         const storedRole = await AsyncStorage.getItem("@kawa_intended_role").catch(() => null);
-        const targetRole = storedRole || profile.role;
+        const targetRole = storedRole || activeProfile.role;
         if (targetRole === "kabadiwala") {
           router.replace("/(kabadiwala)/dashboard");
         } else if (targetRole === "officer") {

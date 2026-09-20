@@ -590,28 +590,27 @@ export async function signInWithGoogle(role: Role = "customer") {
   }
 
   // Mobile Google Sign-In via Secure System Browser (Chrome Custom Tabs / Safari)
-  const authResult = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-
-  if (authResult.type === "success" && authResult.url) {
-    const handled = await handleOAuthRedirectUrl(authResult.url, role);
-    if (handled) return handled;
-  }
-
-  // On mobile (Android / iOS), openAuthSessionAsync often completes with 'dismiss'
-  // while the deep link or onAuthStateChange resolves asynchronously.
-  // We poll for up to 8 seconds so we NEVER drop the user's session!
   const { useAuthStore } = await import("../store/authStore");
   const storedRole = ((await AsyncStorage.getItem("@kawa_intended_role").catch(() => null)) as Role) || role || "customer";
 
-  for (let i = 0; i < 16; i++) {
-    // 1. Check if authStore already captured the session & profile
+  // 1. Launch the browser session in background
+  const browserPromise = WebBrowser.openAuthSessionAsync(data.url, redirectUrl).catch(() => null);
+
+  // 2. Poll in parallel: on Android, Chrome Custom Tabs can stay open even when the redirect URL
+  // is received by the system. Checking Supabase in parallel guarantees the app NEVER hangs!
+  let authenticatedResult: any = null;
+
+  for (let i = 0; i < 30; i++) {
+    // A. Check if authStore already captured session & profile (via onAuthStateChange or deep link)
     const currentProfile = useAuthStore.getState().profile;
     const currentSession = useAuthStore.getState().session;
     if (currentProfile && currentSession) {
-      return { user: currentProfile, session: currentSession, profile: currentProfile };
+      try { WebBrowser.dismissAuthSession(); } catch {}
+      authenticatedResult = { user: currentProfile, session: currentSession, profile: currentProfile };
+      break;
     }
 
-    // 2. Direct Supabase session poll
+    // B. Check direct Supabase session
     const { data: directSession } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
     if (directSession?.session?.user) {
       const user = directSession.session.user;
@@ -647,16 +646,35 @@ export async function signInWithGoogle(role: Role = "customer") {
       const { useOnboardingStore } = await import("../store/onboardingStore");
       await useOnboardingStore.getState().markPermissionsDone();
 
-      return { user, session: directSession.session, profile: inMemoryProfile };
+      try { WebBrowser.dismissAuthSession(); } catch {}
+      authenticatedResult = { user, session: directSession.session, profile: inMemoryProfile };
+      break;
     }
 
-    await new Promise((r) => setTimeout(r, 500));
+    // C. Non-blocking check if browser finished with success URL
+    const browserResult = await Promise.race([
+      browserPromise,
+      new Promise((resolve) => setTimeout(() => resolve("timeout"), 500)),
+    ]);
+
+    if (browserResult && browserResult !== "timeout") {
+      const bRes = browserResult as any;
+      if (bRes.type === "success" && bRes.url) {
+        const handled = await handleOAuthRedirectUrl(bRes.url, role);
+        if (handled) {
+          try { WebBrowser.dismissAuthSession(); } catch {}
+          authenticatedResult = handled;
+          break;
+        }
+      }
+    }
   }
 
-  if (authResult.type === "cancel") {
-    throw new Error("Google Sign-In was cancelled.");
+  if (authenticatedResult?.profile) {
+    return authenticatedResult;
   }
 
+  try { WebBrowser.dismissAuthSession(); } catch {}
   throw new Error("Google authentication timed out. Please try again.");
 }
 
