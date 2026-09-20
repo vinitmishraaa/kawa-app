@@ -519,33 +519,41 @@ export async function signInWithGoogle(role: Role = "customer") {
 
   if (authResult.type === "success" && authResult.url) {
     const params = extractOAuthParams(authResult.url);
-    if (params.access_token && params.refresh_token) {
-      const { data: sessionData, error: sessionErr } = await supabase.auth.setSession({
+    let sessionData: any = null;
+
+    if (params.code) {
+      const { data: exchangeData, error: exchangeErr } =
+        await supabase.auth.exchangeCodeForSession(params.code);
+      if (exchangeErr) throw exchangeErr;
+      sessionData = exchangeData;
+    } else if (params.access_token && params.refresh_token) {
+      const { data: sData, error: sessionErr } = await supabase.auth.setSession({
         access_token: params.access_token,
         refresh_token: params.refresh_token,
       });
-
       if (sessionErr) throw sessionErr;
+      sessionData = sData;
+    }
 
-      if (sessionData.user) {
-        // Upsert real authenticated Google profile with user's genuine name & email
-        const realProfile = {
-          id: sessionData.user.id,
-          role,
-          name:
-            sessionData.user.user_metadata?.full_name ||
-            sessionData.user.user_metadata?.name ||
-            sessionData.user.email?.split("@")[0] ||
-            "Google User",
-          email: sessionData.user.email,
-          phone: sessionData.user.phone || null,
-          photo_url:
-            sessionData.user.user_metadata?.avatar_url ||
-            sessionData.user.user_metadata?.picture ||
-            null,
-          verified: true,
-          rating: 5,
-        };
+    if (sessionData?.user) {
+      // Upsert real authenticated Google profile with user's genuine name & email
+      const realProfile = {
+        id: sessionData.user.id,
+        role,
+        name:
+          sessionData.user.user_metadata?.full_name ||
+          sessionData.user.user_metadata?.name ||
+          sessionData.user.email?.split("@")[0] ||
+          "Google User",
+        email: sessionData.user.email,
+        phone: sessionData.user.phone || null,
+        photo_url:
+          sessionData.user.user_metadata?.avatar_url ||
+          sessionData.user.user_metadata?.picture ||
+          null,
+        verified: true,
+        rating: 5,
+      };
 
         try {
           await supabase.from("profiles").upsert(realProfile, { onConflict: "id" });
@@ -554,7 +562,6 @@ export async function signInWithGoogle(role: Role = "customer") {
         const { useAuthStore } = await import("../store/authStore");
         await useAuthStore.getState().setSessionAndProfile(sessionData.session, realProfile as any);
         return { user: sessionData.user, session: sessionData.session };
-      }
     }
   } else if (authResult.type === "cancel" || authResult.type === "dismiss") {
     throw new Error("Google Sign-In was cancelled.");
