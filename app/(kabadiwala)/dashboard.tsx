@@ -219,7 +219,9 @@ export default function KabadiwalaDashboard() {
   }, [profile?.price_rates]);
 
   const coordsRef = useRef<{ latitude: number; longitude: number } | null>(null);
-  const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const loadRef = useRef<(force?: boolean) => Promise<void>>(() => Promise.resolve());
+  const lastLoadedAtRef = useRef<number>(0);
+  const isFetchingRef = useRef<boolean>(false);
 
   // Non-blocking location sync performed once on mount
   useEffect(() => {
@@ -238,8 +240,16 @@ export default function KabadiwalaDashboard() {
     };
   }, [profile?.id]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     if (!profile?.id) return;
+    if (isFetchingRef.current) return;
+    const now = Date.now();
+    // Prevent duplicate heavy queries if screen was focused recently (< 25s) and not forced
+    if (!force && now - lastLoadedAtRef.current < 25000) {
+      return;
+    }
+
+    isFetchingRef.current = true;
     try {
       const currentRates = profile.price_rates ?? getDefaultPriceRates();
       const currentCoords = coordsRef.current ?? coords ?? { latitude: 28.6139, longitude: 77.209 };
@@ -255,8 +265,11 @@ export default function KabadiwalaDashboard() {
       if (nearbyListingsData) setListings(nearbyListingsData);
       if (ledgerData) setLedger(ledgerData);
       if (noticesData) setNotices(noticesData);
+      lastLoadedAtRef.current = Date.now();
     } catch {
       // Keep UI active on errors
+    } finally {
+      isFetchingRef.current = false;
     }
   }, [profile?.id, profile?.price_rates]);
 
@@ -266,7 +279,7 @@ export default function KabadiwalaDashboard() {
 
   useFocusEffect(
     useCallback(() => {
-      loadRef.current();
+      loadRef.current(false);
     }, [])
   );
 
@@ -279,14 +292,14 @@ export default function KabadiwalaDashboard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "bookings" },
         () => {
-          loadRef.current();
+          loadRef.current(true);
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "transactions" },
         () => {
-          loadRef.current();
+          loadRef.current(true);
         }
       )
       .subscribe();
@@ -299,7 +312,7 @@ export default function KabadiwalaDashboard() {
   async function handleRefresh() {
     setRefreshing(true);
     try {
-      await load();
+      await load(true);
     } finally {
       setRefreshing(false);
     }
@@ -314,7 +327,7 @@ export default function KabadiwalaDashboard() {
   async function handleUpdateStatus(bookingId: string, status: any) {
     try {
       await updateBookingStatus(bookingId, status);
-      await load();
+      await load(true);
     } catch (err: any) {
       Alert.alert("Error", err?.message ?? "Could not update status");
     }
@@ -408,7 +421,7 @@ export default function KabadiwalaDashboard() {
 
       Alert.alert("Collection Recorded", "Garbage intake successfully logged in your waste ledger.");
       setCollectingBooking(null);
-      await load();
+      await load(true);
     } catch (err: any) {
       Alert.alert("Error", err?.message ?? "Failed to mark collected.");
     } finally {
@@ -441,7 +454,7 @@ export default function KabadiwalaDashboard() {
         "Rate Card Published! 🏷️",
         "Your scrap buying prices have been successfully saved and are now visible live to all customers in your area."
       );
-      await load();
+      await load(true);
     } catch (err: any) {
       Alert.alert("Save Error", err?.message ?? "Could not save rates. Please try again.");
     } finally {
@@ -504,7 +517,7 @@ export default function KabadiwalaDashboard() {
       setDirectWeight("");
       setDirectPrice("");
       setDirectCustomerName("");
-      await load();
+      await load(true);
     } catch (err: any) {
       Alert.alert("Error", err?.message ?? "Could not record intake.");
     } finally {
@@ -524,18 +537,18 @@ export default function KabadiwalaDashboard() {
   return (
     <ScreenContainer>
       {/* Header */}
-      <View className="flex-row items-center justify-between mt-3 mb-3">
+      <View className="flex-row items-center justify-between mt-2 mb-2">
         <View>
-          <Text className="text-2xl font-bold text-bark">Kabadiwala Command</Text>
+          <Text className="text-xl font-bold text-bark">{t("kabadiwalaDashboard.title")}</Text>
           <Text className="text-xs font-semibold text-leaf">
-            {profile?.name ?? "Collector"} • Live Scrap Hub
+            {profile?.name ?? t("roleSelect.kabadiwala")} • {t("kabadiwalaDashboard.subtitle")}
           </Text>
         </View>
         <View className="flex-row items-center">
-          <Pressable onPress={() => setSettingsOpen(true)} className="mr-2 p-2 bg-sand rounded-full border border-line">
+          <Pressable onPress={() => setSettingsOpen(true)} className="mr-2 p-2 bg-sand rounded-full border border-line" accessibilityLabel="Settings">
             <MaterialCommunityIcons name="cog" size={20} color={theme.bark} />
           </Pressable>
-          <Pressable onPress={handleLogout} className="p-2 bg-sand rounded-full border border-line">
+          <Pressable onPress={handleLogout} className="p-2 bg-sand rounded-full border border-line" accessibilityLabel="Logout">
             <MaterialCommunityIcons name="logout" size={20} color={theme.bark} />
           </Pressable>
         </View>
@@ -547,10 +560,10 @@ export default function KabadiwalaDashboard() {
         if (!activeNotice) return null;
 
         return (
-          <View className="bg-clay/10 border-2 border-clay rounded-2xl p-4 mb-3 shadow-sm">
+          <View className="bg-clay/10 border-2 border-clay rounded-2xl p-3 mb-2.5 shadow-sm">
             <View className="flex-row items-center justify-between mb-1.5">
               <View className="flex-row items-center flex-1 mr-2">
-                <MaterialCommunityIcons name="gavel" size={20} color={theme.clay} />
+                <MaterialCommunityIcons name="gavel" size={18} color={theme.clay} />
                 <Text className="font-black text-clay text-xs ml-1.5 uppercase">
                   {activeNotice.notice_type.replace("_", " ")}: Municipal Notice
                 </Text>
@@ -572,12 +585,12 @@ export default function KabadiwalaDashboard() {
               Issued by: {activeNotice.officer_name} ({activeNotice.officer_department}) • Stock: {activeNotice.stock_held_kg} kg
             </Text>
 
-            <View className="flex-row gap-2 mt-3">
+            <View className="flex-row gap-2 mt-2.5">
               <Pressable
                 onPress={() => router.push("/(kabadiwala)/sell-to-officer")}
-                className="flex-1 py-2.5 px-3 bg-leaf rounded-xl flex-row items-center justify-center shadow-sm"
+                className="flex-1 py-2 px-3 bg-leaf rounded-xl flex-row items-center justify-center shadow-sm"
               >
-                <MaterialCommunityIcons name="truck-delivery" size={16} color="#ffffff" />
+                <MaterialCommunityIcons name="truck-delivery" size={15} color="#ffffff" />
                 <Text className="text-white font-black text-xs ml-1.5">
                   Handover Stock to Officer
                 </Text>
@@ -585,7 +598,7 @@ export default function KabadiwalaDashboard() {
 
               <Pressable
                 onPress={() => setSelectedNoticeForModal(activeNotice)}
-                className="py-2.5 px-3 bg-white border border-line rounded-xl items-center justify-center"
+                className="py-2 px-3 bg-white border border-line rounded-xl items-center justify-center"
               >
                 <Text className="text-bark font-bold text-xs">View Order</Text>
               </Pressable>
@@ -595,18 +608,18 @@ export default function KabadiwalaDashboard() {
       })()}
 
       {/* Shop Profile & Photo Banner */}
-      <View className="bg-sand rounded-card p-3 mb-3 border border-line">
+      <View className="bg-sand rounded-card p-2.5 mb-2.5 border border-line">
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center flex-1 mr-2">
             {profile?.shop_photo_url ? (
               <Image
                 source={{ uri: profile.shop_photo_url }}
-                className="w-14 h-14 rounded-xl border border-line mr-3"
+                className="w-12 h-12 rounded-xl border border-line mr-2.5"
                 resizeMode="cover"
               />
             ) : (
-              <View className="w-14 h-14 rounded-xl bg-leaf/10 border border-leaf/30 items-center justify-center mr-3">
-                <MaterialCommunityIcons name="storefront-outline" size={26} color={theme.leaf} />
+              <View className="w-12 h-12 rounded-xl bg-leaf/10 border border-leaf/30 items-center justify-center mr-2.5">
+                <MaterialCommunityIcons name="storefront-outline" size={24} color={theme.leaf} />
               </View>
             )}
             <View className="flex-1">
@@ -616,25 +629,25 @@ export default function KabadiwalaDashboard() {
                 </Text>
                 <MaterialCommunityIcons name="check-decagram" size={14} color={theme.leaf} />
               </View>
-              <Text className="text-[11px] text-bark/60 mt-0.5">
-                {profile?.phone ? `📞 ${profile.phone}` : "No contact saved"} • {profile?.address ? profile.address.slice(0, 25) + "..." : "Local Mandi"}
+              <Text className="text-[11px] text-bark/60 mt-0.5" numberOfLines={1}>
+                {profile?.phone ? `📞 ${profile.phone}` : "No contact saved"} • {profile?.address ? profile.address.slice(0, 20) + "..." : "Local Mandi"}
               </Text>
             </View>
           </View>
           <View className="flex-row gap-1.5">
             <Pressable
               onPress={() => setShopModalOpen(true)}
-              className="py-1.5 px-2.5 bg-white border border-line rounded-xl flex-row items-center"
+              className="py-1 px-2 bg-white border border-line rounded-lg flex-row items-center"
             >
-              <MaterialCommunityIcons name="pencil-outline" size={14} color={theme.bark} />
-              <Text className="text-bark text-xs font-bold ml-1">Edit</Text>
+              <MaterialCommunityIcons name="pencil-outline" size={13} color={theme.bark} />
+              <Text className="text-bark text-[11px] font-bold ml-1">Edit</Text>
             </Pressable>
             <Pressable
               onPress={handleChoosePhotoSource}
-              className="py-1.5 px-2.5 bg-leaf rounded-xl flex-row items-center"
+              className="py-1 px-2 bg-leaf rounded-lg flex-row items-center"
             >
-              <MaterialCommunityIcons name="camera" size={14} color="#FFF" />
-              <Text className="text-white text-xs font-bold ml-1">
+              <MaterialCommunityIcons name="camera" size={13} color="#FFF" />
+              <Text className="text-white text-[11px] font-bold ml-1">
                 {profile?.shop_photo_url ? "Photo" : "+ Photo"}
               </Text>
             </Pressable>
@@ -643,81 +656,107 @@ export default function KabadiwalaDashboard() {
       </View>
 
       {/* E-Waste Rules 2022 Quick Action Hub */}
-      <View className="flex-row gap-2 mb-3">
+      <View className="flex-row gap-2 mb-2.5">
         <Pressable
           onPress={() => router.push("/(kabadiwala)/safety-guidance" as any)}
-          className="flex-1 bg-clay/10 border border-clay/30 rounded-xl p-2.5 items-center justify-center shadow-xs"
+          className="flex-1 bg-clay/10 border border-clay/30 rounded-xl py-2 px-1 items-center justify-center shadow-xs"
         >
-          <MaterialCommunityIcons name="shield-alert-outline" size={20} color={theme.clay} />
-          <Text className="text-[11px] font-black text-clay mt-1 text-center" numberOfLines={1}>
-            सुरक्षा केंद्र
+          <MaterialCommunityIcons name="shield-alert-outline" size={18} color={theme.clay} />
+          <Text className="text-[11px] font-black text-clay mt-0.5 text-center" numberOfLines={1}>
+            {t("kabadiwalaDashboard.safetyHub")}
           </Text>
-          <Text className="text-[9px] text-clay/80 text-center font-medium">Safety Hub</Text>
+          <Text className="text-[9px] text-clay/80 text-center font-medium" numberOfLines={1}>
+            {t("kabadiwalaDashboard.safetyHubSub")}
+          </Text>
         </Pressable>
 
         <Pressable
           onPress={() => router.push("/(kabadiwala)/sell-to-officer" as any)}
-          className="flex-1 bg-leaf/10 border border-leaf/30 rounded-xl p-2.5 items-center justify-center shadow-xs"
+          className="flex-1 bg-leaf/10 border border-leaf/30 rounded-xl py-2 px-1 items-center justify-center shadow-xs"
         >
-          <MaterialCommunityIcons name="factory" size={20} color={theme.leaf} />
-          <Text className="text-[11px] font-black text-leaf mt-1 text-center" numberOfLines={1}>
-            रीसाइक्लर सेल
+          <MaterialCommunityIcons name="factory" size={18} color={theme.leaf} />
+          <Text className="text-[11px] font-black text-leaf mt-0.5 text-center" numberOfLines={1}>
+            {t("kabadiwalaDashboard.recyclerSale")}
           </Text>
-          <Text className="text-[9px] text-leaf/80 text-center font-medium">EPR Handover</Text>
+          <Text className="text-[9px] text-leaf/80 text-center font-medium" numberOfLines={1}>
+            {t("kabadiwalaDashboard.recyclerSaleSub")}
+          </Text>
         </Pressable>
 
         <Pressable
           onPress={() => router.push("/price-trends" as any)}
-          className="flex-1 bg-sand border border-line rounded-xl p-2.5 items-center justify-center shadow-xs"
+          className="flex-1 bg-sand border border-line rounded-xl py-2 px-1 items-center justify-center shadow-xs"
         >
-          <MaterialCommunityIcons name="volume-high" size={20} color={theme.bark} />
-          <Text className="text-[11px] font-black text-bark mt-1 text-center" numberOfLines={1}>
-            बोलता भाव
+          <MaterialCommunityIcons name="volume-high" size={18} color={theme.bark} />
+          <Text className="text-[11px] font-black text-bark mt-0.5 text-center" numberOfLines={1}>
+            {t("kabadiwalaDashboard.voiceRates")}
           </Text>
-          <Text className="text-[9px] text-bark/60 text-center font-medium">Voice Rates</Text>
+          <Text className="text-[9px] text-bark/60 text-center font-medium" numberOfLines={1}>
+            {t("kabadiwalaDashboard.voiceRatesSub")}
+          </Text>
         </Pressable>
       </View>
 
       {/* 4 Main Tabs */}
-      <View className="flex-row mb-3 bg-sand rounded-xl p-1 border border-line">
+      <View className="flex-row mb-2.5 bg-sand rounded-xl p-1 border border-line">
         <Pressable
           onPress={() => setActiveTab("pickups")}
-          className={`flex-1 py-2 rounded-lg items-center ${
+          className={`flex-1 py-2 px-1 rounded-lg items-center justify-center ${
             activeTab === "pickups" ? "bg-white border border-line/40 shadow-sm" : ""
           }`}
         >
-          <Text className={`font-bold text-xs ${activeTab === "pickups" ? "text-bark" : "text-bark/60"}`}>
-            Pickups ({routeStops.length})
+          <Text
+            numberOfLines={1}
+            className={`font-bold text-[11px] text-center ${
+              activeTab === "pickups" ? "text-bark" : "text-bark/60"
+            }`}
+          >
+            {t("kabadiwalaDashboard.tabPickups")} ({routeStops.length})
           </Text>
         </Pressable>
         <Pressable
           onPress={() => setActiveTab("rates")}
-          className={`flex-1 py-2 rounded-lg items-center ${
+          className={`flex-1 py-2 px-1 rounded-lg items-center justify-center ${
             activeTab === "rates" ? "bg-white border border-line/40 shadow-sm" : ""
           }`}
         >
-          <Text className={`font-bold text-xs ${activeTab === "rates" ? "text-leaf" : "text-bark/60"}`}>
-            Rate Card 🏷️
+          <Text
+            numberOfLines={1}
+            className={`font-bold text-[11px] text-center ${
+              activeTab === "rates" ? "text-leaf" : "text-bark/60"
+            }`}
+          >
+            {t("kabadiwalaDashboard.tabRates")}
           </Text>
         </Pressable>
         <Pressable
           onPress={() => setActiveTab("ledger")}
-          className={`flex-1 py-2 rounded-lg items-center ${
+          className={`flex-1 py-2 px-1 rounded-lg items-center justify-center ${
             activeTab === "ledger" ? "bg-white border border-line/40 shadow-sm" : ""
           }`}
         >
-          <Text className={`font-bold text-xs ${activeTab === "ledger" ? "text-clay" : "text-bark/60"}`}>
-            Ledger 📊
+          <Text
+            numberOfLines={1}
+            className={`font-bold text-[11px] text-center ${
+              activeTab === "ledger" ? "text-clay" : "text-bark/60"
+            }`}
+          >
+            {t("kabadiwalaDashboard.tabLedger")}
           </Text>
         </Pressable>
         <Pressable
           onPress={() => setActiveTab("route")}
-          className={`flex-1 py-2 rounded-lg items-center ${
+          className={`flex-1 py-2 px-1 rounded-lg items-center justify-center ${
             activeTab === "route" ? "bg-white border border-line/40 shadow-sm" : ""
           }`}
         >
-          <Text className={`font-bold text-xs ${activeTab === "route" ? "text-bark" : "text-bark/60"}`}>
-            Route 🗺️
+          <Text
+            numberOfLines={1}
+            className={`font-bold text-[11px] text-center ${
+              activeTab === "route" ? "text-bark" : "text-bark/60"
+            }`}
+          >
+            {t("kabadiwalaDashboard.tabRoute")}
           </Text>
         </Pressable>
       </View>
@@ -725,17 +764,19 @@ export default function KabadiwalaDashboard() {
       {/* TAB 1: PICKUPS & BOOKINGS */}
       {activeTab === "pickups" && (
         <ScrollView
+          style={{ flex: 1 }}
+          className="flex-1"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 30 }}
         >
           {/* Incoming Customer Bookings */}
-          <Text className="text-base font-bold text-bark mb-2">Incoming Customer Bookings</Text>
+          <Text className="text-base font-bold text-bark mb-2">{t("kabadiwalaDashboard.incomingBookings")}</Text>
 
           {bookings.length === 0 ? (
             <View className="bg-sand rounded-card p-6 items-center border border-line mb-5">
               <MaterialCommunityIcons name="calendar-blank-outline" size={40} color={theme.line} />
-              <Text className="text-bark/60 text-center mt-3">No customer bookings yet.</Text>
+              <Text className="text-bark/60 text-center mt-3">{t("kabadiwalaDashboard.noBookings")}</Text>
             </View>
           ) : (
             bookings.map((b) => {
@@ -762,7 +803,7 @@ export default function KabadiwalaDashboard() {
 
                   {/* Items to collect */}
                   <View className="bg-paper/70 rounded-xl p-2.5 my-2 border border-line/50">
-                    <Text className="text-xs font-semibold text-bark/70 mb-1">Items to Collect:</Text>
+                    <Text className="text-xs font-semibold text-bark/70 mb-1">{t("kabadiwalaDashboard.itemsToCollect")}</Text>
                     {itemsList.length > 0 ? (
                       <View className="flex-row flex-wrap gap-1.5">
                         {itemsList.map((it, idx) => (
@@ -790,7 +831,7 @@ export default function KabadiwalaDashboard() {
                   <View className="flex-row items-center justify-between py-2 px-1 border-t border-b border-line/40 my-1">
                     <View className="flex-1 mr-2">
                       <Text className="text-xs font-bold text-bark" numberOfLines={1}>
-                        👤 {b.customer?.name || "Citizen Customer"}
+                        👤 {b.customer?.name || "Customer"}
                       </Text>
                       <Text className="text-[11px] text-bark/60">
                         📞 {b.customer?.phone || b.customer?.whatsapp || "Mobile on file"}
@@ -803,7 +844,7 @@ export default function KabadiwalaDashboard() {
                         accessibilityLabel="Call Customer"
                       >
                         <MaterialCommunityIcons name="phone" size={13} color={theme.bark} />
-                        <Text className="text-xs font-bold text-bark ml-1">Call</Text>
+                        <Text className="text-xs font-bold text-bark ml-1">{t("kabadiwalaDashboard.call")}</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => handleWhatsAppCustomer(b.customer?.whatsapp || b.customer?.phone, b.customer?.name)}
@@ -811,7 +852,7 @@ export default function KabadiwalaDashboard() {
                         accessibilityLabel="WhatsApp Customer"
                       >
                         <MaterialCommunityIcons name="whatsapp" size={13} color={theme.leaf} />
-                        <Text className="text-xs font-bold text-leaf ml-1">WhatsApp</Text>
+                        <Text className="text-xs font-bold text-leaf ml-1">{t("kabadiwalaDashboard.whatsapp")}</Text>
                       </Pressable>
                     </View>
                   </View>
@@ -824,7 +865,7 @@ export default function KabadiwalaDashboard() {
                           onPress={() => handleUpdateStatus(b.id, "accepted")}
                           className="flex-1 py-2.5 bg-leaf rounded-xl items-center"
                         >
-                          <Text className="text-white font-bold text-xs">Accept Booking</Text>
+                          <Text className="text-white font-bold text-xs">{t("kabadiwalaDashboard.acceptBooking")}</Text>
                         </Pressable>
                       )}
                       {b.status === "accepted" && (
@@ -832,7 +873,7 @@ export default function KabadiwalaDashboard() {
                           onPress={() => handleUpdateStatus(b.id, "in_progress")}
                           className="flex-1 py-2.5 bg-bark rounded-xl items-center"
                         >
-                          <Text className="text-white font-bold text-xs">Start Pickup</Text>
+                          <Text className="text-white font-bold text-xs">{t("kabadiwalaDashboard.startPickup")}</Text>
                         </Pressable>
                       )}
                       {(b.status === "in_progress" || b.status === "accepted") && (
@@ -840,7 +881,7 @@ export default function KabadiwalaDashboard() {
                           onPress={() => openCollectModal(b)}
                           className="flex-1 py-2.5 bg-ok rounded-xl items-center"
                         >
-                          <Text className="text-white font-bold text-xs">Mark Collected & Quality</Text>
+                          <Text className="text-white font-bold text-xs">{t("kabadiwalaDashboard.markCollected")}</Text>
                         </Pressable>
                       )}
                     </View>
@@ -855,14 +896,16 @@ export default function KabadiwalaDashboard() {
       {/* TAB 2: PLANNED ROUTE (प्लांट रूट) */}
       {activeTab === "route" && (
         <ScrollView
+          style={{ flex: 1 }}
+          className="flex-1"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 30 }}
         >
           <View className="mb-4">
-            <Text className="text-base font-bold text-bark mb-1">Optimized Pickup Route</Text>
+            <Text className="text-base font-bold text-bark mb-1">{t("kabadiwalaDashboard.routeTitle")}</Text>
             <Text className="text-xs text-bark/60 mb-3">
-              Ordered sequence of all pending customer stops near you.
+              {t("kabadiwalaDashboard.routeSubtitle")}
             </Text>
 
             {coords && (
@@ -884,7 +927,7 @@ export default function KabadiwalaDashboard() {
           {routeStops.length === 0 ? (
             <View className="bg-sand rounded-card p-6 items-center border border-line">
               <MaterialCommunityIcons name="map-check-outline" size={40} color={theme.line} />
-              <Text className="text-bark/70 text-center mt-3">All scheduled pickups are completed!</Text>
+              <Text className="text-bark/70 text-center mt-3">{t("kabadiwalaDashboard.routeCompleted")}</Text>
             </View>
           ) : (
             <View>
@@ -926,7 +969,7 @@ export default function KabadiwalaDashboard() {
                       className="flex-1 py-2 px-3 bg-paper border border-line rounded-xl flex-row items-center justify-center"
                     >
                       <MaterialCommunityIcons name="navigation-variant" size={16} color={theme.leaf} />
-                      <Text className="text-xs font-bold text-bark ml-1.5">Open in Google Maps</Text>
+                      <Text className="text-xs font-bold text-bark ml-1.5">{t("kabadiwalaDashboard.openGoogleMaps")}</Text>
                     </Pressable>
                     <Pressable
                       onPress={() => openCollectModal(stop)}
@@ -947,16 +990,18 @@ export default function KabadiwalaDashboard() {
          ======================================================== */}
       {activeTab === "rates" && (
         <ScrollView
+          style={{ flex: 1 }}
+          className="flex-1"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 35 }}
         >
           <View className="mb-3">
             <Text className="text-lg font-extrabold text-bark">
-              Your Scrap Buying Rates (दाम सूची)
+              {t("kabadiwalaDashboard.rateCardTitle")}
             </Text>
             <Text className="text-xs text-bark/70 mt-0.5">
-              Set your buying rate (₹/kg) for all types of garbage. Customers in your area will see this price chart before booking you.
+              {t("kabadiwalaDashboard.rateCardSubtitle")}
             </Text>
           </View>
 
@@ -1033,7 +1078,7 @@ export default function KabadiwalaDashboard() {
 
           {/* Save & Publish Action */}
           <PrimaryButton
-            label="Save & Publish Price Chart to Customers"
+            label={t("kabadiwalaDashboard.saveRatesBtn")}
             onPress={handleSaveRateCard}
             loading={savingRates}
           />
@@ -1072,6 +1117,8 @@ export default function KabadiwalaDashboard() {
          ======================================================== */}
       {activeTab === "ledger" && (
         <ScrollView
+          style={{ flex: 1 }}
+          className="flex-1"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 35 }}
@@ -1079,7 +1126,7 @@ export default function KabadiwalaDashboard() {
           {/* Summary Metric Cards */}
           <View className="flex-row mb-2.5">
             <View className="flex-1 bg-leaf rounded-card p-3.5 mr-1.5">
-              <Text className="text-white/80 text-xs">Total Inflow (Bought)</Text>
+              <Text className="text-white/80 text-xs">{t("kabadiwalaDashboard.totalInflow")}</Text>
               <Text className="text-white text-lg font-black mt-0.5">
                 {Number(ledger?.totalIntakeKg ?? 0).toFixed(1)} kg
               </Text>
@@ -1088,7 +1135,7 @@ export default function KabadiwalaDashboard() {
               </Text>
             </View>
             <View className="flex-1 bg-clay rounded-card p-3.5 ml-1.5">
-              <Text className="text-white/80 text-xs">Officer Resale (Sold)</Text>
+              <Text className="text-white/80 text-xs">{t("kabadiwalaDashboard.totalOutflow")}</Text>
               <Text className="text-white text-lg font-black mt-0.5">
                 {Number(ledger?.totalOutgoingKg ?? 0).toFixed(1)} kg
               </Text>
@@ -1103,14 +1150,14 @@ export default function KabadiwalaDashboard() {
             <View className="flex-row justify-between items-start mb-2">
               <View>
                 <Text className="text-xs font-bold text-bark/60 uppercase tracking-wider">
-                  Current Stock in Hand
+                  {t("kabadiwalaDashboard.stockInHand")}
                 </Text>
                 <Text className="text-2xl font-black text-bark mt-0.5">
                   {Number(ledger?.stockBalanceKg ?? 0).toFixed(1)} kg held
                 </Text>
               </View>
               <View className="items-end bg-leafLight px-3 py-1.5 rounded-xl border border-leaf/30">
-                <Text className="text-[11px] font-bold text-leaf uppercase">Projected Net Margin</Text>
+                <Text className="text-[11px] font-bold text-leaf uppercase">{t("kabadiwalaDashboard.projectedMargin")}</Text>
                 <Text className="text-base font-black text-leaf mt-0.5">
                   +₹{Number(ledger?.totalProjectedProfit ?? 0).toFixed(0)}
                 </Text>
@@ -1119,7 +1166,7 @@ export default function KabadiwalaDashboard() {
 
             <View className="pt-2 border-t border-line/60 flex-row justify-between items-center">
               <Text className="text-xs text-bark/70">
-                Expected Resale Payout from Officer:{" "}
+                {t("kabadiwalaDashboard.expectedResale")}{" "}
                 <Text className="font-bold text-bark">
                   ₹{Number(ledger?.totalExpectedOfficerPayout ?? 0).toFixed(0)}
                 </Text>

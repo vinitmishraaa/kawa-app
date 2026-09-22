@@ -55,10 +55,19 @@ export default function CustomerDashboard() {
     }
   }, [profile]);
 
-  const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const loadRef = useRef<(force?: boolean) => Promise<void>>(() => Promise.resolve());
+  const lastLoadedAtRef = useRef<number>(0);
+  const isFetchingRef = useRef<boolean>(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     if (!profile?.id) return;
+    if (isFetchingRef.current) return;
+    const now = Date.now();
+    if (!force && now - lastLoadedAtRef.current < 25000) {
+      return;
+    }
+
+    isFetchingRef.current = true;
     try {
       const [listingsData, bookingsData] = await Promise.all([
         getMyListings(profile.id).catch(() => []),
@@ -66,8 +75,11 @@ export default function CustomerDashboard() {
       ]);
       setListings(listingsData ?? []);
       setBookings((bookingsData as any) ?? []);
+      lastLoadedAtRef.current = Date.now();
     } catch {
       // Keep existing states on transient errors
+    } finally {
+      isFetchingRef.current = false;
     }
   }, [profile?.id]);
 
@@ -77,7 +89,7 @@ export default function CustomerDashboard() {
 
   useFocusEffect(
     useCallback(() => {
-      loadRef.current();
+      loadRef.current(false);
     }, [])
   );
 
@@ -89,14 +101,14 @@ export default function CustomerDashboard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "bookings" },
         () => {
-          loadRef.current();
+          loadRef.current(true);
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "scrap_listings" },
         () => {
-          loadRef.current();
+          loadRef.current(true);
         }
       )
       .subscribe();
@@ -109,7 +121,7 @@ export default function CustomerDashboard() {
   async function handleRefresh() {
     setRefreshing(true);
     try {
-      await load();
+      await load(true);
     } finally {
       setRefreshing(false);
     }
