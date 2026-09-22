@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Text, View, ScrollView, Pressable, Platform } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Speech from "expo-speech";
@@ -71,6 +71,21 @@ export default function SafetyGuidance() {
     },
   ];
 
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        Speech.stop();
+        setIsSpeaking(false);
+      };
+    }, [])
+  );
+
   function toggleSpeech() {
     if (isSpeaking) {
       Speech.stop();
@@ -87,12 +102,21 @@ export default function SafetyGuidance() {
     } else if (lang.startsWith("hi")) {
       speechText =
         "ई-वेस्ट सुरक्षा नियम. पहली बात: तारों और केबलों को खुले में कभी न जलाएं। दूसरी बात: सर्किट बोर्ड से तेजाब या एसिड द्वारा धातु न निकालें। तीसरी बात: सीआरटी स्क्रीन को न तोड़ें। चौथी बात: लिथियम बैटरी को पंचर न करें। सारा माल बिना तोड़े सीधे अधिकृत रिसायकलर को दें, जिससे आपको पूरा वजन और सबसे ज्यादा नकद भाव मिलेगा।";
+    } else if (lang.startsWith("bn")) {
+      speechText =
+        "ই-বর্জ্য নিরাপত্তা নির্দেশিকা। এক নম্বর: খোলা জায়গায় তার বা কেবল কখনোই পোড়াবেন না। দুই নম্বর: সার্কিট বোর্ডে ঘরে তৈরি অ্যাসিড ব্যবহার করবেন না। তিন নম্বর: পুরানো সিআরটি টিভির কাচ ভাঙবেন না। চার নম্বর: লিথিয়াম ব্যাটারি কখনোই ফুটো করবেন না। সমস্ত ই-বর্জ্য অক্ষত অবস্থায় সরাসরি অনুমোদিত রিসাইক্লারকে দিন, যার ফলে আপনি সঠিক ওজন এবং সর্বোচ্চ নগদ মূল্য পাবেন।";
     } else {
       speechText =
         "E-Waste Safety Guidelines under E-Waste Rules 2022. Number one: Never burn insulated cables in the open. Number two: Avoid backyard acid leaching on PCBs. Number three: Do not break CRT glass monitors. Number four: Never puncture lithium-ion batteries. Handover intact e-waste directly to authorized recyclers for maximum fair price and safety.";
     }
 
-    const voiceLang = lang.startsWith("mr") ? "mr-IN" : lang.startsWith("hi") ? "hi-IN" : "en-IN";
+    const voiceLang = lang.startsWith("mr")
+      ? "mr-IN"
+      : lang.startsWith("hi")
+      ? "hi-IN"
+      : lang.startsWith("bn")
+      ? "bn-IN"
+      : "en-IN";
 
     setIsSpeaking(true);
     Speech.speak(speechText, {

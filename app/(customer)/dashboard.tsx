@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import {
   FlatList,
   Text,
@@ -55,8 +55,10 @@ export default function CustomerDashboard() {
     }
   }, [profile]);
 
+  const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
+
   const load = useCallback(async () => {
-    if (!profile) return;
+    if (!profile?.id) return;
     try {
       const [listingsData, bookingsData] = await Promise.all([
         getMyListings(profile.id).catch(() => []),
@@ -67,30 +69,34 @@ export default function CustomerDashboard() {
     } catch {
       // Keep existing states on transient errors
     }
-  }, [profile]);
+  }, [profile?.id]);
+
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
 
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load])
+      loadRef.current();
+    }, [])
   );
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile?.id) return;
     const channel = supabase
       .channel(`customer_${profile.id}_realtime`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "bookings" },
         () => {
-          load();
+          loadRef.current();
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "scrap_listings" },
         () => {
-          load();
+          loadRef.current();
         }
       )
       .subscribe();
@@ -98,7 +104,7 @@ export default function CustomerDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile, load]);
+  }, [profile?.id]);
 
   async function handleRefresh() {
     setRefreshing(true);

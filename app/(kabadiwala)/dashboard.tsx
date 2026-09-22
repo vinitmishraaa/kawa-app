@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import {
   FlatList,
   Text,
@@ -218,19 +218,35 @@ export default function KabadiwalaDashboard() {
     }
   }, [profile?.price_rates]);
 
-  const load = useCallback(async () => {
-    if (!profile) return;
-    try {
-      // Non-blocking background location sync
-      syncProfileLocation(profile.id).then((loc) => {
-        if (loc) setCoords(loc);
-      }).catch(() => {});
+  const coordsRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
+  // Non-blocking location sync performed once on mount
+  useEffect(() => {
+    if (!profile?.id) return;
+    let active = true;
+    syncProfileLocation(profile.id)
+      .then((loc) => {
+        if (active && loc) {
+          coordsRef.current = loc;
+          setCoords(loc);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [profile?.id]);
+
+  const load = useCallback(async () => {
+    if (!profile?.id) return;
+    try {
       const currentRates = profile.price_rates ?? getDefaultPriceRates();
+      const currentCoords = coordsRef.current ?? coords ?? { latitude: 28.6139, longitude: 77.209 };
 
       const [bookingsData, nearbyListingsData, ledgerData, noticesData] = await Promise.all([
         getBookingsForKabadiwala(profile.id).catch(() => []),
-        getNearbyListings({ latitude: coords?.latitude ?? 28.6139, longitude: coords?.longitude ?? 77.209 }).catch(() => []),
+        getNearbyListings(currentCoords).catch(() => []),
         getKabadiwalaWasteLedger(profile.id, currentRates).catch(() => null),
         getNoticesForKabadiwala(profile.id).catch(() => []),
       ]);
@@ -242,31 +258,35 @@ export default function KabadiwalaDashboard() {
     } catch {
       // Keep UI active on errors
     }
-  }, [profile, coords]);
+  }, [profile?.id, profile?.price_rates]);
+
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
 
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load])
+      loadRef.current();
+    }, [])
   );
 
-  // Multi-user Real-Time Subscription: Listen for booking & transaction events
+  // Multi-user Real-Time Subscription: Listen for booking & transaction events once per profile
   useEffect(() => {
-    if (!profile) return;
+    if (!profile?.id) return;
     const channel = supabase
       .channel(`kabadiwala_${profile.id}_realtime`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "bookings" },
         () => {
-          load();
+          loadRef.current();
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "transactions" },
         () => {
-          load();
+          loadRef.current();
         }
       )
       .subscribe();
@@ -274,7 +294,7 @@ export default function KabadiwalaDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile, load]);
+  }, [profile?.id]);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -493,8 +513,12 @@ export default function KabadiwalaDashboard() {
   }
 
   // Calculate planned route stops from accepted/in-progress bookings
-  const routeStops = (bookings ?? []).filter(
-    (b) => b.status === "accepted" || b.status === "in_progress" || b.status === "requested"
+  const routeStops = useMemo(
+    () =>
+      (bookings ?? []).filter(
+        (b) => b.status === "accepted" || b.status === "in_progress" || b.status === "requested"
+      ),
+    [bookings]
   );
 
   return (

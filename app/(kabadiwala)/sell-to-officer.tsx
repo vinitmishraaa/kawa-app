@@ -1,8 +1,9 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Alert, Text, TextInput, View, FlatList, Pressable, Modal, ScrollView } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Speech from "expo-speech";
 import { ScreenContainer } from "../../components/ScreenContainer";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { LoadingView } from "../../components/LoadingView";
@@ -26,16 +27,73 @@ interface ManifestInfo {
 }
 
 export default function SellToOfficer() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const [officers, setOfficers] = useState<any[] | null>(null);
   const [officerId, setOfficerId] = useState("");
   const [category, setCategory] = useState("pcb_circuit_boards");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
-  const [quality, setQuality] = useState("Grade A (Clean)");
+  const [quality, setQuality] = useState("grade_a");
   const [loading, setLoading] = useState(false);
   const [manifest, setManifest] = useState<ManifestInfo | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        Speech.stop();
+        setIsSpeaking(false);
+      };
+    }, [])
+  );
+
+  function toggleSpeech() {
+    if (isSpeaking) {
+      Speech.stop();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const lang = i18n.language || "en";
+    let speechText = "";
+
+    if (lang.startsWith("mr")) {
+      speechText =
+        "अधिकृत रिसायकलरकडे ई-कचरा सुपूर्द करा. प्रथम रिसायकलर आणि भंगार प्रकार निवडा, वजन आणि ठरलेला भाव टाका. कन्फर्म केल्यावर तुम्हाला तात्काळ डिजिटल लॉट पावती आणि अधिकृत ईपीआर प्रमाणपत्र मिळेल.";
+    } else if (lang.startsWith("hi")) {
+      speechText =
+        "अधिकृत रीसाइक्लर को अपना ई-कचरा दें। पहले रीसाइक्लर और कबाड़ का प्रकार चुनें, फिर वजन और तय किया गया भाव दर्ज करें। कन्फर्म करने पर आपको तुरंत डिजिटल लॉट रसीद और सरकारी ईपीआर सर्टिफिकेट मिल जाएगा।";
+    } else if (lang.startsWith("bn")) {
+      speechText =
+        "অনুমোদিত রিসাইক্লারে আপনার ই-বর্জ্য হস্তান্তর করুন। প্রথমে রিসাইক্লার ও ভাঙারির প্রকার বাছুন, তারপর ওজন এবং নির্ধারিত মূল্য লিখুন। নিশ্চিত করলে অবিলম্বে ডিজিটাল লট রসিদ এবং সরকারি ইপিআর সার্টিফিকেট পাবেন।";
+    } else {
+      speechText =
+        "Hand over collected e-waste directly to authorized recyclers. Select the registered facility and scrap category, enter weight and agreed payout, and confirm to generate a verified digital EPR lot manifest.";
+    }
+
+    const voiceLang = lang.startsWith("mr")
+      ? "mr-IN"
+      : lang.startsWith("hi")
+      ? "hi-IN"
+      : lang.startsWith("bn")
+      ? "bn-IN"
+      : "en-IN";
+
+    setIsSpeaking(true);
+    Speech.speak(speechText, {
+      language: voiceLang,
+      rate: 0.9,
+      onDone: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false),
+    });
+  }
 
   const load = useCallback(async () => {
     setOfficers(await getVerifiedOfficers());
@@ -100,18 +158,47 @@ export default function SellToOfficer() {
   return (
     <ScreenContainer scroll>
       {/* Header */}
-      <View className="flex-row items-center mt-4 mb-3">
-        <Pressable onPress={() => router.back()} className="mr-3">
-          <MaterialCommunityIcons name="arrow-left" size={24} color={theme.bark} />
-        </Pressable>
-        <View className="flex-1">
-          <Text className="text-2xl font-black text-bark">
-            {t("sellOfficer.title", { defaultValue: "Recycler Handover" })}
-          </Text>
-          <Text className="text-xs text-bark/60">
-            E-Waste (Management) Rules, 2022 • Chain of Custody
-          </Text>
+      <View className="flex-row items-center justify-between mt-4 mb-3">
+        <View className="flex-row items-center flex-1 mr-2">
+          <Pressable
+            onPress={() => {
+              Speech.stop();
+              router.back();
+            }}
+            className="mr-3"
+          >
+            <MaterialCommunityIcons name="arrow-left" size={24} color={theme.bark} />
+          </Pressable>
+          <View className="flex-1">
+            <Text className="text-2xl font-black text-bark">
+              {t("sellOfficer.title", { defaultValue: "Recycler Handover" })}
+            </Text>
+            <Text className="text-xs text-bark/60">
+              E-Waste Rules 2022 • Chain of Custody
+            </Text>
+          </View>
         </View>
+
+        {/* Audio Listen Guide Button */}
+        <Pressable
+          onPress={toggleSpeech}
+          className={`flex-row items-center px-3 py-1.5 rounded-xl border ${
+            isSpeaking ? "bg-clay border-clay" : "bg-leafLight border-leaf/40"
+          }`}
+        >
+          <MaterialCommunityIcons
+            name={isSpeaking ? "volume-off" : "volume-high"}
+            size={18}
+            color={isSpeaking ? "#FFFFFF" : theme.leaf}
+          />
+          <Text
+            className={`text-xs font-bold ml-1 ${
+              isSpeaking ? "text-white" : "text-leaf"
+            }`}
+          >
+            {isSpeaking ? "Stop" : "Listen"}
+          </Text>
+        </Pressable>
       </View>
 
       {/* Compliance Information Card */}
@@ -332,6 +419,7 @@ export default function SellToOfficer() {
             <PrimaryButton
               label="Done & Return to Dashboard"
               onPress={() => {
+                Speech.stop();
                 setManifest(null);
                 router.replace("/(kabadiwala)/dashboard");
               }}

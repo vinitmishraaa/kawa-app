@@ -7,6 +7,7 @@ import * as Location from "expo-location";
 import { Camera } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { theme } from "../constants/theme";
+import { LANGUAGES } from "../constants/languages";
 import { useAuthStore } from "../store/authStore";
 import { useOnboardingStore } from "../store/onboardingStore";
 import { signOut } from "../services/auth";
@@ -230,19 +231,15 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
 
             {/* LANGUAGE SELECTOR */}
             <Text className="text-xs font-bold uppercase tracking-wider text-bark/70 mb-2">
-              {t("appSettings.selectLanguage")} (भाषा / ভাষা)
+              {t("appSettings.selectLanguage")} (भाषा / भाषा / ভাষা)
             </Text>
 
-            <View className="flex-row mb-5 bg-white rounded-2xl p-1.5 border border-line">
-              {[
-                { code: "en", label: "English" },
-                { code: "hi", label: "हिन्दी" },
-                { code: "bn", label: "বাংলা" },
-              ].map((item) => (
+            <View className="flex-row flex-wrap gap-1.5 mb-5 bg-white rounded-2xl p-1.5 border border-line">
+              {LANGUAGES.map((item) => (
                 <Pressable
                   key={item.code}
                   onPress={() => handleSelectLanguage(item.code)}
-                  className={`flex-1 py-2.5 rounded-xl items-center ${
+                  className={`flex-1 min-w-[65px] py-2 rounded-xl items-center ${
                     i18n.language === item.code ? "bg-leafLight border border-leaf/50" : ""
                   }`}
                 >
@@ -253,6 +250,9 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
                   >
                     {item.label}
                   </Text>
+                  {item.subLabel ? (
+                    <Text className="text-[9px] text-bark/50 mt-0.5">{item.subLabel}</Text>
+                  ) : null}
                 </Pressable>
               ))}
             </View>

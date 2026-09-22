@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { RefreshControl, ScrollView, Text, View, Pressable } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -32,6 +32,21 @@ export default function PriceTrends() {
 
   const selectedCategoryObj = SCRAP_CATEGORIES.find((c) => c.id === category);
 
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        Speech.stop();
+        setIsSpeaking(false);
+      };
+    }, [])
+  );
+
   function speakPrices() {
     if (isSpeaking) {
       Speech.stop();
@@ -48,12 +63,21 @@ export default function PriceTrends() {
     } else if (lang.startsWith("hi")) {
       speechText =
         "आज का ई-वेस्ट और कबाड़ का ताजा भाव. सर्किट बोर्ड 350 से 550 रुपये प्रति किलो. लिथियम बैटरी 120 से 220 रुपये प्रति किलो. तांबे की तारें 420 से 620 रुपये प्रति किलो. सीआरटी स्क्रीन 80 से 180 रुपये प्रति पीस. माल सीधे अधिकृत रिसायकलर को दें और सही नकद भाव पाएं।";
+    } else if (lang.startsWith("bn")) {
+      speechText =
+        "আজকের অফিসিয়াল ই-বর্জ্য ও স্ক্র্যাপের বাজার দর। সার্কিট বোর্ড ৩৫০ থেকে ৫৫০ টাকা প্রতি কেজি। লিথিয়াম ব্যাটারি ১২০ থেকে ২২০ টাকা প্রতি কেজি। তামার তার ৪২০ থেকে ৬২০ টাকা প্রতি কেজি। সিআরটি স্ক্রিন ৮০ থেকে ১৮০ টাকা প্রতি পিস। অনুমোদিত রিসাইক্লারকে সরাসরি স্ক্র্যাপ দিলে সঠিক ওজন ও সেরা নগদ দাম পাওয়া যায়।";
     } else {
       speechText =
         "Today's official buying rates under E-Waste Rules 2022. Circuit boards: 350 to 550 rupees per kg. Lithium batteries: 120 to 220 rupees per kg. Copper cables: 420 to 620 rupees per kg. CRT screens: 80 to 180 rupees per piece. Handover directly to authorized recyclers for certified weights and maximum payout.";
     }
 
-    const voiceLang = lang.startsWith("mr") ? "mr-IN" : lang.startsWith("hi") ? "hi-IN" : "en-IN";
+    const voiceLang = lang.startsWith("mr")
+      ? "mr-IN"
+      : lang.startsWith("hi")
+      ? "hi-IN"
+      : lang.startsWith("bn")
+      ? "bn-IN"
+      : "en-IN";
 
     setIsSpeaking(true);
     Speech.speak(speechText, {

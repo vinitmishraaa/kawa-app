@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import {
   Alert,
   RefreshControl,
@@ -63,8 +63,10 @@ export default function OfficerDashboard() {
   const [noticeMessage, setNoticeMessage] = useState("");
   const [sendingNotice, setSendingNotice] = useState(false);
 
+  const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
+
   const load = useCallback(async () => {
-    if (!profile) return;
+    if (!profile?.id) return;
     try {
       const [sumRes, kabadiRes] = await Promise.all([
         getOfficerSummary(profile.id).catch(() => DEFAULT_SUMMARY),
@@ -75,23 +77,27 @@ export default function OfficerDashboard() {
     } catch {
       setSummary(DEFAULT_SUMMARY);
     }
-  }, [profile]);
+  }, [profile?.id]);
+
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
 
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load])
+      loadRef.current();
+    }, [])
   );
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile?.id) return;
     const channel = supabase
       .channel(`officer_${profile.id}_realtime`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "transactions" },
         () => {
-          load();
+          loadRef.current();
         }
       )
       .subscribe();
@@ -99,7 +105,7 @@ export default function OfficerDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile, load]);
+  }, [profile?.id]);
 
   async function refresh() {
     setRefreshing(true);
