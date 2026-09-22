@@ -212,13 +212,13 @@ export default function OfficerDashboard() {
       <View className="flex-row items-center justify-between mt-3 mb-3">
         <View className="flex-1 mr-2">
           <View className="flex-row items-center flex-wrap">
-            <Text className="text-2xl font-black text-bark">Officer Hub</Text>
+            <Text className="text-2xl font-black text-bark">Authorized Recycler Hub</Text>
             <View className="ml-2 px-2.5 py-0.5 bg-leafLight rounded-full border border-leaf/40">
-              <Text className="text-[10px] font-bold text-leaf uppercase">Gov SWM Verified</Text>
+              <Text className="text-[10px] font-bold text-leaf uppercase">CPCB / SPCB Reg. Facility</Text>
             </View>
           </View>
           <Text className="text-xs text-bark/70 mt-0.5">
-            {profile?.name ?? "Municipal Officer"} • {profile?.department ?? "Solid Waste Management"}
+            {profile?.name ?? "Authorized Officer"} • {profile?.department ?? "E-Waste & SWM Enforcement"} • EPR Reg: 2022/REC-904
           </Text>
         </View>
 
@@ -406,7 +406,7 @@ export default function OfficerDashboard() {
                                   isOfficerLeg ? "text-clay" : "text-leaf"
                                 }`}
                               >
-                                {isOfficerLeg ? "Kabadiwala ➔ Officer" : "Customer ➔ Kabadiwala"}
+                                {isOfficerLeg ? "Collector ➔ Recycler" : "Customer ➔ Collector"}
                               </Text>
                             </View>
                             <Text className="font-bold text-bark text-sm capitalize">

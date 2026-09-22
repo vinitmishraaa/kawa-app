@@ -618,6 +618,42 @@ export default function KabadiwalaDashboard() {
         </View>
       </View>
 
+      {/* E-Waste Rules 2022 Quick Action Hub */}
+      <View className="flex-row gap-2 mb-3">
+        <Pressable
+          onPress={() => router.push("/(kabadiwala)/safety-guidance" as any)}
+          className="flex-1 bg-clay/10 border border-clay/30 rounded-xl p-2.5 items-center justify-center shadow-xs"
+        >
+          <MaterialCommunityIcons name="shield-alert-outline" size={20} color={theme.clay} />
+          <Text className="text-[11px] font-black text-clay mt-1 text-center" numberOfLines={1}>
+            सुरक्षा केंद्र
+          </Text>
+          <Text className="text-[9px] text-clay/80 text-center font-medium">Safety Hub</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push("/(kabadiwala)/sell-to-officer" as any)}
+          className="flex-1 bg-leaf/10 border border-leaf/30 rounded-xl p-2.5 items-center justify-center shadow-xs"
+        >
+          <MaterialCommunityIcons name="factory" size={20} color={theme.leaf} />
+          <Text className="text-[11px] font-black text-leaf mt-1 text-center" numberOfLines={1}>
+            रीसाइक्लर सेल
+          </Text>
+          <Text className="text-[9px] text-leaf/80 text-center font-medium">EPR Handover</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push("/price-trends" as any)}
+          className="flex-1 bg-sand border border-line rounded-xl p-2.5 items-center justify-center shadow-xs"
+        >
+          <MaterialCommunityIcons name="volume-high" size={20} color={theme.bark} />
+          <Text className="text-[11px] font-black text-bark mt-1 text-center" numberOfLines={1}>
+            बोलता भाव
+          </Text>
+          <Text className="text-[9px] text-bark/60 text-center font-medium">Voice Rates</Text>
+        </Pressable>
+      </View>
+
       {/* 4 Main Tabs */}
       <View className="flex-row mb-3 bg-sand rounded-xl p-1 border border-line">
         <Pressable

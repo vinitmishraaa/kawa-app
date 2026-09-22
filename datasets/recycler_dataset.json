@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "regulatoryCompliance": "CPCB EPR Portal Guidelines (MoEFCC)",
+  "recyclers": [
+    {
+      "facilityId": "REC-DEL-01",
+      "officerProfileId": "OFFICER-SWM-101",
+      "name": "EcoEx Green Tech E-Waste Processing Facility",
+      "spcbRegistrationNo": "DPCC/EPR/2022/REC-901",
+      "cpcbEprCertificate": "CPCB/EPR-2022/EW-DL-0045",
+      "zone": "North Zone (Delhi NCR)",
+      "address": "Plot 44, Okhla Industrial Area Phase-III, New Delhi 110020",
+      "latitude": 28.5355,
+      "longitude": 77.2612,
+      "authorizedCapacityTPA": 12000,
+      "acceptedCategories": [
+        "pcb_circuit_boards",
+        "batteries_lithium_lead",
+        "copper_cables_wiring",
+        "iron_metal"
+      ],
+      "recoveryTechnologies": [
+        "Hydrometallurgical Precious Metal Refining",
+        "Dry Wire Stripping & Air Separation",
+        "Safe Li-ion Neutralization"
+      ],
+      "eprCreditMultiplier": 1.15,
+      "weighbridgeIntegrated": true,
+      "contact": {
+        "person": "Rajesh Sharma (Zonal Officer / Facility Lead)",
+        "phone": "+91-9811000101",
+        "email": "cpcb.rec901@kawa-recycler.org"
+      }
+    },
+    {
+      "facilityId": "REC-MUM-02",
+      "officerProfileId": "OFFICER-SWM-102",
+      "name": "Maharastra State E-Waste Refiners Ltd.",
+      "spcbRegistrationNo": "MPCB/EPR/2022/REC-902",
+      "cpcbEprCertificate": "CPCB/EPR-2022/EW-MH-0112",
+      "zone": "West Zone (Mumbai MMR)",
+      "address": "TTC Industrial Area, MIDC Turbhe, Navi Mumbai 400705",
+      "latitude": 19.076,
+      "longitude": 73.0083,
+      "authorizedCapacityTPA": 18500,
+      "acceptedCategories": [
+        "pcb_circuit_boards",
+        "crt_screens_monitors",
+        "motors_compressors_magnets",
+        "plastics_pet_hdpe"
+      ],
+      "recoveryTechnologies": [
+        "Diamond Wire CRT De-manufacturing",
+        "Vacuum Compressor Degasification",
+        "Optical Polymer Sorter"
+      ],
+      "eprCreditMultiplier": 1.2,
+      "weighbridgeIntegrated": true,
+      "contact": {
+        "person": "Amit Banerjee (Operations Lead)",
+        "phone": "+91-9820000102",
+        "email": "mpcb.rec902@kawa-recycler.org"
+      }
+    },
+    {
+      "facilityId": "REC-BLR-03",
+      "officerProfileId": "OFFICER-SWM-103",
+      "name": "Karnataka Urban CleanTech & Rare Earth Recovery",
+      "spcbRegistrationNo": "KSPCB/EPR/2022/REC-903",
+      "cpcbEprCertificate": "CPCB/EPR-2022/EW-KA-0087",
+      "zone": "South Zone (Bengaluru Tech Corridor)",
+      "address": "Sector 7, Peenya Industrial Estate, Bengaluru 560058",
+      "latitude": 13.0285,
+      "longitude": 77.5197,
+      "authorizedCapacityTPA": 22000,
+      "acceptedCategories": [
+        "pcb_circuit_boards",
+        "batteries_lithium_lead",
+        "motors_compressors_magnets"
+      ],
+      "recoveryTechnologies": [
+        "Hydrogen Decrepitation Rare Earth Extractor",
+        "Closed-Loop Gold & Palladium Electrowinning",
+        "Nitrogen Blanket Battery Shredding"
+      ],
+      "eprCreditMultiplier": 1.25,
+      "weighbridgeIntegrated": true,
+      "contact": {
+        "person": "Pooja Verma (Authorized Compliance Lead)",
+        "phone": "+91-9845000103",
+        "email": "kspcb.rec903@kawa-recycler.org"
+      }
+    },
+    {
+      "facilityId": "REC-KOL-04",
+      "officerProfileId": "OFFICER-SWM-104",
+      "name": "Bengal Environmental Resources Management Hub",
+      "spcbRegistrationNo": "WBPCB/EPR/2022/REC-904",
+      "cpcbEprCertificate": "CPCB/EPR-2022/EW-WB-0034",
+      "zone": "East Zone (Kolkata & Howrah)",
+      "address": "Kona Expressway Recycling Complex, Howrah, West Bengal 711113",
+      "latitude": 22.585,
+      "longitude": 88.2917,
+      "authorizedCapacityTPA": 9500,
+      "acceptedCategories": [
+        "copper_cables_wiring",
+        "crt_screens_monitors",
+        "iron_metal"
+      ],
+      "recoveryTechnologies": [
+        "Cryogenic Cable Granulator",
+        "Leaded Glass Blast Smelting with Baghouse Filters"
+      ],
+      "eprCreditMultiplier": 1.1,
+      "weighbridgeIntegrated": true,
+      "contact": {
+        "person": "Vikram Sen (Enforcement Director)",
+        "phone": "+91-9830000104",
+        "email": "wbpcb.rec904@kawa-recycler.org"
+      }
+    }
+  ]
+}

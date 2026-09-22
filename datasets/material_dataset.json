@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "framework": "E-Waste (Management) Rules, 2022",
+  "issuingAuthority": "Ministry of Environment, Forest and Climate Change (MoEFCC) & CPCB",
+  "categories": [
+    {
+      "id": "pcb_circuit_boards",
+      "name": "Printed Circuit Boards (PCBs)",
+      "vernacularNames": {
+        "hi": "सर्किट बोर्ड / मदरबोर्ड",
+        "mr": "सर्किट बोर्ड आणि मदरबोर्ड",
+        "bn": "সার্কিট বোর্ড"
+      },
+      "typicalSources": ["Smartphones", "Laptops", "Desktops", "Telecom Routers", "Inverters"],
+      "constituentValuableMaterials": [
+        { "name": "Copper (Cu)", "grade": "High", "purity": "99.2%" },
+        { "name": "Gold (Au)", "grade": "Trace to Precious", "concentrationPPM": 250 },
+        { "name": "Silver (Ag)", "grade": "Precious", "concentrationPPM": 1100 },
+        { "name": "Palladium (Pd)", "grade": "Precious", "concentrationPPM": 80 },
+        { "name": "Gallium (Ga)", "grade": "Critical Raw Material", "concentrationPPM": 15 },
+        { "name": "Tantalum (Ta)", "grade": "Critical Raw Material", "concentrationPPM": 120 }
+      ],
+      "hazardousConstituents": ["Lead (Pb) solder", "Beryllium oxide", "Brominated Flame Retardants (BFRs)"],
+      "backyardHazardRisks": {
+        "practices": ["Nitric acid leaching", "Cyanide stripping", "Blowtorch desoldering"],
+        "humanHealthImpacts": ["Pulmonary edema", "Kidney necrosis from nitric fumes", "Chronic cyanide toxicity"],
+        "environmentalDamage": ["Acidic effluent dumped into municipal drains", "Groundwater heavy metal contamination"]
+      },
+      "formalRecyclerProcess": "Closed-loop hydrometallurgical extraction with wet scrubber off-gas treatment (>98% precious metal recovery).",
+      "informalRecoveryYield": "25% - 35%",
+      "formalRecoveryYield": "95% - 99%"
+    },
+    {
+      "id": "batteries_lithium_lead",
+      "name": "Lithium-Ion & Lead Acid Batteries",
+      "vernacularNames": {
+        "hi": "लिथियम व लेड बैटरी",
+        "mr": "लिथियम आणि लेड बॅटरी",
+        "bn": "লিথিয়াম এবং লেড ব্যাটারি"
+      },
+      "typicalSources": ["Smartphones", "Electric 2-Wheelers", "Laptops", "Power Banks", "UPS Backups"],
+      "constituentValuableMaterials": [
+        { "name": "Lithium (Li)", "grade": "Strategic Energy Metal", "purity": "99.5% battery precursor" },
+        { "name": "Cobalt (Co)", "grade": "Critical Raw Material", "purity": "High" },
+        { "name": "Nickel (Ni)", "grade": "Base Metal", "purity": "High" },
+        { "name": "Lead (Pb)", "grade": "Recyclable Metal", "purity": "99.9%" }
+      ],
+      "hazardousConstituents": ["Sulfuric acid", "Flammable solvent electrolytes (LiPF6)", "Fluorinated compounds"],
+      "backyardHazardRisks": {
+        "practices": ["Manual chisel hammering to expose cells", "Open-air electrolyte burning", "Backyard crucible smelting"],
+        "humanHealthImpacts": ["Spontaneous explosive fire and thermal burns", "Hydrofluoric acid burns", "Neurotoxic lead poisoning"],
+        "environmentalDamage": ["Heavy metal leaching into agricultural soil", "Airborne lead particulate deposition"]
+      },
+      "formalRecyclerProcess": "Inert nitrogen shredding, electrolyte recovery, followed by hydrometallurgical black mass separation into battery-grade sulfates.",
+      "informalRecoveryYield": "15% - 25% (Lithium & Cobalt completely lost)",
+      "formalRecoveryYield": "92% - 97%"
+    },
+    {
+      "id": "crt_screens_monitors",
+      "name": "CRT Glass, Displays & Monitors",
+      "vernacularNames": {
+        "hi": "पुराने टीवी / सीआरटी व स्क्रीन",
+        "mr": "जुने टीव्ही आणि स्क्रीन",
+        "bn": "পুরানো টিভি এবং ডিসপ্লে"
+      },
+      "typicalSources": ["Old CRT Televisions", "Computer Monitors", "Oscilloscopes", "Medical Display Units"],
+      "constituentValuableMaterials": [
+        { "name": "Indium (In)", "grade": "Critical Semiconductor Metal", "concentrationPPM": 300 },
+        { "name": "Copper (Cu)", "grade": "Deflection Yoke Metal", "purity": "99.5%" },
+        { "name": "Rare Earth Phosphors (Eu, Tb)", "grade": "Critical Raw Material", "purity": "Refined" }
+      ],
+      "hazardousConstituents": ["Leaded funnel glass (up to 25% PbO)", "Mercury (Hg) lamps in older LCD backlights", "Cadmium phosphors"],
+      "backyardHazardRisks": {
+        "practices": ["Smashing screens with hammers to extract copper yoke", "Open burning of casing plastics"],
+        "humanHealthImpacts": ["Silicosis & lung damage from lead dust", "Acute mercury vapor poisoning", "Severe corneal damage"],
+        "environmentalDamage": ["Leaded micro-glass shards contaminate soil for centuries", "Mercury bio-accumulation in rivers"]
+      },
+      "formalRecyclerProcess": "Diamond wire cutting to separate panel from funnel glass, thermal cleaning, glass-to-glass recycling or lead smelting in blast furnaces with baghouse filters.",
+      "informalRecoveryYield": "Only copper yoke salvage (10-15% of total value; all Indium and CRT glass wasted)",
+      "formalRecoveryYield": "85% - 94%"
+    },
+    {
+      "id": "copper_cables_wiring",
+      "name": "Copper Cables, Wiring & Harnesses",
+      "vernacularNames": {
+        "hi": "तांबे के तार व केबल",
+        "mr": "तांब्याच्या तारा आणि केबल्स",
+        "bn": "তামার তার এবং কেবল"
+      },
+      "typicalSources": ["Telecommunications Wiring", "Power Transmission Cables", "Appliance Cords", "Automotive Harnesses"],
+      "constituentValuableMaterials": [
+        { "name": "Electrolytic Copper (Cu)", "grade": "Grade 1 Wire", "purity": "99.95%" }
+      ],
+      "hazardousConstituents": ["PVC Insulation", "Polychlorinated biphenyls (PCBs)", "Lead stabilizers in plastic sheath"],
+      "backyardHazardRisks": {
+        "practices": ["Open burning in pits using kerosene or tires to melt insulation"],
+        "humanHealthImpacts": ["Inhalation of polychlorinated dibenzo-p-dioxins and furans (carcinogens)", "Chronic obstructive pulmonary disease (COPD)"],
+        "environmentalDamage": ["Black toxic soot releases PM2.5 and volatile organic compounds (VOCs)"]
+      },
+      "formalRecyclerProcess": "Dry mechanical stripping, cryogenic wire granulation, and pneumatic density air-table separation yielding 99.9% clean copper granules and recyclable PVC pellets.",
+      "informalRecoveryYield": "65% (35% copper oxidized or melted into ash)",
+      "formalRecoveryYield": "99.2%"
+    },
+    {
+      "id": "motors_compressors_magnets",
+      "name": "Rare Earth Magnets, Motors & Compressors",
+      "vernacularNames": {
+        "hi": "मोटर, कंप्रेसर व चुंबक",
+        "mr": "मोटार आणि कंप्रेसर",
+        "bn": "মোটর এবং কম্প্রেসার"
+      },
+      "typicalSources": ["Hard Disk Drives (HDDs)", "Refrigerator Compressors", "Ceiling Fan Motors", "Washing Machine Pumps"],
+      "constituentValuableMaterials": [
+        { "name": "Neodymium (Nd)", "grade": "Rare Earth Magnet Metal", "purity": "High" },
+        { "name": "Dysprosium (Dy)", "grade": "Heavy Rare Earth Metal", "purity": "High" },
+        { "name": "Copper (Cu)", "grade": "Winding Metal", "purity": "99.5%" },
+        { "name": "Electrical Steel", "grade": "Grain-Oriented Scrap", "purity": "Industrial" }
+      ],
+      "hazardousConstituents": ["Synthetic compressor oils", "Trace refrigerants (HFCs/HCFCs)"],
+      "backyardHazardRisks": {
+        "practices": ["Angle grinder chopping of hermetic compressors", "Venting compressor refrigerants into air", "Discarding permanent magnets as black iron"],
+        "humanHealthImpacts": ["Eye injuries and hearing damage", "Skin dermatitis from polyolester oils"],
+        "environmentalDamage": ["Refrigerant release depletes ozone and aggravates global warming"]
+      },
+      "formalRecyclerProcess": "Automated degasification, oil vacuum recovery, followed by hydrogen decrepitation for rare earth magnet recovery (NdFeB).",
+      "informalRecoveryYield": "0% rare earth recovery (magnets dumped as base iron; 50% value lost)",
+      "formalRecoveryYield": "90% - 95%"
+    }
+  ]
+}

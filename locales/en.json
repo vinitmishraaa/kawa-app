@@ -201,10 +201,15 @@
       "steel": "Steel"
     },
     "ewaste": {
-      "label": "E-waste",
-      "appliances": "Appliances",
-      "electronics": "Electronics",
-      "cables": "Cables"
+      "label": "E-Waste / Electronics",
+      "pcb": "PCBs & Motherboards (Cu, Au, Ag)",
+      "batteries": "Li-ion & Lead Batteries (Hazardous)",
+      "screens": "CRTs & LCD/LED Panels",
+      "cables": "Copper Cables & Wires",
+      "motors": "Electric Motors & Magnets",
+      "appliances": "Appliances / White Goods",
+      "electronics": "Mobile & Computer Scrap",
+      "mixed": "Mixed Electronics"
     },
     "glass": {
       "label": "Glass",
@@ -216,19 +221,38 @@
       "mixed": "Mixed / other"
     }
   },
+  "safety": {
+    "title": "E-Waste Safety Hub",
+    "subtitle": "Safe handling guidance for informal collectors & aggregators",
+    "listenAudio": "🔊 Listen Safety Rules (Audio)",
+    "dangerTitle": "Strictly Prohibited (Hazardous Practices)",
+    "safeTitle": "Approved Standard Handling (Best Practice)",
+    "noBurnCableTitle": "Never Burn Wires in Open Air",
+    "noBurnCableDesc": "Burning cables releases carcinogenic dioxins, destroys copper purity, and lowers your sale price.",
+    "noAcidTitle": "No Backyard Acid Leaching",
+    "noAcidDesc": "Using nitric/cyanide acids causes lethal respiratory damage and severe groundwater contamination.",
+    "noBreakCrtTitle": "Do Not Break CRT Glass",
+    "noBreakCrtDesc": "Vacuum implosion scatters toxic phosphor dust and heavy lead particles.",
+    "noPunctureBatteryTitle": "Do Not Puncture Lithium Batteries",
+    "noPunctureBatteryDesc": "Damaged or shorted lithium-ion cells cause instant thermal runaway fires and explosions.",
+    "safeHandoverTitle": "Direct Handover to CPCB Recycler",
+    "safeHandoverDesc": "Deliver intact items to authorized recyclers for certified weights, highest prices, and EPR receipts."
+  },
   "sellOfficer": {
-    "title": "Sell to Officer",
-    "chooseOfficer": "Choose an approved officer",
-    "noOfficers": "No approved officers are available yet.",
-    "officer": "Officer",
+    "title": "Handover to Authorized Recycler",
+    "chooseOfficer": "Select CPCB / SPCB Authorized Recycler",
+    "noOfficers": "No approved recyclers are available in this area yet.",
+    "officer": "Authorized Recycler",
     "noPhone": "No phone shared",
-    "material": "Material",
-    "quantity": "Quantity (kg)",
-    "price": "Agreed price (₹)",
-    "confirm": "Confirm handover",
-    "required": "Choose an officer and material, then enter a valid quantity and price.",
-    "successTitle": "Handover recorded",
-    "successBody": "The sale to {{name}} was recorded. Contact: {{phone}}"
+    "material": "Material Category",
+    "quantity": "Weight (kg)",
+    "price": "Agreed Rate (₹)",
+    "confirm": "Generate EPR Handover Slip",
+    "required": "Select an authorized recycler and material, then enter a valid weight and price.",
+    "successTitle": "EPR Handover Recorded!",
+    "successBody": "Material successfully transferred to {{name}}. Lot Reference: {{lotId}}",
+    "lotId": "E-Waste Lot Reference ID",
+    "eprReceipt": "CPCB E-Waste Rules 2022 Handover Certificate"
   },
   "rating": {
     "title": "Rate your Kabadiwala",
@@ -239,11 +263,14 @@
     "saved": "Rating saved."
   },
   "priceTrend": {
-    "title": "Price trends",
-    "subtitle": "Recent Kabadiwala → Officer transaction prices over the last 90 days.",
+    "title": "Price Trends & Rates",
+    "subtitle": "Authorized Recycler buying prices under E-Waste Rules 2022.",
     "all": "All materials",
     "empty": "No officer handover prices are available yet.",
-    "button": "Price trends"
+    "button": "Price trends",
+    "listenPrices": "🔊 Listen Today's Rates",
+    "marketRange": "Market Range",
+    "officialRate": "CPCB Recycler Offer"
   },
   "quality": {
     "gradeA": "Grade A (Clean & Segregated)",

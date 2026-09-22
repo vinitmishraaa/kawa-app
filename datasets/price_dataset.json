@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "lastUpdated": "2026-09-22",
+  "currency": "INR",
+  "unit": "per kilogram",
+  "description": "Comparative benchmark pricing across key Indian informal scrap hubs vs. KAWA formal CPCB recycler handover rates under E-Waste (Management) Rules, 2022.",
+  "mandisSurveyed": [
+    { "name": "Mayapuri Scrap Hub", "city": "Delhi", "state": "Delhi NCR" },
+    { "name": "Seelampur Informal E-Waste Cluster", "city": "Delhi", "state": "Delhi NCR" },
+    { "name": "Kurla & Dharavi Aggregation Mandi", "city": "Mumbai", "state": "Maharashtra" },
+    { "name": "Peenya & Shivajinagar Waste Mandi", "city": "Bengaluru", "state": "Karnataka" },
+    { "name": "Chandni Chowk Scrap Market", "city": "Kolkata", "state": "West Bengal" }
+  ],
+  "benchmarks": [
+    {
+      "categoryKey": "pcb_circuit_boards",
+      "categoryName": "Printed Circuit Boards (Grade A/B)",
+      "informalBackyardRate": 380,
+      "kawaPlatformRecyclerRate": 520,
+      "marginPremiumINR": 140,
+      "premiumPercent": 36.8,
+      "economicDriver": "Formal hydrometallurgical processing extracts Gold (Au), Silver (Ag), Palladium (Pd), Gallium (Ga) at >98% yield and earns EPR certificates, enabling recyclers to pay 36.8% higher to grassroots collectors."
+    },
+    {
+      "categoryKey": "batteries_lithium_lead",
+      "categoryName": "Lithium-Ion & Lead Acid Batteries",
+      "informalBackyardRate": 95,
+      "kawaPlatformRecyclerRate": 135,
+      "marginPremiumINR": 40,
+      "premiumPercent": 42.1,
+      "economicDriver": "Authorized battery dismantlers recover strategic Lithium (Li) and Cobalt (Co) black mass which is completely burned/lost in backyard smash-and-burn operations."
+    },
+    {
+      "categoryKey": "crt_screens_monitors",
+      "categoryName": "CRT Displays & Old Televisions",
+      "informalBackyardRate": 12,
+      "kawaPlatformRecyclerRate": 22,
+      "marginPremiumINR": 10,
+      "premiumPercent": 83.3,
+      "economicDriver": "Informal yards only pay for the heavy copper deflection yoke and dump leaded glass into open sewers. CPCB facilities recycle the funnel glass and extract Indium (In)."
+    },
+    {
+      "categoryKey": "copper_cables_wiring",
+      "categoryName": "Copper Wires & Telecom Cables",
+      "informalBackyardRate": 480,
+      "kawaPlatformRecyclerRate": 580,
+      "marginPremiumINR": 100,
+      "premiumPercent": 20.8,
+      "economicDriver": "Open-air wire burning oxidizes and incinerates 25-35% of the copper wire mass. Mechanical cryogenic stripping preserves 99.2% copper mass and recovers commercial PVC granules."
+    },
+    {
+      "categoryKey": "motors_compressors_magnets",
+      "categoryName": "Rare Earth Motors & Compressor Units",
+      "informalBackyardRate": 45,
+      "kawaPlatformRecyclerRate": 65,
+      "marginPremiumINR": 20,
+      "premiumPercent": 44.4,
+      "economicDriver": "Refrigerant vacuum capture and rare-earth Neodymium (Nd) permanent magnet recovery creates high-value industrial reuse streams."
+    },
+    {
+      "categoryKey": "iron_metal",
+      "categoryName": "Scrap Iron & Structural Steel",
+      "informalBackyardRate": 26,
+      "kawaPlatformRecyclerRate": 33,
+      "marginPremiumINR": 7,
+      "premiumPercent": 26.9,
+      "economicDriver": "Direct induction furnace supply chain avoids 2 intermediate middlemen traders."
+    },
+    {
+      "categoryKey": "plastics_pet_hdpe",
+      "categoryName": "Rigid Plastic Casings (ABS, HDPE)",
+      "informalBackyardRate": 16,
+      "kawaPlatformRecyclerRate": 24,
+      "marginPremiumINR": 8,
+      "premiumPercent": 50.0,
+      "economicDriver": "Clean segregation by polymer type under quality grading produces food/industrial grade regrind flakes with EPR plastic packaging credits."
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "auditFramework": "Form 6 Manifest (Rule 19) of E-Waste (Management) Rules, 2022",
+  "manifests": [
+    {
+      "manifestId": "LOT-EW-20260922-8G7B",
+      "status": "COMPLETED_RECYCLED",
+      "chainOfCustody": {
+        "step1_citizenCollection": {
+          "citizenId": "c4d32a11-5079-4d7a-a43b-31219b642e11",
+          "citizenName": "Rohit Verma",
+          "pickupAddress": "B-42, Pocket 2, Mayur Vihar Phase-1, East Delhi",
+          "latitude": 28.6083,
+          "longitude": 77.2947,
+          "bookingTimestamp": "2026-09-22T08:30:00Z",
+          "itemsCollected": [
+            { "category": "pcb_circuit_boards", "weightKg": 14.5, "pricePaidINR": 4640 },
+            { "category": "batteries_lithium_lead", "weightKg": 8.0, "pricePaidINR": 800 }
+          ]
+        },
+        "step2_collectorAggregation": {
+          "kabadiwalaId": "d8e20f12-789a-4123-b120-887163821092",
+          "collectorName": "Ramesh Kumar (Kawa Verified Collector)",
+          "shopLocation": "Plot 12, Gazipur Scrap Market, Delhi 110096",
+          "segregationQuality": "Grade A (Clean, unsmashed, dry storage)",
+          "holdingDurationHours": 18
+        },
+        "step3_authorizedRecyclerHandover": {
+          "officerProfileId": "OFFICER-SWM-101",
+          "facilityName": "EcoEx Green Tech E-Waste Processing Facility",
+          "cpcbRegistrationNo": "CPCB/EPR-2022/EW-DL-0045",
+          "handoverTimestamp": "2026-09-22T11:45:00Z",
+          "verifiedWeighbridgeGrossKg": 22.5,
+          "handoverPayoutINR": 8625,
+          "digitalSignatureHash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "step4_criticalMaterialRecovery": {
+          "smeltingBatchNo": "BATCH-HYD-2026-088",
+          "materialsRecovered": [
+            { "element": "Copper (Cu)", "recoveredGrams": 4350, "recoveryYield": "99.1%" },
+            { "element": "Gold (Au)", "recoveredGrams": 3.62, "recoveryYield": "98.4%" },
+            { "element": "Silver (Ag)", "recoveredGrams": 15.9, "recoveryYield": "97.8%" },
+            { "element": "Lithium (Li) Carbonate Equivalent", "recoveredGrams": 520, "recoveryYield": "93.5%" },
+            { "element": "Cobalt (Co)", "recoveredGrams": 780, "recoveryYield": "94.2%" }
+          ],
+          "avoidedToxicEmissions": {
+            "avoidedPM25Kg": 3.8,
+            "avoidedDioxinsFuransMicrogramsTEQ": 420,
+            "avoidedAcidEffluentLiters": 65
+          }
+        },
+        "step5_cpcbEprCreditIssuance": {
+          "cpcbPortalSubmissionId": "EPR-CR-2026-DL-09941",
+          "eprCreditsIssuedMT": 0.0225,
+          "producerBrandAllocation": "Consumer Electronics OEM Consortium",
+          "verificationUrl": "https://eprewastecpcb.in/verify/LOT-EW-20260922-8G7B"
+        }
+      }
+    }
+  ]
+}

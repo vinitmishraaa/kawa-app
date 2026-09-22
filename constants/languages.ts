@@ -7,5 +7,6 @@ export interface LanguageOption {
 export const LANGUAGES: LanguageOption[] = [
   { code: "en", label: "English", subLabel: "Default" },
   { code: "hi", label: "हिन्दी", subLabel: "Hindi" },
+  { code: "mr", label: "मराठी", subLabel: "Marathi" },
   { code: "bn", label: "বাংলা", subLabel: "Bengali" },
 ];
