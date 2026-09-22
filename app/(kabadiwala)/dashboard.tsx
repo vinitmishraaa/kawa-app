@@ -137,7 +137,11 @@ export default function KabadiwalaDashboard() {
   const [editShopAddress, setEditShopAddress] = useState(profile?.address ?? "");
   const [savingShopProfile, setSavingShopProfile] = useState(false);
 
+  // Shop Photo Picker Modal State
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+
   async function handlePickShopPhoto() {
+    setPhotoModalOpen(false);
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
@@ -162,6 +166,7 @@ export default function KabadiwalaDashboard() {
   }
 
   async function handleTakeShopPhoto() {
+    setPhotoModalOpen(false);
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
@@ -184,28 +189,33 @@ export default function KabadiwalaDashboard() {
     }
   }
 
+  async function handleUseSamplePhoto() {
+    setPhotoModalOpen(false);
+    try {
+      const sampleUrl =
+        "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800&auto=format&fit=crop";
+      await updateProfile({
+        shop_photo_url: sampleUrl,
+        shop_name: profile?.shop_name || `${profile?.name ?? "Kawa"} Scrap Center`,
+      });
+      Alert.alert("Shop Photo Set! 📸", "Sample scrap center photo applied.");
+    } catch (err: any) {
+      Alert.alert("Photo Error", err?.message ?? "Could not apply sample photo.");
+    }
+  }
+
+  async function handleRemoveShopPhoto() {
+    setPhotoModalOpen(false);
+    try {
+      await updateProfile({ shop_photo_url: null });
+      Alert.alert("Photo Removed", "Your shop photo has been removed.");
+    } catch (err: any) {
+      Alert.alert("Error", err?.message ?? "Could not remove photo.");
+    }
+  }
+
   function handleChoosePhotoSource() {
-    Alert.alert(
-      "Scrap Shop Photo (दुकान की फोटो)",
-      "Choose an option to update your shop/warehouse photo:",
-      [
-        { text: "Camera (कैमरा)", onPress: handleTakeShopPhoto },
-        { text: "Gallery (गैलरी)", onPress: handlePickShopPhoto },
-        {
-          text: "Use Sample Shop Photo",
-          onPress: async () => {
-            const sampleUrl =
-              "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800&auto=format&fit=crop";
-            await updateProfile({
-              shop_photo_url: sampleUrl,
-              shop_name: profile?.shop_name || `${profile?.name ?? "Kawa"} Scrap Center`,
-            });
-            Alert.alert("Shop Photo Set! 📸", "Sample scrap center photo applied.");
-          },
-        },
-        { text: "Cancel", style: "cancel" },
-      ]
-    );
+    setPhotoModalOpen(true);
   }
 
   useEffect(() => {
@@ -610,16 +620,29 @@ export default function KabadiwalaDashboard() {
       {/* Shop Profile & Photo Banner */}
       <View className="bg-sand rounded-card p-2.5 mb-2.5 border border-line">
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center flex-1 mr-2">
+          <Pressable
+            onPress={() => setPhotoModalOpen(true)}
+            className="flex-row items-center flex-1 mr-2"
+          >
             {profile?.shop_photo_url ? (
-              <Image
-                source={{ uri: profile.shop_photo_url }}
-                className="w-12 h-12 rounded-xl border border-line mr-2.5"
-                resizeMode="cover"
-              />
+              <View className="relative mr-2.5">
+                <Image
+                  source={{ uri: profile.shop_photo_url }}
+                  className="w-12 h-12 rounded-xl border border-line"
+                  resizeMode="cover"
+                />
+                <View className="absolute -bottom-1 -right-1 bg-leaf rounded-full p-1 border border-white">
+                  <MaterialCommunityIcons name="camera" size={10} color="#FFF" />
+                </View>
+              </View>
             ) : (
-              <View className="w-12 h-12 rounded-xl bg-leaf/10 border border-leaf/30 items-center justify-center mr-2.5">
-                <MaterialCommunityIcons name="storefront-outline" size={24} color={theme.leaf} />
+              <View className="relative mr-2.5">
+                <View className="w-12 h-12 rounded-xl bg-leaf/10 border border-leaf/30 items-center justify-center">
+                  <MaterialCommunityIcons name="storefront-outline" size={24} color={theme.leaf} />
+                </View>
+                <View className="absolute -bottom-1 -right-1 bg-leaf rounded-full p-1 border border-white">
+                  <MaterialCommunityIcons name="plus" size={10} color="#FFF" />
+                </View>
               </View>
             )}
             <View className="flex-1">
@@ -633,7 +656,7 @@ export default function KabadiwalaDashboard() {
                 {profile?.phone ? `📞 ${profile.phone}` : "No contact saved"} • {profile?.address ? profile.address.slice(0, 20) + "..." : "Local Mandi"}
               </Text>
             </View>
-          </View>
+          </Pressable>
           <View className="flex-row gap-1.5">
             <Pressable
               onPress={() => setShopModalOpen(true)}
@@ -643,7 +666,7 @@ export default function KabadiwalaDashboard() {
               <Text className="text-bark text-[11px] font-bold ml-1">Edit</Text>
             </Pressable>
             <Pressable
-              onPress={handleChoosePhotoSource}
+              onPress={() => setPhotoModalOpen(true)}
               className="py-1 px-2 bg-leaf rounded-lg flex-row items-center"
             >
               <MaterialCommunityIcons name="camera" size={13} color="#FFF" />
@@ -768,7 +791,7 @@ export default function KabadiwalaDashboard() {
           className="flex-1"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 30 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
         >
           {/* Incoming Customer Bookings */}
           <Text className="text-base font-bold text-bark mb-2">{t("kabadiwalaDashboard.incomingBookings")}</Text>
@@ -893,14 +916,14 @@ export default function KabadiwalaDashboard() {
         </ScrollView>
       )}
 
-      {/* TAB 2: PLANNED ROUTE (प्लांट रूट) */}
+      {/* TAB 4: PLANNED ROUTE (प्लांट रूट) */}
       {activeTab === "route" && (
         <ScrollView
           style={{ flex: 1 }}
           className="flex-1"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 30 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
         >
           <View className="mb-4">
             <Text className="text-base font-bold text-bark mb-1">{t("kabadiwalaDashboard.routeTitle")}</Text>
@@ -908,20 +931,23 @@ export default function KabadiwalaDashboard() {
               {t("kabadiwalaDashboard.routeSubtitle")}
             </Text>
 
-            {coords && (
-              <LeafletMap
-                center={coords}
-                markers={[
-                  { id: "self", latitude: coords.latitude, longitude: coords.longitude, isSelf: true },
-                  ...routeStops.map((s, idx) => ({
-                    id: s.id,
-                    latitude: s.pickup_lat ?? coords.latitude + (idx + 1) * 0.005,
-                    longitude: s.pickup_lng ?? coords.longitude + (idx + 1) * 0.005,
-                    label: `Stop ${idx + 1}`,
-                  })),
-                ]}
-              />
-            )}
+            {(() => {
+              const currentMapCenter = coords ?? coordsRef.current ?? { latitude: 28.6139, longitude: 77.209 };
+              return (
+                <LeafletMap
+                  center={currentMapCenter}
+                  markers={[
+                    { id: "self", latitude: currentMapCenter.latitude, longitude: currentMapCenter.longitude, isSelf: true },
+                    ...routeStops.map((s, idx) => ({
+                      id: s.id,
+                      latitude: s.pickup_lat ?? currentMapCenter.latitude + (idx + 1) * 0.005,
+                      longitude: s.pickup_lng ?? currentMapCenter.longitude + (idx + 1) * 0.005,
+                      label: `Stop ${idx + 1}`,
+                    })),
+                  ]}
+                />
+              );
+            })()}
           </View>
 
           {routeStops.length === 0 ? (
@@ -994,7 +1020,7 @@ export default function KabadiwalaDashboard() {
           className="flex-1"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 35 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
         >
           <View className="mb-3">
             <Text className="text-lg font-extrabold text-bark">
@@ -1015,40 +1041,36 @@ export default function KabadiwalaDashboard() {
               return (
                 <View
                   key={item.key}
-                  className="bg-sand border border-line rounded-card p-3.5 flex-row items-center justify-between"
+                  className="bg-sand border border-line rounded-2xl p-3.5 shadow-xs"
                 >
-                  <View className="flex-row items-center flex-1 mr-2">
-                    <View className="w-10 h-10 rounded-full bg-leafLight items-center justify-center mr-3 border border-leaf/20">
-                      <MaterialCommunityIcons name={item.icon as any} size={22} color={theme.leaf} />
-                    </View>
-                    <View className="flex-1">
-                      <View className="flex-row items-center">
-                        <Text className="font-bold text-bark text-sm">{item.nameEn}</Text>
-                        <Text className="text-xs text-bark/50 ml-1.5 font-medium">({item.nameHi})</Text>
+                  {/* ROW 1: Item Info & Stepper Controls */}
+                  <View className="flex-row items-center justify-between">
+                    {/* Left: Icon & Dual-language Name */}
+                    <View className="flex-row items-center flex-1 mr-2">
+                      <View className="w-10 h-10 rounded-xl bg-leafLight items-center justify-center mr-2.5 border border-leaf/20">
+                        <MaterialCommunityIcons name={item.icon as any} size={22} color={theme.leaf} />
                       </View>
-                      <View className="flex-row items-center mt-0.5">
-                        <Text className="text-[11px] text-bark/60">
-                          Resale benchmark: ₹{expectedResale}/kg
+                      <View className="flex-1">
+                        <Text className="font-extrabold text-bark text-sm" numberOfLines={1}>
+                          {item.nameEn}
                         </Text>
-                        <Text className={`text-[11px] font-bold ml-2 ${marginPerKg >= 0 ? "text-leaf" : "text-clay"}`}>
-                          ({marginPerKg >= 0 ? "+" : ""}₹{marginPerKg}/kg margin)
+                        <Text className="text-xs text-bark/60 font-semibold mt-0.5" numberOfLines={1}>
+                          {item.nameHi}
                         </Text>
                       </View>
                     </View>
-                  </View>
 
-                  {/* Price Controls */}
-                  <View className="items-end">
-                    <View className="flex-row items-center bg-white border border-line rounded-xl px-2 py-1">
+                    {/* Right: Plus / Minus Stepper */}
+                    <View className="flex-row items-center bg-white border border-line rounded-xl px-1.5 py-1">
                       <Pressable
                         onPress={() => handleRateChange(item.key, currentRate - 5)}
                         className="w-7 h-7 rounded-lg bg-sand items-center justify-center border border-line"
-                        hitSlop={5}
+                        hitSlop={8}
                       >
                         <MaterialCommunityIcons name="minus" size={16} color={theme.bark} />
                       </Pressable>
 
-                      <View className="flex-row items-center mx-2">
+                      <View className="flex-row items-center px-1.5">
                         <Text className="text-sm font-black text-bark">₹</Text>
                         <TextInput
                           value={String(currentRate)}
@@ -1065,10 +1087,38 @@ export default function KabadiwalaDashboard() {
                       <Pressable
                         onPress={() => handleRateChange(item.key, currentRate + 5)}
                         className="w-7 h-7 rounded-lg bg-sand items-center justify-center border border-line"
-                        hitSlop={5}
+                        hitSlop={8}
                       >
                         <MaterialCommunityIcons name="plus" size={16} color={theme.leaf} />
                       </Pressable>
+                    </View>
+                  </View>
+
+                  {/* ROW 2: Benchmark & Margin Breakdown Pill */}
+                  <View className="flex-row items-center justify-between mt-2.5 pt-2 border-t border-line/40">
+                    <View className="flex-row items-center">
+                      <MaterialCommunityIcons name="factory" size={14} color={theme.bark} />
+                      <Text className="text-[11px] text-bark/70 font-medium ml-1">
+                        Officer/Recycler: <Text className="font-bold text-bark">₹{expectedResale}/kg</Text>
+                      </Text>
+                    </View>
+                    <View
+                      className={`px-2 py-0.5 rounded-full flex-row items-center ${
+                        marginPerKg >= 0 ? "bg-leafLight border border-leaf/30" : "bg-clay/10 border border-clay/30"
+                      }`}
+                    >
+                      <MaterialCommunityIcons
+                        name={marginPerKg >= 0 ? "trending-up" : "trending-down"}
+                        size={12}
+                        color={marginPerKg >= 0 ? theme.leaf : theme.clay}
+                      />
+                      <Text
+                        className={`text-[11px] font-black ml-1 ${
+                          marginPerKg >= 0 ? "text-leaf" : "text-clay"
+                        }`}
+                      >
+                        {marginPerKg >= 0 ? "+" : ""}₹{marginPerKg}/kg margin
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -1121,7 +1171,7 @@ export default function KabadiwalaDashboard() {
           className="flex-1"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 35 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
         >
           {/* Summary Metric Cards */}
           <View className="flex-row mb-2.5">
@@ -1765,6 +1815,130 @@ export default function KabadiwalaDashboard() {
                 loading={savingShopProfile}
               />
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ================= SHOP PHOTO SELECTION MODAL ================= */}
+      <Modal
+        visible={photoModalOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setPhotoModalOpen(false)}
+      >
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="bg-sand rounded-t-3xl p-5 max-h-[85%] border-t border-line">
+            <View className="flex-row items-center justify-between pb-3 border-b border-line mb-3">
+              <View className="flex-row items-center">
+                <MaterialCommunityIcons name="camera-enhance" size={24} color={theme.leaf} />
+                <View className="ml-2">
+                  <Text className="text-base font-black text-bark">
+                    Scrap Shop Photo (दुकान की फोटो)
+                  </Text>
+                  <Text className="text-xs text-bark/60">
+                    Add or update your scrap center photo
+                  </Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => setPhotoModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-white items-center justify-center border border-line"
+              >
+                <MaterialCommunityIcons name="close" size={18} color={theme.bark} />
+              </Pressable>
+            </View>
+
+            {/* Current photo preview */}
+            <View className="items-center mb-4">
+              {profile?.shop_photo_url ? (
+                <View className="w-full h-40 rounded-2xl overflow-hidden border border-line shadow-xs mb-2">
+                  <Image
+                    source={{ uri: profile.shop_photo_url }}
+                    className="w-full h-full"
+                    resizeMode="cover"
+                  />
+                </View>
+              ) : (
+                <View className="w-full h-32 rounded-2xl bg-leaf/10 border-2 border-dashed border-leaf/30 items-center justify-center mb-2">
+                  <MaterialCommunityIcons name="storefront" size={38} color={theme.leaf} />
+                  <Text className="text-xs font-bold text-bark mt-2">
+                    No Shop Photo Uploaded Yet
+                  </Text>
+                  <Text className="text-[11px] text-bark/60">
+                    Add a photo so customers can recognize your scrap shop
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Action options */}
+            <View className="gap-2.5 mb-3">
+              <Pressable
+                onPress={handleTakeShopPhoto}
+                className="bg-leaf rounded-2xl p-3.5 flex-row items-center shadow-xs"
+              >
+                <View className="w-9 h-9 rounded-full bg-white/20 items-center justify-center mr-3">
+                  <MaterialCommunityIcons name="camera" size={20} color="#FFF" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-white font-black text-sm">
+                    Take Photo with Camera
+                  </Text>
+                  <Text className="text-white/80 text-xs">कैमरा से दुकान की फोटो खींचें</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#FFF" />
+              </Pressable>
+
+              <Pressable
+                onPress={handlePickShopPhoto}
+                className="bg-white border border-line rounded-2xl p-3.5 flex-row items-center shadow-xs"
+              >
+                <View className="w-9 h-9 rounded-full bg-sand items-center justify-center mr-3 border border-line">
+                  <MaterialCommunityIcons name="image-multiple" size={20} color={theme.leaf} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-bark font-black text-sm">
+                    Choose from Gallery
+                  </Text>
+                  <Text className="text-bark/60 text-xs">फोन की गैलरी से फोटो अपलोड करें</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color={theme.bark} />
+              </Pressable>
+
+              <Pressable
+                onPress={handleUseSamplePhoto}
+                className="bg-sand border border-line rounded-2xl p-3 flex-row items-center"
+              >
+                <View className="w-8 h-8 rounded-full bg-paper items-center justify-center mr-3 border border-line">
+                  <MaterialCommunityIcons name="store-check" size={18} color={theme.bark} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-bark font-bold text-xs">
+                    Use Sample Scrap Center Photo
+                  </Text>
+                  <Text className="text-bark/60 text-[10px]">नमूना दुकान फोटो इस्तेमाल करें</Text>
+                </View>
+              </Pressable>
+
+              {profile?.shop_photo_url && (
+                <Pressable
+                  onPress={handleRemoveShopPhoto}
+                  className="bg-danger/10 border border-danger/30 rounded-2xl p-2.5 flex-row items-center justify-center"
+                >
+                  <MaterialCommunityIcons name="trash-can-outline" size={16} color={theme.danger} />
+                  <Text className="text-danger font-bold text-xs ml-1.5">
+                    Remove Shop Photo (फोटो हटाएं)
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+
+            <Pressable
+              onPress={() => setPhotoModalOpen(false)}
+              className="py-3 bg-paper border border-line rounded-xl items-center"
+            >
+              <Text className="text-bark font-bold text-xs">Cancel (रद्द करें)</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>

@@ -250,10 +250,35 @@ export async function getKabadiwalaWasteLedger(
     };
   }
 
+  function resolveCategoryKey(rawCat: string): string {
+    const raw = (rawCat ?? "other").toLowerCase();
+    const exact = Object.keys(categoryMap).find((k) => raw === k || raw.includes(k));
+    if (exact) return exact;
+
+    if (raw.includes("pcb") || raw.includes("circuit") || raw.includes("motherboard")) return "ewaste_pcb";
+    if (raw.includes("batter")) return "ewaste_batteries";
+    if (raw.includes("cable") || raw.includes("wire")) return "ewaste_cables";
+    if (raw.includes("screen") || raw.includes("display") || raw.includes("monitor") || raw.includes("tv")) return "ewaste_screens";
+    if (raw.includes("motor") || raw.includes("compressor") || raw.includes("fan")) return "ewaste_motors";
+    if (raw.includes("phone") || raw.includes("mobile") || raw.includes("tablet")) return "ewaste_mobiles";
+    if (raw.includes("appliance") || raw.includes("washing") || raw.includes("fridge")) return "ewaste_appliances";
+    if (raw.includes("ewaste") || raw.includes("electronic")) return "ewaste";
+    if (raw.includes("copper") || raw.includes("तांबा")) return "copper";
+    if (raw.includes("brass") || raw.includes("पीतल")) return "brass";
+    if (raw.includes("alumin") || raw.includes("एल्युमिनियम")) return "aluminium";
+    if (raw.includes("iron") || raw.includes("steel") || raw.includes("लोहा")) return "iron";
+    if (raw.includes("paper") || raw.includes("book") || raw.includes("newspaper") || raw.includes("अखबार")) return "paper";
+    if (raw.includes("cardboard") || raw.includes("carton") || raw.includes("गत्ता")) return "cardboard";
+    if (raw.includes("plastic") || raw.includes("bottle") || raw.includes("प्लास्टिक")) return "plastic";
+    if (raw.includes("glass") || raw.includes("कांच")) return "glass";
+
+    return "other";
+  }
+
   // Populate from intake rows
   for (const r of intakeRows) {
-    const rawCat = (r.material_category ?? "other").toLowerCase();
-    const matchedKey = Object.keys(categoryMap).find((k) => rawCat.includes(k)) ?? "other";
+    const rawCat = r.material_category ?? "other";
+    const matchedKey = resolveCategoryKey(rawCat);
     const cat = categoryMap[matchedKey];
     if (cat) {
       cat.intakeKg += Number(r.quantity ?? 0);
@@ -263,8 +288,8 @@ export async function getKabadiwalaWasteLedger(
 
   // Populate from outgoing rows
   for (const r of outgoingRows) {
-    const rawCat = (r.material_category ?? "other").toLowerCase();
-    const matchedKey = Object.keys(categoryMap).find((k) => rawCat.includes(k)) ?? "other";
+    const rawCat = r.material_category ?? "other";
+    const matchedKey = resolveCategoryKey(rawCat);
     const cat = categoryMap[matchedKey];
     if (cat) {
       cat.outgoingKg += Number(r.quantity ?? 0);

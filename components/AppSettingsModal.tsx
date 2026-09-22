@@ -39,8 +39,9 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
       const locStatus = await Location.getForegroundPermissionsAsync();
       setLocGranted(locStatus.status === "granted");
 
-      const camStatus = await Camera.getCameraPermissionsAsync();
-      setCamGranted(camStatus.status === "granted");
+      const camStatus = await ImagePicker.getCameraPermissionsAsync();
+      const libStatus = await ImagePicker.getMediaLibraryPermissionsAsync();
+      setCamGranted(camStatus.status === "granted" || libStatus.status === "granted");
     } catch {
       // Ignored
     }
@@ -48,26 +49,20 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
 
   async function handleToggleLocation() {
     try {
-      const granted = await requestLocationPermission();
-      setLocGranted(granted);
-      if (!granted) {
-        Alert.alert("Permission Notice", "Location permission is disabled. You can re-enable it in device settings.");
-      }
-    } catch (err: any) {
-      Alert.alert("Location", err?.message ?? "Could not request location");
+      const res = await Location.requestForegroundPermissionsAsync();
+      setLocGranted(res.status === "granted");
+    } catch {
+      // Ignored
     }
   }
 
   async function handleToggleCamera() {
     try {
-      const res = await Camera.requestCameraPermissionsAsync();
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
-      setCamGranted(res.status === "granted");
-      if (res.status !== "granted") {
-        Alert.alert("Permission Notice", "Camera permission is disabled. You can re-enable it in device settings.");
-      }
-    } catch (err: any) {
-      Alert.alert("Camera", err?.message ?? "Could not request camera");
+      const camRes = await ImagePicker.requestCameraPermissionsAsync();
+      const libRes = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      setCamGranted(camRes.status === "granted" || libRes.status === "granted");
+    } catch {
+      // Ignored
     }
   }
 
@@ -77,43 +72,17 @@ export function AppSettingsModal({ visible, onClose }: AppSettingsModalProps) {
   }
 
   async function handleSwitchAccount() {
-    Alert.alert(
-      "Switch Account / Role",
-      "To open another account (Customer, Kabadiwala, or Officer), you will be logged out first. Proceed?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Log Out & Switch",
-          style: "destructive",
-          onPress: async () => {
-            onClose();
-            await signOut().catch(() => {});
-            resetAuth();
-            router.replace("/(auth)/role-select");
-          },
-        },
-      ]
-    );
+    onClose();
+    await signOut().catch(() => {});
+    resetAuth();
+    router.replace("/(auth)/role-select");
   }
 
   async function handleLogout() {
-    Alert.alert(
-      "Confirm Logout",
-      "Are you sure you want to log out of your account?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Log Out",
-          style: "destructive",
-          onPress: async () => {
-            onClose();
-            await signOut().catch(() => {});
-            resetAuth();
-            router.replace("/(auth)/role-select");
-          },
-        },
-      ]
-    );
+    onClose();
+    await signOut().catch(() => {});
+    resetAuth();
+    router.replace("/(auth)/role-select");
   }
 
   const roleLabel =
