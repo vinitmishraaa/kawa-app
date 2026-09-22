@@ -36,6 +36,18 @@ export const AUTHORIZED_OFFICER_IDS: AuthorizedOfficer[] = [
     department: "Central Waste Command & Oversight",
     zone: "Central Command",
   },
+  {
+    officerId: "RECYCLER-CPCB-01",
+    name: "EcoRecycle Facility Manager (Rajesh Sharma)",
+    department: "CPCB/EPR/2022/REG-0492 • Registered E-Waste Recycler",
+    zone: "MIDC Turbhe, Navi Mumbai",
+  },
+  {
+    officerId: "RECYCLER-CPCB-02",
+    name: "MahaE-Waste Recycling Hub",
+    department: "MPCB/EPR/AUT/2022/9914 • Authorized Refiner",
+    zone: "Bhosari MIDC, Pune",
+  },
 ];
 
 export function findAuthorizedOfficer(id: string): AuthorizedOfficer | null {

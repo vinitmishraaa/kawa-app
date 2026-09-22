@@ -61,11 +61,46 @@ KAWA bridges this gap with an intuitive, multi-lingual, voice-enabled mobile pla
   - ✅ **Safe Handling Protocols**: Heavy-duty PPE, dry shaded storage, battery terminal taping, and direct handover to CPCB units.
 - **Audio Voice Explanations**: 1-tap playback narrates safety precautions aloud for low-literacy collectors.
 
-### 3. 📜 Verifiable Lot Tracking & EPR Digital Manifests
-- **Digital Handover Manifest (`sell-to-officer.tsx`)**: Generates unique, tamper-resistant Lot IDs (`LOT-EW-YYYYMMDD-XXXX`) complying with Rule 13(1) and Form 6 manifests of the E-Waste Rules 2022.
+### 3. 📦 Create Digital Lot & Instant Valuation Engine
+- **Dedicated Lot Creation (`/(kabadiwala)/create-lot`)**:
+  - **Scrap Photography**: Integrated device camera/gallery to attach clear photographic evidence of collected scrap.
+  - **Statutory CPCB Lot ID**: Auto-generates unique, tamper-resistant identifiers (`LOT-EW-YYYYMMDD-XXXXX`) compliant with Rule 13(1) of the E-Waste Rules 2022.
+  - **Instant Valuation Breakdown**: Real-time calculation of estimated buying cost, authorized recycler payout, and collector's net profit margin.
+  - **Voice Narration**: 1-tap voice audio explains lot details and valuation in Marathi, Hindi, or English.
+
+### 4. 🏭 CPCB Authorized Recyclers & Intelligent Distance Matcher
+- **Verified Facilities Directory**: Live dataset of verified CPCB/SPCB registered recyclers across Maharashtra, Delhi NCR, West Bengal, and Karnataka.
+- **Intelligent Proximity & Payout Ranking**:
+  - Calculates real-time distance using Haversine formula based on current coordinates.
+  - Compares offered rates per kilogram and highlights the **`#1 Best Payout`** option.
+  - Indicates on-site pickup availability (`Doorstep Pickup Available` vs `Self-Transport Required`).
+
+### 5. 🤖 AI/ML Material Advisor & Price Anomaly Detection
+- **Critical Minerals Identifier**: Automatically detects strategic raw materials contained in each scrap category:
+  - High-grade PCBs ➔ **Gold (Au), Gallium (Ga), Tantalum (Ta), Silver (Ag)**
+  - Lithium-Ion Batteries ➔ **Lithium (Li), Cobalt (Co), Nickel (Ni)**
+  - Motors / Hard Drives ➔ **Neodymium (Nd), Dysprosium (Dy)**
+  - Display Panels ➔ **Indium (In)**
+- **Price Anomaly Detection**: Real-time statistical audit of entered sale prices against official CPCB benchmark ranges:
+  - ⚠️ Warns collectors if a rate is >30% below market value (protecting against exploitation by middlemen).
+  - ⚠️ Flags rates >40% above benchmark as potential input typos.
+
+### 6. 📶 Offline-First Mandi Sync Architecture
+- **Low-Connectivity Resilience**: Scrap yards and mandis often suffer from poor cellular network coverage.
+- **Persistent Local Queue**: Unsent digital lots and recycler handovers are instantly cached locally using `@react-native-async-storage/async-storage`.
+- **Auto-Sync**: Automatically syncs queued records to Supabase when network connectivity is restored, with visual offline badges and manual "Sync Now" triggers on the dashboard.
+
+### 7. 📈 Interactive In-App Unit Economics Hub
+- **Interactive Calculator (`/(kabadiwala)/unit-economics`)**:
+  - Live side-by-side comparison: **Informal Backyard Acid Leaching / Burning** vs **KAWA CPCB Formal Route**.
+  - Interactive weight selector (20 kg, 50 kg, 100 kg, 250 kg, 500 kg) showing dynamic revenue, chemical cost savings, EPR bonus, and net profit difference (+70% profit gain).
+  - Multi-lingual voice playback narrating financial benefits in Marathi, Hindi, Bengali, or English.
+
+### 8. 📜 Verifiable Lot Tracking & EPR Digital Manifests
+- **Digital Handover Manifest (`sell-to-officer.tsx`)**: Links collector lots directly to authorized recyclers with lot photo proof, rate auto-fill, and anomaly warnings.
 - **Chain of Custody**: Links the collector's intake to the authorized recycler’s weighbridge receipt, creating verifiable proof that material was not burned in backyards.
 
-### 4. 🏷️ E-Waste Rules 2022 Scrap Taxonomy & Rate Cards
+### 9. 🏷️ E-Waste Rules 2022 Scrap Taxonomy & Rate Cards
 - Complete catalog of high-value and hazardous streams:
   - **PCBs / Circuit Boards** (Au, Ag, Cu, Ga, Ta)
   - **Lithium & Lead Batteries** (Li, Co, Ni, Pb)
@@ -74,11 +109,11 @@ KAWA bridges this gap with an intuitive, multi-lingual, voice-enabled mobile pla
   - **Motors, Compressors & Magnets** (Nd, Dy, Cu)
   - *Plus traditional Paper, Plastics, Iron, and Brass.*
 
-### 5. 🗺️ Route Optimization & Offline-Friendly Mapping
+### 10. 🗺️ Route Optimization & Offline-Friendly Mapping
 - Interactive route preview using **Leaflet.js + OpenStreetMap** (100% open-source, zero Google Maps API costs).
 - Deep-links to native Google Maps for seamless turn-by-turn driving directions.
 
-### 6. 🏛️ Authorized Recycler & Municipal Oversight Portal
+### 11. 🏛️ Authorized Recycler & Municipal Oversight Portal
 - Portal for authorized e-waste dismantling facilities and municipal enforcement officers.
 - Real-time audit logs of incoming waste batches, quality grading distribution (Grade A Clean, Grade B Semi-sorted, Grade C Mixed), and overdue stock tracking (>7 days) with statutory municipal notice dispatchers.
 
@@ -138,6 +173,8 @@ Use any of these pre-configured authorized credentials to test the **Authorized 
 | **Cloud Database & Auth** | Supabase (PostgreSQL 15+ & PostGIS) | Free-Tier Compatible |
 | **Styling** | NativeWind v4 (Tailwind CSS) | Open-Source |
 | **State Management** | Zustand (Global reactive store) | Open-Source |
+| **Offline Mandi Sync** | `@react-native-async-storage/async-storage` | **100% Free / Zero API cost** |
+| **AI/ML Rules & Anomaly Engine** | Deterministic heuristics & statistical models | **100% Free / In-App Edge Inference** |
 | **Multi-Language (i18n)** | `i18next` (EN, HI, MR, BN) | Open-Source |
 
 ---

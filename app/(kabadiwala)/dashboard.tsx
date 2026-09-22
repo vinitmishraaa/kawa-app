@@ -49,6 +49,7 @@ import {
   acknowledgeNotice,
   type MunicipalNotice,
 } from "../../services/queries/notices";
+import { getPendingQueueCount, syncOfflineQueue } from "../../services/offlineQueue";
 
 function buildInitialLedger(customRates?: Record<string, number> | null) {
   const rates = customRates ?? getDefaultPriceRates();
@@ -100,6 +101,7 @@ export default function KabadiwalaDashboard() {
   const [ledgerSubTab, setLedgerSubTab] = useState<"breakdown" | "intake" | "outgoing">("breakdown");
   const [refreshing, setRefreshing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [offlinePendingCount, setOfflinePendingCount] = useState(0);
 
   // Rate Card Management State
   const [editingRates, setEditingRates] = useState<Record<string, number>>(() => ({
@@ -275,6 +277,7 @@ export default function KabadiwalaDashboard() {
       if (nearbyListingsData) setListings(nearbyListingsData);
       if (ledgerData) setLedger(ledgerData);
       if (noticesData) setNotices(noticesData);
+      getPendingQueueCount().then(setOfflinePendingCount).catch(() => {});
       lastLoadedAtRef.current = Date.now();
     } catch {
       // Keep UI active on errors
@@ -290,6 +293,7 @@ export default function KabadiwalaDashboard() {
   useFocusEffect(
     useCallback(() => {
       loadRef.current(false);
+      getPendingQueueCount().then(setOfflinePendingCount).catch(() => {});
     }, [])
   );
 
@@ -322,9 +326,24 @@ export default function KabadiwalaDashboard() {
   async function handleRefresh() {
     setRefreshing(true);
     try {
+      await syncOfflineQueue().catch(() => {});
       await load(true);
+      const count = await getPendingQueueCount().catch(() => 0);
+      setOfflinePendingCount(count);
     } finally {
       setRefreshing(false);
+    }
+  }
+
+  async function handleSyncOffline() {
+    try {
+      const res = await syncOfflineQueue();
+      const count = await getPendingQueueCount();
+      setOfflinePendingCount(count);
+      Alert.alert("Sync Complete 📶", `${res.synced} offline transaction(s) synchronized with database.`);
+      await load(true);
+    } catch {
+      Alert.alert("Sync Notice", "Could not sync. Ensure you have an active internet connection.");
     }
   }
 
@@ -678,31 +697,88 @@ export default function KabadiwalaDashboard() {
         </View>
       </View>
 
+      {/* Offline Pending Queue Notice (if any items queued offline) */}
+      {offlinePendingCount > 0 && (
+        <Pressable
+          onPress={handleSyncOffline}
+          className="bg-clay/10 border-2 border-clay/40 rounded-2xl p-3 mb-2.5 flex-row items-center justify-between shadow-xs"
+        >
+          <View className="flex-row items-center flex-1 mr-2">
+            <MaterialCommunityIcons name="cloud-sync" size={20} color={theme.clay} />
+            <View className="ml-2 flex-1">
+              <Text className="text-xs font-black text-clay">
+                {offlinePendingCount} Offline Lot(s) Waiting for Sync
+              </Text>
+              <Text className="text-[10px] text-bark/60">
+                Tap to sync local lots with CPCB database
+              </Text>
+            </View>
+          </View>
+          <View className="px-2.5 py-1 bg-clay rounded-lg">
+            <Text className="text-white text-[10px] font-black uppercase">Sync Now</Text>
+          </View>
+        </Pressable>
+      )}
+
       {/* E-Waste Rules 2022 Quick Action Hub */}
+      {/* ROW 1: PRIMARY ACTION BUTTONS */}
+      <View className="flex-row gap-2 mb-2">
+        <Pressable
+          onPress={() => router.push("/(kabadiwala)/create-lot" as any)}
+          className="flex-1 bg-leaf rounded-xl py-2.5 px-2 items-center justify-center shadow-xs flex-row"
+        >
+          <MaterialCommunityIcons name="qrcode-scan" size={18} color="#FFF" />
+          <View className="ml-2">
+            <Text className="text-xs font-black text-white" numberOfLines={1}>
+              Create Digital Lot
+            </Text>
+            <Text className="text-[9px] text-white/80 font-medium" numberOfLines={1}>
+              डिजिटल लॉट व मूल्यांकन
+            </Text>
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push("/(kabadiwala)/sell-to-officer" as any)}
+          className="flex-1 bg-paper border border-leaf/40 rounded-xl py-2.5 px-2 items-center justify-center shadow-xs flex-row"
+        >
+          <MaterialCommunityIcons name="factory" size={18} color={theme.leaf} />
+          <View className="ml-2">
+            <Text className="text-xs font-black text-leaf" numberOfLines={1}>
+              Recycler Handover
+            </Text>
+            <Text className="text-[9px] text-bark/60 font-medium" numberOfLines={1}>
+              अधिकृत रीसाइक्लर को बिक्री
+            </Text>
+          </View>
+        </Pressable>
+      </View>
+
+      {/* ROW 2: KNOWLEDGE & EARNINGS TOOLS */}
       <View className="flex-row gap-2 mb-2.5">
         <Pressable
           onPress={() => router.push("/(kabadiwala)/safety-guidance" as any)}
           className="flex-1 bg-clay/10 border border-clay/30 rounded-xl py-2 px-1 items-center justify-center shadow-xs"
         >
-          <MaterialCommunityIcons name="shield-alert-outline" size={18} color={theme.clay} />
-          <Text className="text-[11px] font-black text-clay mt-0.5 text-center" numberOfLines={1}>
-            {t("kabadiwalaDashboard.safetyHub")}
+          <MaterialCommunityIcons name="shield-alert-outline" size={16} color={theme.clay} />
+          <Text className="text-[10px] font-black text-clay mt-0.5 text-center" numberOfLines={1}>
+            {t("kabadiwalaDashboard.safetyHub", { defaultValue: "Safety Hub" })}
           </Text>
           <Text className="text-[9px] text-clay/80 text-center font-medium" numberOfLines={1}>
-            {t("kabadiwalaDashboard.safetyHubSub")}
+            सुरक्षा नियम
           </Text>
         </Pressable>
 
         <Pressable
-          onPress={() => router.push("/(kabadiwala)/sell-to-officer" as any)}
-          className="flex-1 bg-leaf/10 border border-leaf/30 rounded-xl py-2 px-1 items-center justify-center shadow-xs"
+          onPress={() => router.push("/(kabadiwala)/unit-economics" as any)}
+          className="flex-1 bg-leafLight border border-leaf/40 rounded-xl py-2 px-1 items-center justify-center shadow-xs"
         >
-          <MaterialCommunityIcons name="factory" size={18} color={theme.leaf} />
-          <Text className="text-[11px] font-black text-leaf mt-0.5 text-center" numberOfLines={1}>
-            {t("kabadiwalaDashboard.recyclerSale")}
+          <MaterialCommunityIcons name="trending-up" size={16} color={theme.leaf} />
+          <Text className="text-[10px] font-black text-leaf mt-0.5 text-center" numberOfLines={1}>
+            Unit Economics
           </Text>
           <Text className="text-[9px] text-leaf/80 text-center font-medium" numberOfLines={1}>
-            {t("kabadiwalaDashboard.recyclerSaleSub")}
+            कमाई तुलना
           </Text>
         </Pressable>
 
@@ -710,12 +786,12 @@ export default function KabadiwalaDashboard() {
           onPress={() => router.push("/price-trends" as any)}
           className="flex-1 bg-sand border border-line rounded-xl py-2 px-1 items-center justify-center shadow-xs"
         >
-          <MaterialCommunityIcons name="volume-high" size={18} color={theme.bark} />
-          <Text className="text-[11px] font-black text-bark mt-0.5 text-center" numberOfLines={1}>
-            {t("kabadiwalaDashboard.voiceRates")}
+          <MaterialCommunityIcons name="volume-high" size={16} color={theme.bark} />
+          <Text className="text-[10px] font-black text-bark mt-0.5 text-center" numberOfLines={1}>
+            {t("kabadiwalaDashboard.voiceRates", { defaultValue: "Voice Rates" })}
           </Text>
           <Text className="text-[9px] text-bark/60 text-center font-medium" numberOfLines={1}>
-            {t("kabadiwalaDashboard.voiceRatesSub")}
+            बोलता भाव
           </Text>
         </Pressable>
       </View>
